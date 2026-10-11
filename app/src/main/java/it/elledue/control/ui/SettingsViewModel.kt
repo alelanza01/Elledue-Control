@@ -11,6 +11,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
 
 sealed interface SaveState {
@@ -22,7 +24,12 @@ sealed interface SaveState {
 }
 
 class SettingsViewModel(private val repository: SettingsRepository) : ViewModel() {
-    val settings: StateFlow<AppSettings?> = repository.settings.stateIn(
+    private val mutableLoadFailed = MutableStateFlow(false)
+    val loadFailed = mutableLoadFailed.asStateFlow()
+    val settings: StateFlow<AppSettings?> = repository.settings
+        .map<AppSettings, AppSettings?> { it }
+        .catch { mutableLoadFailed.value = true; emit(null) }
+        .stateIn(
         viewModelScope, SharingStarted.WhileSubscribed(5_000), null,
     )
     private val mutableSaveState = MutableStateFlow<SaveState>(SaveState.Idle)

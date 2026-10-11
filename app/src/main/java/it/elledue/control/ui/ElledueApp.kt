@@ -41,6 +41,7 @@ fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewMo
     val error by propertiesModel.error.collectAsStateWithLifecycle()
     val settings by settingsModel.settings.collectAsStateWithLifecycle()
     val saveState by settingsModel.saveState.collectAsStateWithLifecycle()
+    val settingsLoadFailed by settingsModel.loadFailed.collectAsStateWithLifecycle()
     val records = (state as? PropertyLoadState.Ready)?.items.orEmpty()
     val showNavigation = route == null || sections.any { it.route == route }
     val goProperties = { navigation.navigate("properties") { launchSingleTop = true } }
@@ -58,7 +59,7 @@ fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewMo
                         }
                     },
                     icon = { Icon(section.icon, contentDescription = section.title) },
-                    label = { Text(section.title, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                    label = { Text(if (section.route == "settings") "Impost." else section.title, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis) },
                     modifier = Modifier.testTag("nav-${section.route}"),
                 )
             }
@@ -148,7 +149,8 @@ fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewMo
                     Column(Modifier.fillMaxSize().padding(padding).padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         Text("La tua organizzazione", style = MaterialTheme.typography.headlineMedium)
                         val current = settings
-                        if (current == null) CircularProgressIndicator() else {
+                        if (settingsLoadFailed) Text("Impostazioni non disponibili. Riavvia l’app senza eliminare i dati.", color = MaterialTheme.colorScheme.error)
+                        else if (current == null) CircularProgressIndicator() else {
                             var name by rememberSaveable { mutableStateOf(current.organizationName) }
                             OutlinedTextField(name, { name = it; settingsModel.clearSaveState() }, label = { Text("Nome organizzazione") }, singleLine = true, enabled = saveState != SaveState.Saving, modifier = Modifier.fillMaxWidth())
                             Button(onClick = { settingsModel.save(name) }, enabled = saveState != SaveState.Saving) { Text("Salva") }

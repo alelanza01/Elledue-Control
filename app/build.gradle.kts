@@ -58,7 +58,7 @@ tasks.withType<Test>().configureEach {
     systemProperty("robolectric.dependency.repo.url", "https://repo.maven.apache.org/maven2")
     systemProperty("user.home", System.getenv("ANDROID_USER_HOME") ?: System.getProperty("user.home"))
     maxHeapSize = "2g"
-    listOf("http.proxyHost", "http.proxyPort", "https.proxyHost", "https.proxyPort").forEach { name ->
+    listOf("http.proxyHost", "http.proxyPort", "https.proxyHost", "https.proxyPort", "javax.net.ssl.trustStore").forEach { name ->
         System.getProperty(name)?.let { systemProperty(name, it) }
     }
 }

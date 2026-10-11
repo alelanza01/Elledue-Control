@@ -7,13 +7,31 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import java.io.File
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34])
+@Config(sdk = [34], qualifiers = "w411dp-h891dp-xxhdpi")
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
 class AppNavigationTest {
     @get:Rule val compose = createAndroidComposeRule<MainActivity>()
     private fun waitText(text: String) {
         compose.waitUntil(15_000) { compose.onAllNodes(hasText(text)).fetchSemanticsNodes().isNotEmpty() }
+    }
+
+    private fun screenshot(name: String, expectedBackground: Int? = null) {
+        compose.runOnIdle {
+            val view = compose.activity.window.decorView
+            val bitmap = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
+            view.draw(Canvas(bitmap))
+            if (expectedBackground != null) org.junit.Assert.assertEquals(expectedBackground, bitmap.getPixel(view.width / 2, view.height * 3 / 4))
+            val file = File("build/reports/screenshots/$name.png")
+            file.parentFile!!.mkdirs()
+            file.outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
+            bitmap.recycle()
+        }
     }
 
     @Test fun allMainSectionsAndSettingsAreAccessible() {
@@ -30,6 +48,14 @@ class AppNavigationTest {
         waitText("Impostazioni salvate")
         compose.onNodeWithTag("nav-dashboard").performClick()
         compose.onNodeWithText("La tua gestione").assertIsDisplayed()
+        screenshot("dashboard-empty")
+    }
+
+    @Test
+    @Config(sdk = [34], qualifiers = "w411dp-h891dp-night-xxhdpi")
+    fun darkThemeRendersWithOfficialNightBackground() {
+        waitText("Aggiungi un immobile")
+        screenshot("dashboard-dark", android.graphics.Color.rgb(17, 27, 50))
     }
 
     @Test fun propertyCanBeCreatedEditedArchivedAndReactivatedThroughUi() {
@@ -41,6 +67,8 @@ class AppNavigationTest {
         compose.onNodeWithTag("property-name").performTextReplacement("Casa UI")
         compose.onNodeWithTag("property-address").performTextReplacement("Via Test 1")
         compose.onNodeWithTag("property-owner").performTextReplacement("Proprietario UI")
+        compose.activityRule.scenario.recreate()
+        compose.onNodeWithTag("property-name").assertTextContains("Casa UI")
         compose.onNodeWithTag("save-property").performClick()
         waitText("Scheda immobile")
         compose.onNodeWithText("Casa UI").assertIsDisplayed()
@@ -58,6 +86,7 @@ class AppNavigationTest {
         waitText("Archivia immobile")
         compose.activityRule.scenario.recreate()
         waitText("Scheda immobile")
-        compose.onNodeWithText("Casa Aggiornata").assertIsDisplayed()
+        compose.onNodeWithText("Casa Aggiornata").performScrollTo().assertIsDisplayed()
+        screenshot("property-detail")
     }
 }

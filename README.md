@@ -46,5 +46,6 @@ Il setup installa JDK e SDK con verifica dei checksum, accetta le licenze SDK, c
 - `app/src/test`: test JVM, database Android e UI Compose.
 - `docs/ARCHITECTURE.md`: modello dati e vincoli economici delle prossime milestone.
 - `docs/ROADMAP.md`: stato e criteri delle successive consegne.
+- `docs/VALIDATION.md`: risultati effettivi di build, 20 test, lint e APK.
 
 I dati rimangono sul dispositivo nel sandbox Android. In questa milestone non sono presenti backup esportabile, sincronizzazione, documenti ospiti, notifiche o PDF: non disinstallare l’app per conservare i dati. Le nuove versioni devono mantenere lo stesso application ID e la stessa firma per aggiornare l’installazione senza cancellarli.

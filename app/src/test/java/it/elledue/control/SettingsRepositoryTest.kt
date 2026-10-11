@@ -52,10 +52,10 @@ class SettingsRepositoryTest {
         val name = "settings-persistence-test.db"
         context.deleteDatabase(name)
         try {
-            Room.databaseBuilder(context, AppDatabase::class.java, name).build().use { db ->
+            Room.databaseBuilder(context, AppDatabase::class.java, name).build().withClosing { db ->
                 SettingsRepository(db.settingsDao()).saveOrganizationName("Persistente")
             }
-            Room.databaseBuilder(context, AppDatabase::class.java, name).build().use { db ->
+            Room.databaseBuilder(context, AppDatabase::class.java, name).build().withClosing { db ->
                 assertEquals("Persistente", SettingsRepository(db.settingsDao()).settings.first().organizationName)
             }
         } finally { context.deleteDatabase(name) }

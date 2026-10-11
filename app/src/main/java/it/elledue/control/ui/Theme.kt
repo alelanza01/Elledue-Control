@@ -15,6 +15,7 @@ val ElledueNight = Color(0xFF111B32)
 val ElledueGold = Color(0xFFDBBF8B)
 private val LightColors = lightColorScheme(
     primary = ElledueNight, onPrimary = Color.White,
+    primaryContainer = Color(0xFFE8EDF5), onPrimaryContainer = ElledueNight,
     secondary = Color(0xFF79613A), secondaryContainer = Color(0xFFF4E7CF),
     background = Color(0xFFF6F7FA), surface = Color(0xFFF6F7FA),
     surfaceContainer = Color(0xFFFFFFFF), surfaceContainerLow = Color(0xFFFCFCFE),
@@ -22,6 +23,7 @@ private val LightColors = lightColorScheme(
 )
 private val DarkColors = darkColorScheme(
     primary = ElledueGold, onPrimary = ElledueNight,
+    primaryContainer = Color(0xFF263550), onPrimaryContainer = Color(0xFFE6ECF5),
     secondary = ElledueGold, secondaryContainer = Color(0xFF3C3542),
     background = ElledueNight, surface = ElledueNight,
     surfaceContainer = Color(0xFF1C2840), surfaceContainerLow = Color(0xFF182238),

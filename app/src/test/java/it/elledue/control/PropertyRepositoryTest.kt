@@ -54,11 +54,11 @@ class PropertyRepositoryTest {
         context.deleteDatabase(file)
         val full = draft.copy(platformRates = "Booking.com=19,5", accessItalian = "Istruzioni", taxMaxNights = "5", notes = "Nota persistente")
         try {
-            Room.databaseBuilder(context, AppDatabase::class.java, file).build().use { db ->
+            Room.databaseBuilder(context, AppDatabase::class.java, file).build().withClosing { db ->
                 PropertyRepository(db).save(full)
                 PropertyRepository(db).archive(full.id, true)
             }
-            Room.databaseBuilder(context, AppDatabase::class.java, file).build().use { db ->
+            Room.databaseBuilder(context, AppDatabase::class.java, file).build().withClosing { db ->
                 val item = PropertyRepository(db).get(full.id)!!
                 assertTrue(item.property.archived)
                 assertEquals("Nota persistente", item.property.operationalNotes)
@@ -68,15 +68,28 @@ class PropertyRepositoryTest {
             }
         } finally { context.deleteDatabase(file) }
     }
+    @Test fun editingAccessInstructionsPreservesUnrelatedFutureTemplates() = runBlocking {
+        repository.save(draft)
+        database.openHelper.writableDatabase.execSQL(
+            "INSERT INTO message_templates VALUES (?, ?, ?, ?)",
+            arrayOf(draft.id, "welcome", "it", "Benvenuto personalizzato"),
+        )
+        repository.save(draft.copy(accessItalian = "Accesso aggiornato"))
+        val texts = repository.get(draft.id)!!.templates
+        assertEquals(2, texts.size)
+        assertEquals("Benvenuto personalizzato", texts.single { it.kind == "welcome" }.body)
+    }
+
     @Test fun futureReservationCannotBeOrphanedAndSurvivesArchiving() = runBlocking {
         repository.save(draft)
         val sql = database.openHelper.writableDatabase
-        sql.execSQL("INSERT INTO reservations VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", arrayOf("reservation-test", draft.id, "Ospite", "Test", 2, 20000, 20002, "Diretta", 10000, 0, null, 2000, "CONFIRMED"))
+        sql.execSQL("INSERT INTO reservations VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", arrayOf<Any?>("reservation-test", draft.id, "Ospite", "Test", 2, 20000, 20002, "Diretta", 10000, 0, null, 2000, "CONFIRMED"))
         repository.archive(draft.id, true)
         sql.query("SELECT COUNT(*) FROM reservations WHERE propertyId = ?", arrayOf(draft.id)).use { it.moveToFirst(); assertEquals(1, it.getInt(0)) }
-        assertThrows(Exception::class.java) { sql.execSQL("DELETE FROM properties WHERE id = ?", arrayOf(draft.id)) }
-        assertThrows(Exception::class.java) {
-            sql.execSQL("INSERT INTO reservations VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", arrayOf("orphan", "missing", "Ospite", "Test", 2, 20000, 20002, "Diretta", 10000, 0, null, 2000, "CONFIRMED"))
+        assertThrows(android.database.sqlite.SQLiteConstraintException::class.java) { sql.execSQL("DELETE FROM properties WHERE id = ?", arrayOf(draft.id)) }
+        assertThrows(android.database.sqlite.SQLiteConstraintException::class.java) {
+            sql.execSQL("INSERT INTO reservations VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", arrayOf<Any?>("orphan", "missing", "Ospite", "Test", 2, 20000, 20002, "Diretta", 10000, 0, null, 2000, "CONFIRMED"))
         }
+        Unit
     }
 }
