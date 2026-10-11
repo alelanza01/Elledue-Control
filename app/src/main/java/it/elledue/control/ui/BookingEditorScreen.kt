@@ -76,6 +76,7 @@ fun BookingEditorScreen(initial: BookingDraft, properties: List<PropertyWithOwne
             val totals = runCatching { draft.totals() }
             if (totals.isSuccess) FinanceCard(Amounts.parseCents(draft.gross), totals.getOrThrow(), "Anteprima aggiornata", draft.actualOta.isNotBlank())
             else if (draft.gross.isNotBlank()) Text(totals.exceptionOrNull()?.message ?: "Controlla gli importi.", color = MaterialTheme.colorScheme.error)
+            if (!isNew) BookingField("Motivo rettifica economica", draft.correctionReason, enabled, tag = "booking-correction-reason") { draft = draft.copy(correctionReason = it) }
             BookingField("Note", draft.notes, enabled, multiline = true) { draft = draft.copy(notes = it) }
             Text("Stato", style = MaterialTheme.typography.titleMedium)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -116,7 +117,7 @@ private fun BookingField(label: String, value: String, enabled: Boolean, keyboar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun BookingDateField(label: String, value: String, enabled: Boolean, tag: String, modifier: Modifier, change: (String) -> Unit) {
+fun BookingDateField(label: String, value: String, enabled: Boolean, tag: String, modifier: Modifier, change: (String) -> Unit) {
     var show by rememberSaveable { mutableStateOf(false) }
     // Editable text supplements the picker and supports quick entry and accessible keyboards.
     OutlinedTextField(value, change, label = { Text(label) }, singleLine = true, enabled = enabled, trailingIcon = { IconButton(onClick = { show = true }, enabled = enabled) { Icon(Icons.Outlined.CalendarMonth, "Seleziona $label") } }, modifier = modifier.testTag(tag))

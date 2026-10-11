@@ -33,7 +33,7 @@ class ReservationRepositoryTest {
         val draft = draft(); bookings.save(draft)
         val first = bookings.get(draft.id)!!
         assertEquals(16100L, first.managementCents)
-        bookings.save(BookingDraft.from(first).copy(lastName = "Modificato", actualOta = "150", actualArrival = "16:30", notes = "Nota"))
+        bookings.save(BookingDraft.from(first).copy(lastName = "Modificato", actualOta = "150", correctionReason = "OTA effettiva verificata", actualArrival = "16:30", notes = "Nota"))
         val updated = bookings.get(draft.id)!!
         assertEquals(17000L, updated.managementCents)
         assertEquals(first.createdAt, updated.createdAt)

@@ -35,7 +35,7 @@ private val sections = listOf(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewModel, bookingsModel: ReservationViewModel) {
+fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewModel, bookingsModel: ReservationViewModel, accountingModel: AccountingViewModel) {
     val navigation = rememberNavController()
     val entry by navigation.currentBackStackEntryAsState()
     val route = entry?.destination?.route
@@ -45,6 +45,9 @@ fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewMo
     val settings by settingsModel.settings.collectAsStateWithLifecycle()
     val saveState by settingsModel.saveState.collectAsStateWithLifecycle()
     val settingsLoadFailed by settingsModel.loadFailed.collectAsStateWithLifecycle()
+    val accountingState by accountingModel.state.collectAsStateWithLifecycle()
+    val accountingSaved by accountingModel.saved.collectAsStateWithLifecycle()
+    val accountingData = (accountingState as? AccountingState.Ready)?.data
     val bookingState by bookingsModel.state.collectAsStateWithLifecycle()
     val bookingBusy by bookingsModel.busy.collectAsStateWithLifecycle()
     val bookingError by bookingsModel.error.collectAsStateWithLifecycle()
@@ -189,7 +192,7 @@ fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewMo
                     val item = bookings.firstOrNull { it.id == destination.arguments?.getString("id") }
                     if (item == null) EmptyState("Prenotazione non trovata", "Torna al calendario.", "Calendario", { navigation.navigate("calendar") })
                     else BookingDetailScreen(item, records.firstOrNull { it.property.id == item.propertyId }?.property?.name ?: "Immobile", bookingBusy, bookingError,
-                        onBack = { navigation.popBackStack() }, onEdit = { bookingsModel.clearError(); navigation.navigate("booking/${item.id}/edit") }, onCancel = { bookingsModel.cancel(item.id) })
+                        onBack = { navigation.popBackStack() }, onEdit = { bookingsModel.clearError(); navigation.navigate("booking/${item.id}/edit") }, onCancel = { bookingsModel.cancel(item.id) }, onTax = { accountingModel.clear(); navigation.navigate("tax/${item.id}") }, financialChanges = accountingData?.financialChanges.orEmpty())
                 }
             }
             composable("booking/{id}/edit") { destination ->
@@ -202,7 +205,54 @@ fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewMo
                 }
             }
             composable("economy") {
-                BookingDataSurface(bookingState, state, { bookingsModel.retry(); propertiesModel.retry() }) { BookingEconomyScreen(bookings) }
+                BookingDataSurface(bookingState, state, { bookingsModel.retry(); propertiesModel.retry() }) {
+                    AccountingSurface(accountingState, accountingModel::retry) {
+                        AccountingHome(accountingData!!, bookings, records, accountingModel,
+                            onNew = { accountingModel.clear(); navigation.navigate("expense/new/$it") },
+                            onExpense = { accountingModel.clear(); navigation.navigate("expense/$it") },
+                            onTax = { accountingModel.clear(); navigation.navigate("tax/$it") },
+                            onCategories = { accountingModel.clear(); navigation.navigate("categories") })
+                    }
+                }
+            }
+            composable("expense/new/{kind}") { destination ->
+                AccountingSurface(accountingState, accountingModel::retry) {
+                    val kind = destination.arguments?.getString("kind") ?: "OTHER"
+                    val selectedProperty = records.firstOrNull { !it.property.archived }?.property
+                    val category = accountingData!!.categories.firstOrNull { it.kind == kind && !it.archived }
+                    val initial by rememberSaveable(stateSaver = ExpenseDraftSaver) { mutableStateOf(it.elledue.control.domain.ExpenseDraft(propertyId = selectedProperty?.id ?: "", categoryId = category?.id ?: "other", quantity = if (kind != "OTHER") "1" else "", unit = when (kind) { "CLEANING" -> it.elledue.control.domain.Amounts.editable(selectedProperty?.cleaningHourlyCents ?: 800); "LAUNDRY" -> it.elledue.control.domain.Amounts.editable(selectedProperty?.laundrySetCents ?: 500); else -> "" })) }
+                    LaunchedEffect(accountingSaved) { accountingSaved?.takeIf { it == initial.id }?.let { accountingModel.clear(); navigation.popBackStack(); navigation.navigate("expense/$it") } }
+                    ExpenseEditor(initial, records, bookings, accountingData.categories, accountingModel) { navigation.popBackStack() }
+                }
+            }
+            composable("expense/{id}") { destination ->
+                AccountingSurface(accountingState, accountingModel::retry) {
+                    val item = accountingData!!.expenses.firstOrNull { it.id == destination.arguments?.getString("id") }
+                    if (item == null) EmptyState("Spesa non trovata", "Torna alla contabilità.")
+                    else ExpenseDetail(item, records.firstOrNull { it.property.id == item.propertyId }?.property?.name ?: "Immobile", accountingModel,
+                        onBack = { accountingModel.clear(); navigation.popBackStack() }, onEdit = { accountingModel.clear(); navigation.navigate("expense/${item.id}/edit") }, bookingName = bookings.firstOrNull { it.id == item.reservationId }?.let { "${it.guestFirstName} ${it.guestLastName} · ${BookingDates.display(it.checkInEpochDay)}" })
+                }
+            }
+            composable("expense/{id}/edit") { destination ->
+                AccountingSurface(accountingState, accountingModel::retry) {
+                    val item = accountingData!!.expenses.firstOrNull { it.id == destination.arguments?.getString("id") }
+                    LaunchedEffect(accountingSaved) { if (accountingSaved == item?.id && item != null) { accountingModel.clear(); navigation.popBackStack() } }
+                    if (item == null) EmptyState("Spesa non trovata", "Torna alla contabilità.")
+                    else ExpenseEditor(it.elledue.control.domain.ExpenseDraft.from(item), records, bookings, accountingData.categories, accountingModel) { navigation.popBackStack() }
+                }
+            }
+            composable("categories") {
+                AccountingSurface(accountingState, accountingModel::retry) { CategoryScreen(accountingData!!.categories, accountingModel) { navigation.popBackStack() } }
+            }
+            composable("tax/{id}") { destination ->
+                BookingDataSurface(bookingState, state, { bookingsModel.retry(); propertiesModel.retry() }) {
+                    AccountingSurface(accountingState, accountingModel::retry) {
+                        val booking = bookings.firstOrNull { it.id == destination.arguments?.getString("id") }
+                        val property = records.firstOrNull { it.property.id == booking?.propertyId }?.property
+                        if (booking == null || property == null) EmptyState("Prenotazione non trovata", "Torna al calendario.")
+                        else TaxScreen(booking, property, accountingData!!, accountingModel) { accountingModel.clear(); navigation.popBackStack() }
+                    }
+                }
             }
             composable("activities") { UpcomingScreen("Attività", "La tua operatività", "Scadenze, promemoria e checklist saranno disponibili nelle prossime versioni.", goProperties) }
             composable("settings") {
@@ -224,7 +274,7 @@ fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewMo
                             }
                         }
                         HorizontalDivider()
-                        Text("Elledue Control · 0.2.0", style = MaterialTheme.typography.labelLarge)
+                        Text("Elledue Control · 0.3.0", style = MaterialTheme.typography.labelLarge)
                         Text("Dati conservati su questo dispositivo. Backup esportabile non ancora disponibile: non disinstallare l’app per conservare i dati.", style = MaterialTheme.typography.bodyMedium)
                     }
                 }
@@ -254,4 +304,9 @@ private fun BookingDataSurface(state: BookingLoadState, properties: PropertyLoad
         state is BookingLoadState.Loading || properties is PropertyLoadState.Loading -> LoadingScreen()
         else -> content()
     }
+}
+
+@Composable
+private fun AccountingSurface(state: AccountingState, retry: () -> Unit, content: @Composable () -> Unit) {
+    when (state) { AccountingState.Loading -> LoadingScreen(); AccountingState.Failed -> LoadError(retry); is AccountingState.Ready -> content() }
 }

@@ -153,7 +153,7 @@ private fun MonthGrid(month: YearMonth, selected: Long, today: Long, records: Li
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun BookingDetailScreen(item: ReservationEntity, propertyName: String, busy: Boolean, error: String?, onBack: () -> Unit, onEdit: () -> Unit, onCancel: () -> Unit) {
+fun BookingDetailScreen(item: ReservationEntity, propertyName: String, busy: Boolean, error: String?, onBack: () -> Unit, onEdit: () -> Unit, onCancel: () -> Unit, onTax: () -> Unit = {}, financialChanges: List<it.elledue.control.data.BookingFinancialChangeEntity> = emptyList()) {
     var confirm by rememberSaveable { mutableStateOf(false) }
     Scaffold(topBar = { TopAppBar(title = { Text("Scheda prenotazione") }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Indietro") } }, actions = { TextButton(onClick = onEdit, enabled = !busy) { Text("Modifica") } }) }) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
@@ -172,6 +172,11 @@ fun BookingDetailScreen(item: ReservationEntity, propertyName: String, busy: Boo
             }
             FinanceCard(item.grossCents, BookingTotals(item.otaCents, item.netCents, item.managementCents), actualOta = item.actualOtaCents != null)
             Text("OTA ${Amounts.editable(item.appliedOtaBasisPoints.toLong())}% · Elledue ${Amounts.editable(item.appliedManagementBasisPoints.toLong())}% sul netto. Parametri storici conservati.", style = MaterialTheme.typography.bodySmall)
+            financialChanges.filter { it.reservationId == item.id }.forEach { change ->
+                val before = org.json.JSONObject(change.previousJson); val after = org.json.JSONObject(change.currentJson)
+                Text("Rettifica: ${change.reason}\nOTA ${Amounts.euro(before.getLong("otaCents"))} → ${Amounts.euro(after.getLong("otaCents"))} · Elledue ${Amounts.euro(before.getLong("managementCents"))} → ${Amounts.euro(after.getLong("managementCents"))}", style = MaterialTheme.typography.bodySmall)
+            }
+            OutlinedButton(onClick = onTax, modifier = Modifier.fillMaxWidth().testTag("open-booking-tax")) { Text("Tassa di soggiorno e movimenti") }
             Text("Il lordo è accreditato al proprietario. Il compenso maturato non indica un pagamento già ricevuto da Elledue.", style = MaterialTheme.typography.bodyMedium)
             if (item.overlapAcknowledged && item.status != BookingStatus.CANCELLED.name) Text("Sovrapposizione autorizzata al salvataggio.", color = MaterialTheme.colorScheme.error)
             if (item.notes.isNotBlank()) { Text("Note", style = MaterialTheme.typography.titleMedium); Text(item.notes) }

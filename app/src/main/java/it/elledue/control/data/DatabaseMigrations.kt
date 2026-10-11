@@ -27,4 +27,29 @@ object DatabaseMigrations {
             db.execSQL("UPDATE reservations SET expectedArrivalTime = (SELECT checkInTime FROM properties WHERE id = propertyId), expectedDepartureTime = (SELECT checkOutTime FROM properties WHERE id = propertyId)")
         }
     }
+    val MIGRATION_2_3 = object : Migration(2, 3) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("CREATE TABLE IF NOT EXISTS expense_categories (id TEXT NOT NULL PRIMARY KEY, label TEXT NOT NULL, kind TEXT NOT NULL, archived INTEGER NOT NULL)")
+            AccountingDefaults.categories.forEach { db.execSQL("INSERT OR IGNORE INTO expense_categories VALUES (?, ?, ?, ?)", arrayOf<Any>(it.id, it.label, it.kind, 0)) }
+            db.execSQL("ALTER TABLE reservations ADD COLUMN competenceMonth TEXT NOT NULL DEFAULT ''")
+            db.execSQL("UPDATE reservations SET competenceMonth = strftime('%Y-%m', checkInEpochDay * 86400, 'unixepoch')")
+            val fields = listOf("competenceMonth TEXT NOT NULL DEFAULT ''", "categoryId TEXT REFERENCES expense_categories(id) ON DELETE RESTRICT", "kind TEXT NOT NULL DEFAULT 'OTHER'", "quantity TEXT", "unitCents INTEGER", "calculatedCents INTEGER", "notes TEXT NOT NULL DEFAULT ''", "setDefinition TEXT NOT NULL DEFAULT ''", "voided INTEGER NOT NULL DEFAULT 0", "revision INTEGER NOT NULL DEFAULT 1", "updatedAt INTEGER NOT NULL DEFAULT 0", "accountingAllocationId TEXT")
+            fields.forEach { db.execSQL("ALTER TABLE expenses ADD COLUMN $it") }
+            db.execSQL("UPDATE expenses SET competenceMonth = strftime('%Y-%m', dateEpochDay * 86400, 'unixepoch')")
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_expenses_categoryId ON expenses(categoryId)")
+            db.execSQL("CREATE TABLE IF NOT EXISTS expense_revisions (id TEXT NOT NULL PRIMARY KEY, expenseId TEXT NOT NULL, version INTEGER NOT NULL, snapshotJson TEXT NOT NULL, reason TEXT NOT NULL, recordedAt INTEGER NOT NULL, FOREIGN KEY(expenseId) REFERENCES expenses(id) ON DELETE RESTRICT)")
+            db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_expense_revisions_expenseId_version ON expense_revisions(expenseId, version)")
+            db.execSQL("CREATE TABLE IF NOT EXISTS tax_assessments (reservationId TEXT NOT NULL PRIMARY KEY, taxableGuests INTEGER NOT NULL, exemptGuests INTEGER NOT NULL, taxableNights INTEGER NOT NULL, nightCents INTEGER NOT NULL, minAge INTEGER NOT NULL, maxNights INTEGER, exemptions TEXT NOT NULL, calculatedCents INTEGER NOT NULL, expectedCents INTEGER NOT NULL, correctionReason TEXT NOT NULL, remittanceResponsible TEXT NOT NULL, remittanceNotes TEXT NOT NULL, needsReview INTEGER NOT NULL, revision INTEGER NOT NULL, propertyId TEXT NOT NULL, FOREIGN KEY(reservationId) REFERENCES reservations(id) ON DELETE RESTRICT)")
+            db.execSQL("CREATE TABLE IF NOT EXISTS tax_assessment_revisions (id TEXT NOT NULL PRIMARY KEY, reservationId TEXT NOT NULL, version INTEGER NOT NULL, snapshotJson TEXT NOT NULL, recordedAt INTEGER NOT NULL, FOREIGN KEY(reservationId) REFERENCES reservations(id) ON DELETE RESTRICT)")
+            db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_tax_assessment_revisions_reservationId_version ON tax_assessment_revisions(reservationId, version)")
+            db.execSQL("CREATE TABLE IF NOT EXISTS money_movements (id TEXT NOT NULL PRIMARY KEY, propertyId TEXT NOT NULL, reservationId TEXT, kind TEXT NOT NULL, amountCents INTEGER NOT NULL, dateEpochDay INTEGER NOT NULL, competenceMonth TEXT NOT NULL, notes TEXT NOT NULL, sourceId TEXT, reversesId TEXT, createdAt INTEGER NOT NULL, FOREIGN KEY(propertyId) REFERENCES properties(id) ON DELETE RESTRICT, FOREIGN KEY(reservationId) REFERENCES reservations(id) ON DELETE RESTRICT, FOREIGN KEY(sourceId) REFERENCES money_movements(id) ON DELETE RESTRICT, FOREIGN KEY(reversesId) REFERENCES money_movements(id) ON DELETE RESTRICT)")
+            listOf("propertyId", "reservationId", "sourceId").forEach { db.execSQL("CREATE INDEX IF NOT EXISTS index_money_movements_$it ON money_movements($it)") }
+            db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_money_movements_reversesId ON money_movements(reversesId)")
+            db.execSQL("CREATE TABLE IF NOT EXISTS booking_financial_changes (id TEXT NOT NULL PRIMARY KEY, reservationId TEXT NOT NULL, previousJson TEXT NOT NULL, currentJson TEXT NOT NULL, reason TEXT NOT NULL, recordedAt INTEGER NOT NULL, FOREIGN KEY(reservationId) REFERENCES reservations(id) ON DELETE RESTRICT)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_booking_financial_changes_reservationId ON booking_financial_changes(reservationId)")
+            // v2 had tax fields only as foundations, no assessment/riscossione workflow.
+            // Keep any existing values without turning them into fabricated cash movements.
+        }
+    }
+
 }

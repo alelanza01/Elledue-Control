@@ -24,6 +24,7 @@ data class BookingDraft(
     val managementPercent: String = "20,00",
     val notes: String = "",
     val status: String = BookingStatus.CONFIRMED.name,
+    val correctionReason: String = "",
 ) {
     fun totals(): BookingTotals = BookingFinance.calculate(
         Amounts.parseCents(gross), Amounts.parseBasisPoints(otaPercent),
@@ -56,6 +57,7 @@ data class BookingDraft(
             previous?.createdAt ?: System.currentTimeMillis(), maxOf(System.currentTimeMillis(), (previous?.updatedAt ?: 0) + 1),
             previous?.taxableGuests, previous?.exemptGuests, previous?.expectedTaxCents,
             previous?.collectedTaxCents ?: 0, previous?.accountingAllocationId,
+            java.time.YearMonth.from(java.time.LocalDate.ofEpochDay(start)).toString(),
         )
     }
     companion object {

@@ -6,7 +6,7 @@ import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
-/** Schema foundations only: workflows are implemented in subsequent milestones. Dates = epoch day. */
+/** Stay dates are local epoch days, money is EUR cents. */
 @Entity(tableName = "reservations", foreignKeys = [
     ForeignKey(entity = PropertyEntity::class, parentColumns = ["id"], childColumns = ["propertyId"], onDelete = ForeignKey.RESTRICT),
 ], indices = [Index("propertyId")])
@@ -40,12 +40,14 @@ data class ReservationEntity(
     val expectedTaxCents: Long? = null,
     @ColumnInfo(defaultValue = "0") val collectedTaxCents: Long = 0,
     val accountingAllocationId: String? = null,
+    @ColumnInfo(defaultValue = "''") val competenceMonth: String = "",
 )
 
 @Entity(tableName = "expenses", foreignKeys = [
+    ForeignKey(entity = ExpenseCategoryEntity::class, parentColumns = ["id"], childColumns = ["categoryId"], onDelete = ForeignKey.RESTRICT),
     ForeignKey(entity = PropertyEntity::class, parentColumns = ["id"], childColumns = ["propertyId"], onDelete = ForeignKey.RESTRICT),
     ForeignKey(entity = ReservationEntity::class, parentColumns = ["id"], childColumns = ["reservationId"], onDelete = ForeignKey.RESTRICT),
-], indices = [Index("propertyId"), Index("reservationId")])
+], indices = [Index("propertyId"), Index("reservationId"), Index("categoryId")])
 data class ExpenseEntity(
     @PrimaryKey val id: String,
     val propertyId: String,
@@ -56,6 +58,18 @@ data class ExpenseEntity(
     val actualCents: Long,
     val advancedByElledue: Boolean,
     val reimbursable: Boolean,
+    @ColumnInfo(defaultValue = "''") val competenceMonth: String = "",
+    val categoryId: String? = null,
+    @ColumnInfo(defaultValue = "'OTHER'") val kind: String = "OTHER",
+    val quantity: String? = null,
+    val unitCents: Long? = null,
+    val calculatedCents: Long? = null,
+    @ColumnInfo(defaultValue = "''") val notes: String = "",
+    @ColumnInfo(defaultValue = "''") val setDefinition: String = "",
+    @ColumnInfo(defaultValue = "0") val voided: Boolean = false,
+    @ColumnInfo(defaultValue = "1") val revision: Int = 1,
+    @ColumnInfo(defaultValue = "0") val updatedAt: Long = 0,
+    val accountingAllocationId: String? = null,
 )
 
 @Entity(tableName = "activities", foreignKeys = [

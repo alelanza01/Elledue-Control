@@ -27,11 +27,14 @@ interface SettingsDao {
 @Database(
     entities = [AppSettings::class, OwnerEntity::class, PropertyEntity::class,
         PlatformCommissionEntity::class, MessageTemplateEntity::class, ReservationEntity::class,
-        ExpenseEntity::class, ActivityEntity::class, ReportEntity::class],
-    version = 2, exportSchema = true,
+        ExpenseEntity::class, ActivityEntity::class, ReportEntity::class,
+        ExpenseCategoryEntity::class, ExpenseRevisionEntity::class, TaxAssessmentEntity::class,
+        TaxAssessmentRevisionEntity::class, MoneyMovementEntity::class, BookingFinancialChangeEntity::class],
+    version = 3, exportSchema = true,
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun settingsDao(): SettingsDao
     abstract fun propertyDao(): PropertyDao
     abstract fun reservationDao(): ReservationDao
+    abstract fun accountingDao(): AccountingDao
 }

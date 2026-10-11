@@ -59,6 +59,7 @@ class ReservationUiTest {
         screenshot("m2-booking-finance")
         compose.onNodeWithText("Modifica").performClick()
         compose.onNodeWithTag("booking-actual-ota").performScrollTo().performTextReplacement("150")
+        compose.onNodeWithTag("booking-correction-reason").performScrollTo().performTextReplacement("OTA verificata")
         compose.onNodeWithTag("booking-fee").performScrollTo().assertTextEquals(Amounts.euro(17000))
         compose.onNodeWithTag("save-booking").performClick(); waitText("Scheda prenotazione")
         compose.onNodeWithTag("cancel-booking").performScrollTo().performClick()
