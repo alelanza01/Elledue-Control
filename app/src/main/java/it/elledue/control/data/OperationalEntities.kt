@@ -1,5 +1,6 @@
 package it.elledue.control.data
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
@@ -23,6 +24,22 @@ data class ReservationEntity(
     val actualOtaCents: Long?,
     val appliedManagementBasisPoints: Int,
     val status: String,
+    @ColumnInfo(defaultValue = "'15:00'") val expectedArrivalTime: String = "15:00",
+    val actualArrivalTime: String? = null,
+    @ColumnInfo(defaultValue = "'10:00'") val expectedDepartureTime: String = "10:00",
+    val actualDepartureTime: String? = null,
+    @ColumnInfo(defaultValue = "0") val otaCents: Long = 0,
+    @ColumnInfo(defaultValue = "0") val netCents: Long = 0,
+    @ColumnInfo(defaultValue = "0") val managementCents: Long = 0,
+    @ColumnInfo(defaultValue = "''") val notes: String = "",
+    @ColumnInfo(defaultValue = "0") val overlapAcknowledged: Boolean = false,
+    @ColumnInfo(defaultValue = "0") val createdAt: Long = System.currentTimeMillis(),
+    @ColumnInfo(defaultValue = "0") val updatedAt: Long = System.currentTimeMillis(),
+    val taxableGuests: Int? = null,
+    val exemptGuests: Int? = null,
+    val expectedTaxCents: Long? = null,
+    @ColumnInfo(defaultValue = "0") val collectedTaxCents: Long = 0,
+    val accountingAllocationId: String? = null,
 )
 
 @Entity(tableName = "expenses", foreignKeys = [

@@ -36,9 +36,11 @@ class AppNavigationTest {
 
     @Test fun allMainSectionsAndSettingsAreAccessible() {
         compose.onNodeWithTag("nav-calendar").performClick()
+        waitText("Prenotazioni e soggiorni")
         compose.onNodeWithText("Prenotazioni e soggiorni").assertIsDisplayed()
         compose.onNodeWithTag("nav-economy").performClick()
-        compose.onNodeWithText("Rendiconti e contabilità").assertIsDisplayed()
+        waitText("Economia delle prenotazioni")
+        compose.onNodeWithText("Economia delle prenotazioni").assertIsDisplayed()
         compose.onNodeWithTag("nav-activities").performClick()
         compose.onNodeWithText("La tua operatività").assertIsDisplayed()
         compose.onNodeWithTag("nav-settings").performClick()

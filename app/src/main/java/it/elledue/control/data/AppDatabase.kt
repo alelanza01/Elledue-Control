@@ -28,9 +28,10 @@ interface SettingsDao {
     entities = [AppSettings::class, OwnerEntity::class, PropertyEntity::class,
         PlatformCommissionEntity::class, MessageTemplateEntity::class, ReservationEntity::class,
         ExpenseEntity::class, ActivityEntity::class, ReportEntity::class],
-    version = 1, exportSchema = true,
+    version = 2, exportSchema = true,
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun settingsDao(): SettingsDao
     abstract fun propertyDao(): PropertyDao
+    abstract fun reservationDao(): ReservationDao
 }

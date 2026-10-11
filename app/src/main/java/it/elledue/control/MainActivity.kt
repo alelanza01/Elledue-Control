@@ -6,6 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import it.elledue.control.ui.PropertyViewModel
+import it.elledue.control.ui.ReservationViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import it.elledue.control.ui.ElledueApp
 import it.elledue.control.ui.ElledueTheme
@@ -21,7 +22,8 @@ class MainActivity : ComponentActivity() {
             ElledueTheme {
                 val model: SettingsViewModel = viewModel(factory = SettingsViewModel.Factory(repository))
                 val properties: PropertyViewModel = viewModel(factory = PropertyViewModel.Factory((application as ElledueApplication).propertyRepository))
-                ElledueApp(model, properties)
+                val bookings: ReservationViewModel = viewModel(factory = ReservationViewModel.Factory((application as ElledueApplication).reservationRepository))
+                ElledueApp(model, properties, bookings)
             }
         }
     }

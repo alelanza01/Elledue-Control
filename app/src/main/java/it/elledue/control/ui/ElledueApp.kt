@@ -19,6 +19,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.*
 import it.elledue.control.domain.PropertyDraft
+import it.elledue.control.domain.BookingDraft
+import it.elledue.control.domain.BookingDates
+import it.elledue.control.domain.BookingStatus
 
 private data class Section(val route: String, val title: String, val icon: ImageVector)
 private val sections = listOf(
@@ -32,7 +35,7 @@ private val sections = listOf(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewModel) {
+fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewModel, bookingsModel: ReservationViewModel) {
     val navigation = rememberNavController()
     val entry by navigation.currentBackStackEntryAsState()
     val route = entry?.destination?.route
@@ -42,6 +45,12 @@ fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewMo
     val settings by settingsModel.settings.collectAsStateWithLifecycle()
     val saveState by settingsModel.saveState.collectAsStateWithLifecycle()
     val settingsLoadFailed by settingsModel.loadFailed.collectAsStateWithLifecycle()
+    val bookingState by bookingsModel.state.collectAsStateWithLifecycle()
+    val bookingBusy by bookingsModel.busy.collectAsStateWithLifecycle()
+    val bookingError by bookingsModel.error.collectAsStateWithLifecycle()
+    val pendingOverlap by bookingsModel.pending.collectAsStateWithLifecycle()
+    val savedBookingId by bookingsModel.savedId.collectAsStateWithLifecycle()
+    val bookings = (bookingState as? BookingLoadState.Ready)?.items.orEmpty()
     val records = (state as? PropertyLoadState.Ready)?.items.orEmpty()
     val showNavigation = route == null || sections.any { it.route == route }
     val goProperties = { navigation.navigate("properties") { launchSingleTop = true } }
@@ -86,6 +95,23 @@ fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewMo
                                 }
                                 if (active.isEmpty()) EmptyState("Benvenuto in Elledue Control", "Organizza schede, proprietari e tariffe in un unico posto.", "Aggiungi un immobile") { propertiesModel.clearError(); navigation.navigate("property/new") }
                                 else {
+                                    Text("Oggi · ${BookingDates.display(BookingDates.today().toEpochDay())}", style = MaterialTheme.typography.titleLarge)
+                                    when (bookingState) {
+                                        BookingLoadState.Loading -> CircularProgressIndicator()
+                                        BookingLoadState.Failed -> LoadError(bookingsModel::retry)
+                                        is BookingLoadState.Ready -> {
+                                            val today = BookingDates.today().toEpochDay()
+                                            val current = bookings.filter { it.status == BookingStatus.CONFIRMED.name }
+                                            val arrivals = current.filter { it.checkInEpochDay == today }
+                                            val departures = current.filter { it.checkOutEpochDay == today }
+                                            val stays = current.filter { it.checkInEpochDay <= today && it.checkOutEpochDay > today }
+                                            Text("${arrivals.size} arrivi · ${departures.size} partenze · ${stays.sumOf { it.guestCount.toLong() }} ospiti nei soggiorni in corso", style = MaterialTheme.typography.bodyMedium)
+                                            (arrivals + departures + stays).distinctBy { it.id }.forEach { booking ->
+                                                BookingRow(booking, records.firstOrNull { it.property.id == booking.propertyId }?.property?.name ?: "Immobile") { navigation.navigate("booking/${booking.id}") }
+                                            }
+                                            TextButton(onClick = { navigation.navigate("calendar") }) { Text("Apri prenotazioni e calendario") }
+                                        }
+                                    }
                                     Text("Il tuo portafoglio", style = MaterialTheme.typography.titleLarge)
                                     active.take(3).forEach { item ->
                                         OutlinedCard(onClick = { navigation.navigate("property/${item.property.id}") }, modifier = Modifier.fillMaxWidth()) {
@@ -141,8 +167,43 @@ fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewMo
                     }
                 }
             }
-            composable("calendar") { UpcomingScreen("Calendario", "Prenotazioni e soggiorni", "Il calendario sarà disponibile con la gestione delle prenotazioni. Puoi già preparare gli immobili.", goProperties) }
-            composable("economy") { UpcomingScreen("Economia", "Rendiconti e contabilità", "Commissioni, spese e rendiconti saranno disponibili nelle prossime versioni. Le tariffe degli immobili sono già configurabili.", goProperties) }
+            composable("calendar") {
+                BookingDataSurface(bookingState, state, { bookingsModel.retry(); propertiesModel.retry() }) {
+                    ReservationsScreen(bookings, records,
+                        onNew = { bookingsModel.clearError(); navigation.navigate("booking/new") },
+                        onOpen = { bookingsModel.clearError(); navigation.navigate("booking/$it") })
+                }
+            }
+            composable("booking/new") {
+                BookingDataSurface(bookingState, state, { bookingsModel.retry(); propertiesModel.retry() }) {
+                    val initial = rememberSaveable(stateSaver = BookingDraftSaver) {
+                        mutableStateOf(records.firstOrNull { !it.property.archived }?.let { BookingDraft().withPropertyDefaults(it) } ?: BookingDraft())
+                    }
+                    LaunchedEffect(savedBookingId) { savedBookingId?.let { bookingsModel.consumeSaved(); navigation.popBackStack(); navigation.navigate("booking/$it") } }
+                    BookingEditorScreen(initial.value, records, true, bookingBusy, bookingError, pendingOverlap,
+                        onBack = { bookingsModel.dismissOverlap(); navigation.popBackStack() }, onSave = { bookingsModel.save(it) }, onConfirm = bookingsModel::confirmOverlap, onDismiss = bookingsModel::dismissOverlap)
+                }
+            }
+            composable("booking/{id}") { destination ->
+                BookingDataSurface(bookingState, state, { bookingsModel.retry(); propertiesModel.retry() }) {
+                    val item = bookings.firstOrNull { it.id == destination.arguments?.getString("id") }
+                    if (item == null) EmptyState("Prenotazione non trovata", "Torna al calendario.", "Calendario", { navigation.navigate("calendar") })
+                    else BookingDetailScreen(item, records.firstOrNull { it.property.id == item.propertyId }?.property?.name ?: "Immobile", bookingBusy, bookingError,
+                        onBack = { navigation.popBackStack() }, onEdit = { bookingsModel.clearError(); navigation.navigate("booking/${item.id}/edit") }, onCancel = { bookingsModel.cancel(item.id) })
+                }
+            }
+            composable("booking/{id}/edit") { destination ->
+                BookingDataSurface(bookingState, state, { bookingsModel.retry(); propertiesModel.retry() }) {
+                    val item = bookings.firstOrNull { it.id == destination.arguments?.getString("id") }
+                    LaunchedEffect(savedBookingId) { if (savedBookingId != null) { bookingsModel.consumeSaved(); navigation.popBackStack() } }
+                    if (item == null) EmptyState("Prenotazione non trovata", "Torna al calendario.")
+                    else BookingEditorScreen(BookingDraft.from(item), records, false, bookingBusy, bookingError, pendingOverlap,
+                        onBack = { bookingsModel.dismissOverlap(); navigation.popBackStack() }, onSave = { bookingsModel.save(it) }, onConfirm = bookingsModel::confirmOverlap, onDismiss = bookingsModel::dismissOverlap)
+                }
+            }
+            composable("economy") {
+                BookingDataSurface(bookingState, state, { bookingsModel.retry(); propertiesModel.retry() }) { BookingEconomyScreen(bookings) }
+            }
             composable("activities") { UpcomingScreen("Attività", "La tua operatività", "Scadenze, promemoria e checklist saranno disponibili nelle prossime versioni.", goProperties) }
             composable("settings") {
                 Scaffold(topBar = { TopAppBar(title = { Text("Impostazioni") }) }) { padding ->
@@ -163,7 +224,7 @@ fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewMo
                             }
                         }
                         HorizontalDivider()
-                        Text("Elledue Control · 0.1.0", style = MaterialTheme.typography.labelLarge)
+                        Text("Elledue Control · 0.2.0", style = MaterialTheme.typography.labelLarge)
                         Text("Dati conservati su questo dispositivo. Backup esportabile non ancora disponibile: non disinstallare l’app per conservare i dati.", style = MaterialTheme.typography.bodyMedium)
                     }
                 }
@@ -183,5 +244,14 @@ private fun LoadError(retry: () -> Unit) { EmptyState("Dati non disponibili", "I
 private fun UpcomingScreen(title: String, heading: String, description: String, onProperties: () -> Unit) {
     Scaffold(topBar = { TopAppBar(title = { Text(title) }) }) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState())) { EmptyState(heading, description, "Gestisci immobili", onProperties) }
+    }
+}
+
+@Composable
+private fun BookingDataSurface(state: BookingLoadState, properties: PropertyLoadState, retry: () -> Unit, content: @Composable () -> Unit) {
+    when {
+        state is BookingLoadState.Failed || properties is PropertyLoadState.Failed -> LoadError(retry)
+        state is BookingLoadState.Loading || properties is PropertyLoadState.Loading -> LoadingScreen()
+        else -> content()
     }
 }

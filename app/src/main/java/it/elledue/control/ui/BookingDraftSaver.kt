@@ -1,0 +1,9 @@
+package it.elledue.control.ui
+
+import androidx.compose.runtime.saveable.listSaver
+import it.elledue.control.domain.BookingDraft
+
+val BookingDraftSaver = listSaver<BookingDraft, String>(
+    save = { listOf(it.id, it.propertyId, it.firstName, it.lastName, it.guests, it.platform, it.checkIn, it.checkOut, it.expectedArrival, it.actualArrival, it.expectedDeparture, it.actualDeparture, it.gross, it.otaPercent, it.actualOta, it.managementPercent, it.notes, it.status) },
+    restore = { BookingDraft(id = it[0], propertyId = it[1], firstName = it[2], lastName = it[3], guests = it[4], platform = it[5], checkIn = it[6], checkOut = it[7], expectedArrival = it[8], actualArrival = it[9], expectedDeparture = it[10], actualDeparture = it[11], gross = it[12], otaPercent = it[13], actualOta = it[14], managementPercent = it[15], notes = it[16], status = it[17]) },
+)
