@@ -1,6 +1,7 @@
 package it.elledue.control.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -51,7 +52,7 @@ fun BookingRow(item: ReservationEntity, propertyName: String, onOpen: () -> Unit
             Text("${BookingDates.display(item.checkInEpochDay)} → ${BookingDates.display(item.checkOutEpochDay)}", style = MaterialTheme.typography.bodyMedium)
             Text("${item.guestCount} ospiti · ${item.platform} · ${BookingStatus.valueOf(item.status).label}", style = MaterialTheme.typography.bodySmall)
             if (!cancelled && item.status != BookingStatus.COMPLETED.name && today >= item.checkInEpochDay && today < item.checkOutEpochDay) Text("Soggiorno in corso", color = MaterialTheme.colorScheme.secondary, style = MaterialTheme.typography.labelLarge)
-            if (item.overlapAcknowledged && !cancelled) Text("Sovrapposizione confermata: verifica disponibilità", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+            if (item.overlapAcknowledged && !cancelled) Text("Sovrapposizione autorizzata al salvataggio", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text("Lordo ${Amounts.euro(item.grossCents)}", style = MaterialTheme.typography.bodyMedium)
                 Text("Elledue ${Amounts.euro(item.managementCents)}", style = MaterialTheme.typography.labelLarge)
@@ -64,7 +65,7 @@ fun BookingRow(item: ReservationEntity, propertyName: String, onOpen: () -> Unit
 @Composable
 fun ReservationsScreen(records: List<ReservationEntity>, properties: List<PropertyWithOwner>, onNew: () -> Unit, onOpen: (String) -> Unit) {
     var monthText by rememberSaveable { mutableStateOf(YearMonth.from(BookingDates.today()).toString()) }
-    var selectedDay by rememberSaveable { mutableStateOf(BookingDates.today().toEpochDay()) }
+    var selectedDay by rememberSaveable { mutableLongStateOf(BookingDates.today().toEpochDay()) }
     var propertyFilter by rememberSaveable { mutableStateOf("") }
     var listMode by rememberSaveable { mutableStateOf(false) }
     var showCancelled by rememberSaveable { mutableStateOf(false) }
@@ -75,8 +76,8 @@ fun ReservationsScreen(records: List<ReservationEntity>, properties: List<Proper
     // Include departure markers on day 1 of the month, even for a stay that ended overnight.
     val inMonth = filtered.filter { it.checkInEpochDay < end && it.checkOutEpochDay >= start }.sortedBy { it.checkInEpochDay }
     val today = BookingDates.today().toEpochDay()
-    Scaffold(topBar = { TopAppBar(title = { Text("Prenotazioni e soggiorni") }, actions = { IconButton(onClick = onNew, enabled = properties.any { !it.property.archived }, modifier = Modifier.testTag("new-booking")) { Icon(Icons.Outlined.Add, "Nuova prenotazione") } }) }, floatingActionButton = { if (properties.any { !it.property.archived }) ExtendedFloatingActionButton(onClick = onNew, icon = { Icon(Icons.Outlined.Add, null) }, text = { Text("Nuova prenotazione") }) }) { padding ->
-        LazyColumn(Modifier.fillMaxSize().padding(padding), contentPadding = PaddingValues(20.dp, 10.dp, 20.dp, 96.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+    Scaffold(topBar = { TopAppBar(title = { Text("Prenotazioni e soggiorni") }, actions = { IconButton(onClick = onNew, enabled = properties.any { !it.property.archived }, modifier = Modifier.testTag("new-booking")) { Icon(Icons.Outlined.Add, "Nuova prenotazione") } }) }) { padding ->
+        LazyColumn(Modifier.fillMaxSize().padding(padding).testTag("bookings-scroll"), contentPadding = PaddingValues(20.dp, 10.dp, 20.dp, 96.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             item { PropertySelector(properties, propertyFilter, allOption = true) { propertyFilter = it } }
             item { Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 FilterChip(!listMode, { listMode = false }, label = { Text("Calendario") }, modifier = Modifier.testTag("booking-calendar-mode"))
@@ -90,14 +91,24 @@ fun ReservationsScreen(records: List<ReservationEntity>, properties: List<Proper
             } }
             item { TextButton(onClick = { monthText = YearMonth.from(BookingDates.today()).toString(); selectedDay = today }, modifier = Modifier.testTag("calendar-today")) { Text("Oggi · ${BookingDates.display(today)}") } }
             if (!listMode) {
-                item { MonthGrid(month, selectedDay, today, inMonth) { selectedDay = it } }
+                item { MonthGrid(month, selectedDay, today, inMonth.filter { it.status != BookingStatus.CANCELLED.name }) { selectedDay = it } }
+                item {
+                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        properties.filter { property -> inMonth.any { it.propertyId == property.property.id } }.forEach { property ->
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Box(Modifier.size(8.dp).background(propertyColor(property.property.id), CircleShape))
+                                Text(property.property.name, style = MaterialTheme.typography.labelMedium)
+                            }
+                        }
+                    }
+                }
                 item { Text("● soggiorno · A arrivo · P partenza", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
                 item { Text("${BookingDates.display(selectedDay)} · agenda", style = MaterialTheme.typography.titleMedium) }
                 val daily = inMonth.filter { selectedDay >= it.checkInEpochDay && selectedDay <= it.checkOutEpochDay }
                 if (daily.isEmpty()) item { Text("Nessun soggiorno, arrivo o partenza per il giorno selezionato.", style = MaterialTheme.typography.bodyMedium) }
                 items(daily, key = { it.id }) { item ->
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text(when (selectedDay) { item.checkInEpochDay -> "Arrivo · ${item.expectedArrivalTime}"; item.checkOutEpochDay -> "Partenza · ${item.expectedDepartureTime}"; else -> "Soggiorno" }, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.secondary)
+                        Text(if (item.status == BookingStatus.CANCELLED.name) "Prenotazione annullata" else when (selectedDay) { item.checkInEpochDay -> "Arrivo · ${item.expectedArrivalTime}"; item.checkOutEpochDay -> "Partenza · ${item.expectedDepartureTime}"; else -> "Soggiorno" }, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.secondary)
                         BookingRow(item, properties.firstOrNull { it.property.id == item.propertyId }?.property?.name ?: "Immobile") { onOpen(item.id) }
                     }
                 }
@@ -162,7 +173,7 @@ fun BookingDetailScreen(item: ReservationEntity, propertyName: String, busy: Boo
             FinanceCard(item.grossCents, BookingTotals(item.otaCents, item.netCents, item.managementCents), actualOta = item.actualOtaCents != null)
             Text("OTA ${Amounts.editable(item.appliedOtaBasisPoints.toLong())}% · Elledue ${Amounts.editable(item.appliedManagementBasisPoints.toLong())}% sul netto. Parametri storici conservati.", style = MaterialTheme.typography.bodySmall)
             Text("Il lordo è accreditato al proprietario. Il compenso maturato non indica un pagamento già ricevuto da Elledue.", style = MaterialTheme.typography.bodyMedium)
-            if (item.overlapAcknowledged && item.status != BookingStatus.CANCELLED.name) Text("Sovrapposizione confermata: verifica disponibilità.", color = MaterialTheme.colorScheme.error)
+            if (item.overlapAcknowledged && item.status != BookingStatus.CANCELLED.name) Text("Sovrapposizione autorizzata al salvataggio.", color = MaterialTheme.colorScheme.error)
             if (item.notes.isNotBlank()) { Text("Note", style = MaterialTheme.typography.titleMedium); Text(item.notes) }
             if (error != null) Text(error, color = MaterialTheme.colorScheme.error)
             if (item.status != BookingStatus.CANCELLED.name) OutlinedButton(onClick = { confirm = true }, enabled = !busy, modifier = Modifier.fillMaxWidth().testTag("cancel-booking")) { Text("Annulla prenotazione") }

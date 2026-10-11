@@ -77,7 +77,9 @@ class AppNavigationTest {
         compose.onNodeWithText("Modifica").performClick()
         compose.onNodeWithTag("property-name").performTextReplacement("Casa Aggiornata")
         compose.onNodeWithTag("save-property").performClick()
+        waitText("Scheda immobile")
         waitText("Casa Aggiornata")
+        compose.waitUntil(15_000) { compose.onAllNodes(hasTestTag("archive-property")).fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithTag("archive-property").performScrollTo().performClick()
         compose.onNodeWithText("Conferma archiviazione").performClick()
         waitText("Archiviato · storico conservato")

@@ -121,7 +121,7 @@ private fun BookingDateField(label: String, value: String, enabled: Boolean, tag
     // Editable text supplements the picker and supports quick entry and accessible keyboards.
     OutlinedTextField(value, change, label = { Text(label) }, singleLine = true, enabled = enabled, trailingIcon = { IconButton(onClick = { show = true }, enabled = enabled) { Icon(Icons.Outlined.CalendarMonth, "Seleziona $label") } }, modifier = modifier.testTag(tag))
     if (show) {
-        val initial = runCatching { BookingDates.pickerMillis(BookingDates.parse(value)) }.getOrNull()
+        val initial = runCatching { val date = BookingDates.parse(value); require(date.year in 1900..2100); BookingDates.pickerMillis(date) }.getOrNull()
         val picker = rememberDatePickerState(initialSelectedDateMillis = initial)
         DatePickerDialog(onDismissRequest = { show = false }, confirmButton = { TextButton(onClick = { picker.selectedDateMillis?.let { change(BookingDates.fromPicker(it).format(BookingDates.inputFormat)) }; show = false }, enabled = picker.selectedDateMillis != null) { Text("Conferma data") } }, dismissButton = { TextButton(onClick = { show = false }) { Text("Annulla") } }) { DatePicker(picker) }
     }
