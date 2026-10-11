@@ -28,6 +28,7 @@ object Amounts {
     }
 
     fun editable(cents: Long): String = BigDecimal.valueOf(cents, 2).toPlainString().replace('.', ',')
+    fun euroAbsolute(cents: Long): String = NumberFormat.getCurrencyInstance(Locale.ITALY).format(BigDecimal.valueOf(cents, 2).abs())
     fun euro(cents: Long): String = NumberFormat.getCurrencyInstance(Locale.ITALY)
         .format(BigDecimal.valueOf(cents, 2))
 }

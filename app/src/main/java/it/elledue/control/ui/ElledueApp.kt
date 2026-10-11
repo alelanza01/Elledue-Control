@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.*
+import it.elledue.control.R
 import it.elledue.control.domain.PropertyDraft
 import it.elledue.control.domain.BookingDraft
 import it.elledue.control.domain.BookingDates
@@ -35,7 +36,7 @@ private val sections = listOf(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewModel, bookingsModel: ReservationViewModel, accountingModel: AccountingViewModel) {
+fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewModel, bookingsModel: ReservationViewModel, accountingModel: AccountingViewModel, reportsModel: ReportViewModel, backupService: it.elledue.control.data.BackupService) {
     val navigation = rememberNavController()
     val entry by navigation.currentBackStackEntryAsState()
     val route = entry?.destination?.route
@@ -45,6 +46,9 @@ fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewMo
     val settings by settingsModel.settings.collectAsStateWithLifecycle()
     val saveState by settingsModel.saveState.collectAsStateWithLifecycle()
     val settingsLoadFailed by settingsModel.loadFailed.collectAsStateWithLifecycle()
+    val reportsState by reportsModel.state.collectAsStateWithLifecycle()
+    val savedReportId by reportsModel.savedId.collectAsStateWithLifecycle()
+    val reports = (reportsState as? ReportState.Ready)?.reports.orEmpty()
     val accountingState by accountingModel.state.collectAsStateWithLifecycle()
     val accountingSaved by accountingModel.saved.collectAsStateWithLifecycle()
     val accountingData = (accountingState as? AccountingState.Ready)?.data
@@ -80,7 +84,7 @@ fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewMo
         NavHost(navigation, startDestination = "dashboard", modifier = Modifier.padding(outerPadding)) {
             composable("dashboard") {
                 Scaffold(topBar = { TopAppBar(title = {
-                    Column { Text("ELLEDUE", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.secondary); Text("La tua gestione", style = MaterialTheme.typography.titleLarge) }
+                    Column { Surface(color = ElledueNight, shape = MaterialTheme.shapes.small) { androidx.compose.foundation.Image(androidx.compose.ui.res.painterResource(R.drawable.elledue_logo_gold), "Logo ufficiale Elledue", modifier = Modifier.padding(6.dp).width(120.dp).height(22.dp)) }; Text("La tua gestione", style = MaterialTheme.typography.titleLarge) }
                 }) }) { padding ->
                     Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(24.dp)) {
                         Text("Tutto parte dai tuoi immobili.", style = MaterialTheme.typography.headlineLarge)
@@ -211,7 +215,7 @@ fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewMo
                             onNew = { accountingModel.clear(); navigation.navigate("expense/new/$it") },
                             onExpense = { accountingModel.clear(); navigation.navigate("expense/$it") },
                             onTax = { accountingModel.clear(); navigation.navigate("tax/$it") },
-                            onCategories = { accountingModel.clear(); navigation.navigate("categories") })
+                            onCategories = { accountingModel.clear(); navigation.navigate("categories") }, onReports = { reportsModel.clear(); navigation.navigate("reports") })
                     }
                 }
             }
@@ -254,10 +258,42 @@ fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewMo
                     }
                 }
             }
+            composable("reports") {
+                when (reportsState) {
+                    ReportState.Loading -> LoadingScreen()
+                    ReportState.Failed -> LoadError(reportsModel::retry)
+                    is ReportState.Ready -> ReportsHome(reports, records, reportsModel, { navigation.popBackStack() }, { navigation.navigate("report/$it") })
+                }
+            }
+            composable("report/{id}") { destination ->
+                val report = reports.firstOrNull { it.id == destination.arguments?.getString("id") }
+                when {
+                    reportsState is ReportState.Loading -> LoadingScreen()
+                    report?.snapshotJson == null -> EmptyState("Documento non disponibile", "Riapri la bozza dai rendiconti.")
+                    else -> {
+                        val snapshot = remember(report.snapshotJson) { runCatching { it.elledue.control.reports.ReportCodec.decode(report.snapshotJson) }.getOrNull() }
+                        val owner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+                        DisposableEffect(report.id, report.status, owner) {
+                            val observer = androidx.lifecycle.LifecycleEventObserver { _, event -> if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME && report.status == "DRAFT") reportsModel.refresh(report.id) }
+                            owner.lifecycle.addObserver(observer); onDispose { owner.lifecycle.removeObserver(observer) }
+                        }
+                        LaunchedEffect(savedReportId) { savedReportId?.let { reportsModel.clear(); navigation.navigate("report/$it") } }
+                        if (snapshot == null) EmptyState("Snapshot non valido", "Aggiorna la bozza senza confermarla.", "Aggiorna", { reportsModel.refresh(report.id) })
+                        else {
+                            val export = rememberPdfExporter(snapshot)
+                            ReportDetail(report, snapshot, reportsModel, { navigation.popBackStack() },
+                                onBooking = { bookingsModel.clearError(); navigation.navigate("booking/$it/edit") },
+                                onExpense = { accountingModel.clear(); navigation.navigate("expense/$it/edit") },
+                                onTax = { accountingModel.clear(); navigation.navigate("tax/$it") },
+                                onEconomy = { navigation.navigate("economy") }, onExport = export)
+                        }
+                    }
+                }
+            }
             composable("activities") { UpcomingScreen("Attività", "La tua operatività", "Scadenze, promemoria e checklist saranno disponibili nelle prossime versioni.", goProperties) }
             composable("settings") {
                 Scaffold(topBar = { TopAppBar(title = { Text("Impostazioni") }) }) { padding ->
-                    Column(Modifier.fillMaxSize().padding(padding).padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         Text("La tua organizzazione", style = MaterialTheme.typography.headlineMedium)
                         val current = settings
                         if (settingsLoadFailed) Text("Impostazioni non disponibili. Riavvia l’app senza eliminare i dati.", color = MaterialTheme.colorScheme.error)
@@ -274,8 +310,9 @@ fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewMo
                             }
                         }
                         HorizontalDivider()
-                        Text("Elledue Control · 0.3.0", style = MaterialTheme.typography.labelLarge)
-                        Text("Dati conservati su questo dispositivo. Backup esportabile non ancora disponibile: non disinstallare l’app per conservare i dati.", style = MaterialTheme.typography.bodyMedium)
+                        Text("Elledue Control · 0.4.0", style = MaterialTheme.typography.labelLarge)
+                        Text("Dati locali. Esporta un backup verificato prima di cambiare dispositivo o firma Android.", style = MaterialTheme.typography.bodyMedium)
+                        BackupControls(backupService)
                     }
                 }
             }

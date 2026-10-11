@@ -11,3 +11,8 @@ keystore.properties
 .env
 .env.*
 !*.example
+
+*.p12
+*.pfx
+*.pem
+*.key

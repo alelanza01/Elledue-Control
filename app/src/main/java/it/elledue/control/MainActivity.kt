@@ -33,7 +33,9 @@ class MainActivity : ComponentActivity() {
                 val properties: PropertyViewModel = viewModel(factory = PropertyViewModel.Factory((application as ElledueApplication).propertyRepository))
                 val bookings: ReservationViewModel = viewModel(factory = ReservationViewModel.Factory((application as ElledueApplication).reservationRepository))
                 val accounting: it.elledue.control.ui.AccountingViewModel = viewModel(factory = it.elledue.control.ui.AccountingViewModel.Factory((application as ElledueApplication).accountingRepository))
-                ElledueApp(model, properties, bookings, accounting)
+                val app = application as ElledueApplication
+                val reports: it.elledue.control.ui.ReportViewModel = viewModel(factory = it.elledue.control.ui.ReportViewModel.Factory(app.reportRepository))
+                ElledueApp(model, properties, bookings, accounting, reports, app.backupService)
             }
         }
     }

@@ -52,4 +52,12 @@ object DatabaseMigrations {
         }
     }
 
+    val MIGRATION_3_4 = object : Migration(3, 4) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            listOf("previousId TEXT", "revisionReason TEXT NOT NULL DEFAULT ''", "notes TEXT NOT NULL DEFAULT ''", "createdAt INTEGER NOT NULL DEFAULT 0").forEach { db.execSQL("ALTER TABLE reports ADD COLUMN $it") }
+            db.execSQL("CREATE TABLE IF NOT EXISTS report_allocations (kind TEXT NOT NULL, sourceId TEXT NOT NULL, propertyId TEXT NOT NULL, yearMonth TEXT NOT NULL, PRIMARY KEY(kind, sourceId), FOREIGN KEY(propertyId) REFERENCES properties(id) ON DELETE RESTRICT)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_report_allocations_propertyId ON report_allocations(propertyId)")
+        }
+    }
+
 }

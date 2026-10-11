@@ -16,6 +16,7 @@ class ReservationRepository(private val database: AppDatabase) {
         require(!property.property.archived || previous?.propertyId == draft.propertyId) { "Non puoi aggiungere prenotazioni a un immobile archiviato." }
         require(previous?.accountingAllocationId == null) { "Questa prenotazione è già attribuita a un rendiconto: occorre una rettifica." }
         val candidate = draft.toRecord(previous, false)
+        ReportGuard.allow(database, "BOOKING", draft.id, candidate.propertyId, candidate.competenceMonth)
         if (previous != null && (candidate.propertyId != previous.propertyId || candidate.guestCount != previous.guestCount || candidate.checkInEpochDay != previous.checkInEpochDay || candidate.checkOutEpochDay != previous.checkOutEpochDay)) {
             val hasMoney = it.elledue.control.domain.Ledger.active(database.accountingDao().movements()).any { it.reservationId == previous.id }
             require(candidate.propertyId == previous.propertyId || !hasMoney) { "Storna i movimenti prima di cambiare immobile." }
@@ -35,6 +36,7 @@ class ReservationRepository(private val database: AppDatabase) {
     suspend fun cancel(id: String) = database.withTransaction {
         val previous = requireNotNull(dao.get(id)) { "Prenotazione non trovata." }
         require(previous.accountingAllocationId == null) { "La prenotazione è già attribuita a un rendiconto: occorre una rettifica." }
+        ReportGuard.allow(database, "BOOKING", id)
         dao.cancel(id, maxOf(System.currentTimeMillis(), previous.updatedAt + 1))
     }
 }

@@ -95,4 +95,8 @@ data class ReportEntity(
     val status: String,
     val snapshotJson: String?,
     val confirmedAt: Long?,
+    val previousId: String? = null,
+    @ColumnInfo(defaultValue = "''") val revisionReason: String = "",
+    @ColumnInfo(defaultValue = "''") val notes: String = "",
+    @ColumnInfo(defaultValue = "0") val createdAt: Long = System.currentTimeMillis(),
 )

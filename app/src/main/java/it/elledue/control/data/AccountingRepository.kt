@@ -30,6 +30,7 @@ class AccountingRepository(private val db: AppDatabase) {
         if (draft.reservationId.isNotBlank()) require(db.reservationDao().get(draft.reservationId)?.propertyId == draft.propertyId) { "La prenotazione deve appartenere allo stesso immobile." }
         require(old == null || draft.reason.isNotBlank()) { "Motiva la rettifica della spesa." }
         val item = draft.record(category)
+        ReportGuard.allow(db, "EXPENSE", draft.id, item.propertyId, item.competenceMonth)
         // Preserve the original v1/v2 foundational row before its first rectification.
         if (old != null && dao.expenseHistory(old.id).isEmpty()) dao.insertExpenseRevision(ExpenseRevisionEntity(UUID.randomUUID().toString(), old.id, old.revision, snapshot(old), "Valore precedente alla rettifica", old.updatedAt))
         dao.saveExpense(item)
@@ -40,6 +41,7 @@ class AccountingRepository(private val db: AppDatabase) {
         require(reason.isNotBlank()) { "Motiva l’annullamento." }
         val old = requireNotNull(dao.expense(id)) { "Spesa non trovata." }
         require(old.accountingAllocationId == null) { "Spesa già rendicontata: occorre una rettifica." }
+        ReportGuard.allow(db, "EXPENSE", id)
         if (!old.voided) {
             if (dao.expenseHistory(id).isEmpty()) dao.insertExpenseRevision(ExpenseRevisionEntity(UUID.randomUUID().toString(), id, old.revision, snapshot(old), "Valore precedente", old.updatedAt))
             val item = old.copy(voided = true, revision = old.revision + 1, updatedAt = System.currentTimeMillis())
@@ -50,6 +52,7 @@ class AccountingRepository(private val db: AppDatabase) {
     suspend fun taxHistory(id: String) = dao.taxHistory(id)
     suspend fun saveTax(id: String, draft: TaxDraft) = db.withTransaction {
         val booking = requireNotNull(db.reservationDao().get(id)) { "Prenotazione non trovata." }
+        ReportGuard.allow(db, "BOOKING", id)
         val old = dao.assessment(id)
         require((old?.revision ?: 0) == draft.revision) { "I dati fiscali sono cambiati: riapri la scheda." }
         require(booking.accountingAllocationId == null) { "Prenotazione già rendicontata: occorre una rettifica." }
@@ -93,6 +96,7 @@ class AccountingRepository(private val db: AppDatabase) {
             "REVERSAL" -> {
                 require(item.notes.isNotBlank()) { "Motiva lo storno." }
                 val original = requireNotNull(active.firstOrNull { it.id == item.reversesId }) { "Movimento già stornato o inesistente." }
+                ReportGuard.allow(db, "MOVEMENT", original.id)
                 require(item.amountCents == original.amountCents && item.propertyId == original.propertyId && item.reservationId == original.reservationId && item.sourceId == null) { "Storno incoerente con l’originale." }
                 require(active.none { it.sourceId == original.id }) { "Storna prima le compensazioni o i riversamenti collegati." }
                 original.reservationId?.let { require(db.reservationDao().get(it)?.accountingAllocationId == null) { "Movimento già rendicontato: occorre una rettifica." } }

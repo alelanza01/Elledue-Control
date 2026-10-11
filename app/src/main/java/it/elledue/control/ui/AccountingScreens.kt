@@ -26,7 +26,7 @@ import java.util.UUID
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AccountingHome(data: AccountingData, bookings: List<ReservationEntity>, properties: List<PropertyWithOwner>, model: AccountingViewModel,
-                   onNew: (String) -> Unit, onExpense: (String) -> Unit, onTax: (String) -> Unit, onCategories: () -> Unit) {
+                   onNew: (String) -> Unit, onExpense: (String) -> Unit, onTax: (String) -> Unit, onCategories: () -> Unit, onReports: () -> Unit = {}) {
     var month by rememberSaveable { mutableStateOf(YearMonth.from(BookingDates.today()).toString()) }
     var property by rememberSaveable { mutableStateOf("") }
     var tab by rememberSaveable { mutableIntStateOf(0) }
@@ -48,6 +48,7 @@ fun AccountingHome(data: AccountingData, bookings: List<ReservationEntity>, prop
                 listOf("Riepilogo", "Spese", "Tassa").forEachIndexed { i, label -> FilterChip(tab == i, { tab = i }, label = { Text(label) }, modifier = Modifier.testTag("accounting-tab-$i")) }
             } }
             if (tab == 0) {
+                item { Button(onClick = onReports, modifier = Modifier.fillMaxWidth().testTag("open-reports")) { Text("Rendiconti mensili") } }
                 val currentBookings = bookings.filter { it.status != BookingStatus.CANCELLED.name && Competence.booking(it.checkInEpochDay) == month && (property.isEmpty() || it.propertyId == property) }
                 val unconfigured = currentBookings.count { booking -> data.taxes.none { it.reservationId == booking.id } }
                 val needsReview = data.taxes.count { tax -> tax.needsReview && currentBookings.any { it.id == tax.reservationId } }

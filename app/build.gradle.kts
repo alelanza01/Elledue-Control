@@ -11,8 +11,8 @@ android {
         applicationId = "it.elledue.control"
         minSdk = 26
         targetSdk = 35
-        versionCode = 3
-        versionName = "0.3.0"
+        versionCode = 4
+        versionName = "0.4.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     buildFeatures { compose = true }
@@ -25,8 +25,23 @@ android {
     }
     kotlinOptions { jvmTarget = "17" }
     testOptions { unitTests.isIncludeAndroidResources = true }
+    val externalStore = providers.environmentVariable("ELLEDUE_RELEASE_STORE").orNull
+    val externalAlias = providers.environmentVariable("ELLEDUE_RELEASE_ALIAS").orNull
+    val externalStorePassword = providers.environmentVariable("ELLEDUE_RELEASE_STORE_PASSWORD").orNull
+    val externalKeyPassword = providers.environmentVariable("ELLEDUE_RELEASE_KEY_PASSWORD").orNull
+    if (listOf(externalStore, externalAlias, externalStorePassword, externalKeyPassword).all { !it.isNullOrBlank() }) {
+        val privateStore = file(externalStore!!).canonicalFile
+        require(!privateStore.toPath().startsWith(rootProject.projectDir.canonicalFile.toPath())) { "Il keystore release deve rimanere esterno al repository." }
+        signingConfigs.create("externalRelease") {
+            storeFile = privateStore
+            storePassword = externalStorePassword
+            keyAlias = externalAlias
+            keyPassword = externalKeyPassword
+        }
+    }
     buildTypes {
         release {
+            signingConfig = signingConfigs.findByName("externalRelease")
             isMinifyEnabled = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
@@ -44,6 +59,8 @@ dependencies {
     implementation("androidx.navigation:navigation-compose:2.8.9")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
+    implementation("com.google.code.gson:gson:2.11.0")
+    implementation("com.tom-roush:pdfbox-android:2.0.27.0")
     implementation("androidx.room:room-runtime:2.7.1")
     implementation("androidx.room:room-ktx:2.7.1")
     ksp("androidx.room:room-compiler:2.7.1")
@@ -65,3 +82,12 @@ tasks.withType<Test>().configureEach {
         System.getProperty(name)?.let { systemProperty(name, it) }
     }
 }
+
+val verifyReleaseSigning by tasks.registering {
+    doLast {
+        check(android.signingConfigs.findByName("externalRelease")?.storeFile?.isFile == true) {
+            "Firma release non configurata: genera e conserva il keystore sul tuo PC, poi imposta le variabili ELLEDUE_RELEASE_*. Nessuna chiave viene creata nel cloud."
+        }
+    }
+}
+tasks.matching { it.name == "packageRelease" }.configureEach { dependsOn(verifyReleaseSigning) }
