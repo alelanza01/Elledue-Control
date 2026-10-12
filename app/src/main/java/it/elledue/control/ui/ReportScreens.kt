@@ -60,7 +60,10 @@ fun ReportsHome(reports: List<ReportEntity>, properties: List<PropertyWithOwner>
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReportDetail(report: ReportEntity, snapshot: ReportSnapshot, model: ReportViewModel, onBack: () -> Unit,
-                 onBooking: (String) -> Unit, onExpense: (String) -> Unit, onTax: (String) -> Unit, onEconomy: () -> Unit, onExport: () -> Unit) {
+                 onBooking: (String) -> Unit, onExpense: (String) -> Unit, onTax: (String) -> Unit, onEconomy: () -> Unit) {
+    var layout by rememberSaveable { mutableStateOf(ReportLayout.SUMMARY) }
+    val exportPdf = rememberPdfExporter(snapshot, layout)
+    var preview by remember { mutableStateOf(false) }
     var tab by rememberSaveable(report.id) { mutableIntStateOf(0) }
     var notes by rememberSaveable(report.id) { mutableStateOf(report.notes) }
     var acknowledged by rememberSaveable(report.id, report.snapshotJson) { mutableStateOf(false) }
@@ -78,6 +81,11 @@ fun ReportDetail(report: ReportEntity, snapshot: ReportSnapshot, model: ReportVi
                     Text(if (total.balance < 0) Amounts.euroAbsolute(total.balance) else Amounts.euro(total.balance), color = androidx.compose.ui.graphics.Color.White, style = MaterialTheme.typography.headlineLarge, modifier = Modifier.testTag("report-balance"))
                 }
             }
+            item { Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FilterChip(layout == ReportLayout.SUMMARY, { layout = ReportLayout.SUMMARY }, label = { Text("Sintetico") }, modifier = Modifier.testTag("pdf-summary"))
+                FilterChip(layout == ReportLayout.DETAILED, { layout = ReportLayout.DETAILED }, label = { Text("Dettagliato") }, modifier = Modifier.testTag("pdf-detailed"))
+            } }
+            item { PdfThumbnail(snapshot, layout) { preview = true } }
             item { Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) { listOf("Riepilogo", "Dettagli", "Verifica").forEachIndexed { i, label -> FilterChip(tab == i, { tab = i }, label = { Text(label) }, modifier = Modifier.testTag("report-tab-$i")) } } }
             if (tab == 0) {
                 item { Column { AmountLine("Lordo (tassa esclusa)", snapshot.gross()); AmountLine("OTA", snapshot.ota()); AmountLine("Netto al proprietario", snapshot.net()); HorizontalDivider(); AmountLine("Compenso Elledue", total.fees); AmountLine("Spese anticipate rimborsabili", total.reimbursable); AmountLine("Compensazioni riconosciute", total.compensated); AmountLine("Altri anticipi / pagamenti", total.payments) } }
@@ -105,11 +113,11 @@ fun ReportDetail(report: ReportEntity, snapshot: ReportSnapshot, model: ReportVi
                 item { AccountingField("Note del rendiconto", notes, "report-notes", draft && !busy) { notes = it } }
             }
             if (draft) {
-                item { OutlinedButton(onClick = onExport, modifier = Modifier.fillMaxWidth()) { Text("Anteprima PDF della bozza") } }
+                item { OutlinedButton(onClick = exportPdf, modifier = Modifier.fillMaxWidth()) { Text("Esporta PDF della bozza") } }
                 item { Button(onClick = { model.refresh(report.id, notes) }, enabled = !busy, modifier = Modifier.fillMaxWidth().testTag("refresh-report")) { Text("Aggiorna bozza dai dati sorgente") } }
                 item { OutlinedButton(onClick = { tab = 2; confirm = true }, enabled = !busy && notes.trim() == report.notes && issues.none { it.blocking } && (issues.isEmpty() || acknowledged), modifier = Modifier.fillMaxWidth().testTag("confirm-report")) { Text("Conferma rendiconto") } }
             } else {
-                item { Button(onClick = onExport, modifier = Modifier.fillMaxWidth().testTag("export-report-pdf")) { Text("Esporta / visualizza PDF confermato") } }
+                item { Button(onClick = exportPdf, modifier = Modifier.fillMaxWidth().testTag("export-report-pdf")) { Text("Esporta / visualizza PDF confermato") } }
                 item { OutlinedButton(onClick = { revise = true }, enabled = !busy, modifier = Modifier.fillMaxWidth().testTag("revise-report")) { Text("Crea versione rettificativa") } }
                 if (revise) item { AccountingField("Motivo della rettifica", reason, "report-revision-reason", !busy) { reason = it }; TextButton(onClick = { model.revision(report.id, reason) }, enabled = !busy) { Text("Apri nuova bozza rettificativa") } }
                 item { Text("Questa versione resta immutabile. Le versioni dello stesso periodo sostituiscono il documento corrente senza duplicare gli importi.", style = MaterialTheme.typography.bodySmall) }
@@ -117,5 +125,6 @@ fun ReportDetail(report: ReportEntity, snapshot: ReportSnapshot, model: ReportVi
             error?.let { item { Text(it, color = MaterialTheme.colorScheme.error) } }
         }
     }
+    if (preview) PdfPreview(snapshot, layout, { preview = false }, exportPdf) { layout = it }
     if (confirm) AlertDialog(onDismissRequest = { if (!busy) confirm = false }, title = { Text("Confermare questa versione?") }, text = { Text("Verrà conservato uno snapshot immutabile. Il PDF non sarà inviato automaticamente.") }, confirmButton = { TextButton(enabled = !busy, onClick = { model.confirm(snapshot, acknowledged); confirm = false }) { Text("Conferma definitiva") } }, dismissButton = { TextButton(enabled = !busy, onClick = { confirm = false }) { Text("Torna alla verifica") } })
 }

@@ -60,4 +60,15 @@ object DatabaseMigrations {
         }
     }
 
+    val MIGRATION_4_5 = object : Migration(4, 5) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE activities ADD COLUMN reservationId TEXT REFERENCES reservations(id) ON DELETE RESTRICT")
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_activities_reservationId ON activities(reservationId)")
+            db.execSQL("ALTER TABLE properties ADD COLUMN coverImageBase64 TEXT")
+            db.execSQL("ALTER TABLE app_settings ADD COLUMN operatorFirstName TEXT NOT NULL DEFAULT ''")
+            db.execSQL("ALTER TABLE app_settings ADD COLUMN operatorLastName TEXT NOT NULL DEFAULT ''")
+            db.execSQL("ALTER TABLE app_settings ADD COLUMN operatorPhotoBase64 TEXT")
+        }
+    }
+
 }

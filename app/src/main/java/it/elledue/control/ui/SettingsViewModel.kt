@@ -56,6 +56,16 @@ class SettingsViewModel(private val repository: SettingsRepository) : ViewModel(
         }
     }
 
+    fun profile(first: String, last: String, image: String?) {
+        if (mutableSaveState.value == SaveState.Saving) return
+        mutableSaveState.value = SaveState.Saving
+        viewModelScope.launch {
+            try { repository.saveProfile(first, last, image); mutableSaveState.value = SaveState.Saved }
+            catch (e: CancellationException) { throw e }
+            catch (_: Exception) { mutableSaveState.value = SaveState.Failed }
+        }
+    }
+
     class Factory(private val repository: SettingsRepository) : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             require(modelClass.isAssignableFrom(SettingsViewModel::class.java))

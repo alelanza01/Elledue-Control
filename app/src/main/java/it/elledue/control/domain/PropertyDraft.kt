@@ -58,6 +58,7 @@ data class PropertyDraft(
             touristTaxNightCents = Amounts.parseCents(taxRate), touristTaxMinAge = minAge,
             touristTaxMaxNights = maxNights, touristTaxExemptions = taxExemptions.trim(),
             archived = previous?.archived ?: false,
+            coverImageBase64 = previous?.coverImageBase64,
             createdAt = previous?.createdAt ?: System.currentTimeMillis(),
         )
         val rates = platformRates.lineSequence().filter { it.isNotBlank() }.map { line ->

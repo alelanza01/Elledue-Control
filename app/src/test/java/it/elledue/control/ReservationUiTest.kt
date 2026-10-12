@@ -65,6 +65,7 @@ class ReservationUiTest {
         compose.onNodeWithTag("cancel-booking").performScrollTo().performClick()
         compose.onNodeWithText("Conferma annullamento").performClick()
         compose.waitUntil(15_000) { runBlocking { app.reservationRepository.reservations.firstValue().single().status == "CANCELLED" } }
+        compose.waitUntil(15000) { compose.onAllNodes(hasTestTag("booking-status") and hasText("Annullata")).fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithTag("booking-status").performScrollTo().assertTextEquals("Annullata")
         compose.onNodeWithContentDescription("Indietro").performClick()
         compose.onNodeWithTag("booking-list-mode").performClick()

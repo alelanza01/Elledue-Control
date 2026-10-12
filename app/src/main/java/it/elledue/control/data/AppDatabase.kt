@@ -13,12 +13,18 @@ import kotlinx.coroutines.flow.Flow
 data class AppSettings(
     @PrimaryKey val id: Int = 1,
     val organizationName: String = "Elledue",
+    @androidx.room.ColumnInfo(defaultValue = "''") val operatorFirstName: String = "",
+    @androidx.room.ColumnInfo(defaultValue = "''") val operatorLastName: String = "",
+    val operatorPhotoBase64: String? = null,
 )
 
 @Dao
 interface SettingsDao {
     @Query("SELECT * FROM app_settings WHERE id = 1")
     fun observe(): Flow<AppSettings?>
+
+    @Query("SELECT * FROM app_settings WHERE id = 1")
+    suspend fun get(): AppSettings?
 
     @Upsert
     suspend fun save(settings: AppSettings)
@@ -30,9 +36,10 @@ interface SettingsDao {
         ExpenseEntity::class, ActivityEntity::class, ReportEntity::class,
         ExpenseCategoryEntity::class, ExpenseRevisionEntity::class, TaxAssessmentEntity::class,
         TaxAssessmentRevisionEntity::class, MoneyMovementEntity::class, BookingFinancialChangeEntity::class, ReportAllocationEntity::class],
-    version = 4, exportSchema = true,
+    version = 5, exportSchema = true,
 )
 abstract class AppDatabase : RoomDatabase() {
+    abstract fun activityDao(): ActivityDao
     abstract fun settingsDao(): SettingsDao
     abstract fun propertyDao(): PropertyDao
     abstract fun reservationDao(): ReservationDao

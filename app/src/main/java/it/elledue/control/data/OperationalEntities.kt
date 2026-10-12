@@ -74,7 +74,8 @@ data class ExpenseEntity(
 
 @Entity(tableName = "activities", foreignKeys = [
     ForeignKey(entity = PropertyEntity::class, parentColumns = ["id"], childColumns = ["propertyId"], onDelete = ForeignKey.RESTRICT),
-], indices = [Index("propertyId")])
+    ForeignKey(entity = ReservationEntity::class, parentColumns = ["id"], childColumns = ["reservationId"], onDelete = ForeignKey.RESTRICT),
+], indices = [Index("propertyId"), Index("reservationId")])
 data class ActivityEntity(
     @PrimaryKey val id: String,
     val propertyId: String?,
@@ -82,6 +83,7 @@ data class ActivityEntity(
     val dueEpochMillis: Long?,
     val zoneId: String = "Europe/Rome",
     val completed: Boolean = false,
+    val reservationId: String? = null,
 )
 
 @Entity(tableName = "reports", foreignKeys = [

@@ -23,6 +23,7 @@ class SettingsViewModelTest {
             runTest(dispatcher) {
                 val failingDao = object : SettingsDao {
                     override fun observe(): Flow<AppSettings?> = flow { throw IllegalStateException("Database unavailable") }
+                    override suspend fun get(): AppSettings? = null
                     override suspend fun save(settings: AppSettings) = Unit
                 }
                 val model = SettingsViewModel(SettingsRepository(failingDao))

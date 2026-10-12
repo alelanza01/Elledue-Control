@@ -30,17 +30,26 @@ class BackupService(private val db: AppDatabase, private val context: Context) {
             }; tables.put(table, rows)
         }
         val payload = tables.toString()
-        val bytes = JSONObject().put("format", "ElledueControlBackup").put("formatVersion", 1).put("databaseVersion", 4)
+        val bytes = JSONObject().put("format", "ElledueControlBackup").put("formatVersion", 1).put("databaseVersion", 5)
             .put("payload", payload).put("sha256", ReportCodec.hash(payload)).toString().toByteArray(Charsets.UTF_8)
         require(bytes.size <= MAX_BYTES) { "Backup oltre il limite di 32 MiB." }; bytes
     }
     private fun parse(bytes: ByteArray): JSONObject {
         require(bytes.size in 1..MAX_BYTES) { "File vuoto o troppo grande." }
         val envelope = JSONObject(bytes.toString(Charsets.UTF_8))
-        require(envelope.getString("format") == "ElledueControlBackup" && envelope.getInt("formatVersion") == 1 && envelope.getInt("databaseVersion") == 4) { "Formato o versione backup non compatibile." }
+        require(envelope.getString("format") == "ElledueControlBackup" && envelope.getInt("formatVersion") == 1 && envelope.getInt("databaseVersion") in 4..5) { "Formato o versione backup non compatibile." }
         val payload = envelope.getString("payload")
         require(ReportCodec.hash(payload) == envelope.getString("sha256")) { "Backup corrotto: checksum non valido." }
-        return JSONObject(payload).also { require(it.keys().asSequence().toSet() == TABLES.toSet()) { "Tabelle del backup incomplete o sconosciute." } }
+        return JSONObject(payload).also { tables ->
+            if (envelope.getInt("databaseVersion") == 4) {
+                val activities = tables.getJSONArray("activities")
+                for (i in 0 until activities.length()) activities.getJSONObject(i).put("reservationId", JSONObject.NULL)
+                val properties = tables.getJSONArray("properties")
+                for (i in 0 until properties.length()) properties.getJSONObject(i).put("coverImageBase64", JSONObject.NULL)
+                val settings = tables.getJSONArray("app_settings")
+                for (i in 0 until settings.length()) settings.getJSONObject(i).put("operatorFirstName", "").put("operatorLastName", "").put("operatorPhotoBase64", JSONObject.NULL)
+            }
+        }.also { require(it.keys().asSequence().toSet() == TABLES.toSet()) { "Tabelle del backup incomplete o sconosciute." } }
     }
     suspend fun prepare(bytes: ByteArray): PreparedBackup {
         val safe = bytes.copyOf(); val tables = parse(safe)
@@ -91,6 +100,12 @@ class BackupService(private val db: AppDatabase, private val context: Context) {
         sql.query("PRAGMA foreign_key_check").use { require(!it.moveToFirst()) { "Relazioni del backup incoerenti." } }
     }
     private suspend fun validate(staged: AppDatabase) {
+        staged.openHelper.readableDatabase.query("SELECT coverImageBase64 FROM properties UNION ALL SELECT operatorPhotoBase64 FROM app_settings").use { c ->
+            while (c.moveToNext()) LocalImages.validate(if (c.isNull(0)) null else c.getString(0))
+        }
+        staged.openHelper.readableDatabase.query("SELECT a.title, a.propertyId, b.propertyId FROM activities a LEFT JOIN reservations b ON a.reservationId = b.id WHERE a.reservationId IS NOT NULL").use { c ->
+            while (c.moveToNext()) require(c.getString(0).isNotBlank() && c.getString(1) == c.getString(2)) { "Attività con collegamento incoerente." }
+        }
         val dao = staged.reportDao(); val bookings = dao.bookings(); val costs = dao.expenses(); val taxes = dao.taxes(); val money = staged.accountingDao().movements()
         bookings.forEach { b ->
             require(b.checkOutEpochDay > b.checkInEpochDay && b.guestCount > 0 && Competence.booking(b.checkInEpochDay) == b.competenceMonth && b.status in listOf("CONFIRMED", "COMPLETED", "CANCELLED")) { "Prenotazione del backup non valida." }

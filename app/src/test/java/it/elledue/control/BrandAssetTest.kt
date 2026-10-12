@@ -26,6 +26,26 @@ class BrandAssetTest {
         assertTrue(pixels.count { it == Color.rgb(219,191,139) } > 2000); assertTrue(pixels.count { it == Color.rgb(17,27,50) } > 20000)
         val file = File("build/reports/screenshots/m4-icon-light-dark.png");file.parentFile!!.mkdirs();file.outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG,100,it) };bitmap.recycle()
     }
+    @Test fun circularAndSquircleMasksRetainEntireGoldSymbolAndMonochromeLayer() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val icon = context.getDrawable(R.mipmap.ic_launcher) as AdaptiveIconDrawable
+        assertNotNull(icon.monochrome)
+        val source = BitmapFactory.decodeResource(context.resources, R.drawable.elledue_symbol_gold)
+        var visible = 0
+        for (y in 0 until source.height) for (x in 0 until source.width) if (Color.alpha(source.getPixel(x,y)) > 0) {
+            val dx = x-source.width/2f; val dy = y-source.height/2f
+            assertTrue("Brand alpha must remain inside adaptive safe circle", dx*dx+dy*dy < 132f*132f); visible++
+        }
+        assertTrue(visible > 1000)
+        val result = Bitmap.createBitmap(640,320,Bitmap.Config.ARGB_8888); val canvas = Canvas(result)
+        listOf(false,true).forEachIndexed { index, square ->
+            canvas.save(); canvas.translate(index*320f,0f)
+            val mask = Path().apply { if(square) addRoundRect(20f,20f,300f,300f,62f,62f,Path.Direction.CW) else addCircle(160f,160f,140f,Path.Direction.CW) }
+            canvas.clipPath(mask); icon.setBounds(20,20,300,300); icon.draw(canvas);canvas.restore()
+        }
+        File("build/reports/screenshots/m45-icon-masks.png").outputStream().use { result.compress(Bitmap.CompressFormat.PNG,100,it) }
+        source.recycle();result.recycle()
+    }
     @Test fun horizontalLogoPreservesOriginalAspectAndAlphaWithRequestedOfficialGold() {
         val context = ApplicationProvider.getApplicationContext<Context>(); val logo = BitmapFactory.decodeResource(context.resources,R.drawable.elledue_logo_gold)
         assertEquals(784,logo.width);assertEquals(138,logo.height)

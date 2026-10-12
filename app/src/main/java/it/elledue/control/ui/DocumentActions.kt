@@ -19,22 +19,22 @@ import it.elledue.control.reports.*
 import kotlinx.coroutines.*
 
 @Composable
-fun rememberPdfExporter(snapshot: ReportSnapshot): () -> Unit {
+fun rememberPdfExporter(snapshot: ReportSnapshot, layout: ReportLayout = ReportLayout.DETAILED): () -> Unit {
     val context = LocalContext.current; val scope = rememberCoroutineScope()
     var message by remember { mutableStateOf<String?>(null) }; var saved by rememberSaveable { mutableStateOf<String?>(null) }
     // Freeze the selected version at launch, so navigating or source edits cannot change the output.
-    var pending by remember { mutableStateOf<ReportSnapshot?>(null) }
+    var pending by remember { mutableStateOf<ReportSnapshot?>(null) }; var pendingLayout by remember { mutableStateOf(layout) }
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/pdf")) { uri ->
         val target = pending
         if (uri != null && target != null) scope.launch {
-            try { withContext(Dispatchers.IO) { val bytes = java.io.ByteArrayOutputStream().also { ReportPdf(context).write(target, it) }.toByteArray(); context.contentResolver.openOutputStream(uri, "wt")!!.use { it.write(bytes) } }; saved = uri.toString(); message = "PDF salvato." }
+            try { withContext(Dispatchers.IO) { val bytes = java.io.ByteArrayOutputStream().also { ReportPdf(context).write(target, it, pendingLayout) }.toByteArray(); context.contentResolver.openOutputStream(uri, "wt")!!.use { it.write(bytes) } }; saved = uri.toString(); message = "PDF salvato." }
             catch (_: Exception) { message = "Esportazione non riuscita. La versione del rendiconto è conservata." }
         }
     }
     if (message != null) AlertDialog(onDismissRequest = { message = null }, title = { Text(message!!) }, text = { Text("Il documento non viene inviato automaticamente.") }, confirmButton = { TextButton(onClick = { message = null; saved?.let { value ->
         runCatching { context.startActivity(Intent(Intent.ACTION_VIEW).setDataAndType(value.toUri(), "application/pdf").addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)) }.onFailure { message = "PDF salvato; nessun visualizzatore disponibile. Aprilo dal gestore file." }
     } }) { Text(if (saved != null) "Apri PDF" else "Chiudi") } }, dismissButton = { TextButton(onClick = { message = null }) { Text("Chiudi") } })
-    return { pending = snapshot; saved = null; launcher.launch("Elledue-${snapshot.month}-v${snapshot.version}${if (snapshot.draft) "-bozza" else ""}.pdf") }
+    return { pending = snapshot; pendingLayout = layout; saved = null; launcher.launch("Elledue-${layout.name.lowercase()}-${snapshot.month}-v${snapshot.version}${if (snapshot.draft) "-bozza" else ""}.pdf") }
 }
 
 @Composable

@@ -38,6 +38,9 @@ class PropertyViewModel(private val repository: PropertyRepository) : ViewModel(
     }
     fun archive(id: String, archived: Boolean) = execute { repository.archive(id, archived) }
 
+    fun setCover(id: String, image: String?) = execute { repository.setCover(id, image) }
+    fun delete(id: String, done: () -> Unit) = execute { repository.deleteEmpty(id); done() }
+
     private fun execute(action: suspend () -> Unit) {
         if (mutableBusy.value) return
         mutableBusy.value = true

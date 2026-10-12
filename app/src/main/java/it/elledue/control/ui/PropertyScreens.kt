@@ -61,15 +61,7 @@ fun PropertiesScreen(items: List<PropertyWithOwner>, onCreate: () -> Unit, onOpe
                 EmptyState(if (archived) "Nessun immobile archiviato" else "La tua gestione parte da qui", if (query.isNotBlank()) "Nessun risultato per questa ricerca." else if (archived) "L’archivio conserva schede e storico degli immobili." else "Aggiungi il primo immobile e configura proprietario, tariffe e informazioni operative.")
             }
             items(filtered, key = { it.property.id }) { item ->
-                OutlinedCard(onClick = { onOpen(item.property.id) }, border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant), colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer), modifier = Modifier.fillMaxWidth()) {
-                    Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(item.property.name, style = MaterialTheme.typography.titleLarge)
-                        Text(item.property.address, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                        Text(item.owner.name, style = MaterialTheme.typography.bodyMedium)
-                        Text("${item.property.maxGuests} ospiti · ${item.property.beds} posti letto", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.secondary)
-                    }
-                }
+                PortfolioTile(item) { onOpen(item.property.id) }
             }
         }
     }
@@ -77,11 +69,20 @@ fun PropertiesScreen(items: List<PropertyWithOwner>, onCreate: () -> Unit, onOpe
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PropertyDetailScreen(item: PropertyWithOwner, busy: Boolean, error: String?, onBack: () -> Unit, onEdit: () -> Unit, onArchive: (Boolean) -> Unit) {
+fun PropertyDetailScreen(item: PropertyWithOwner, busy: Boolean, error: String?, onBack: () -> Unit, onEdit: () -> Unit, onArchive: (Boolean) -> Unit, onPhoto: (String?) -> Unit = {}, onDelete: () -> Unit = {}) {
     var confirmArchive by rememberSaveable { mutableStateOf(false) }
+    var menu by remember { mutableStateOf(false) }; var delete by remember { mutableStateOf(false) }
     val p = item.property
-    Scaffold(topBar = { TopAppBar(title = { Text("Scheda immobile") }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Indietro") } }, actions = { TextButton(onClick = onEdit, enabled = !busy) { Text("Modifica") } }) }) { padding ->
+    Scaffold(topBar = { TopAppBar(title = { Text("Scheda immobile") }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Indietro") } }, actions = { TextButton(onClick = onEdit, enabled = !busy) { Text("Modifica") }; Box {
+        IconButton(onClick = { menu = true }, modifier = Modifier.testTag("property-menu")) { Icon(Icons.Outlined.MoreVert, "Azioni immobile") }
+        DropdownMenu(menu, { menu = false }) {
+            DropdownMenuItem(text = { Text("Modifica") }, onClick = { menu = false; onEdit() })
+            DropdownMenuItem(text = { Text(if (p.archived) "Riattiva" else "Archivia") }, onClick = { menu = false; if (p.archived) onArchive(false) else confirmArchive = true })
+            DropdownMenuItem(text = { Text("Elimina se privo di storico") }, onClick = { menu = false; delete = true })
+        }
+    } }) }) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
+            PhotoControls(p.coverImageBase64, onPhoto)
             Text(p.name, style = MaterialTheme.typography.headlineLarge)
             Text(p.address, color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (p.archived) SuggestionChip(onClick = {}, label = { Text("Archiviato · storico conservato") })
@@ -96,6 +97,7 @@ fun PropertyDetailScreen(item: PropertyWithOwner, busy: Boolean, error: String?,
             }
         }
     }
+    if (delete) AlertDialog(onDismissRequest = { delete = false }, title = { Text("Eliminare definitivamente?") }, text = { Text("Consentito soltanto senza prenotazioni, spese, attività, movimenti o rendiconti. In presenza di storico l’operazione viene bloccata: usa Archivia.") }, confirmButton = { TextButton(onClick = { delete = false; onDelete() }) { Text("Conferma eliminazione") } }, dismissButton = { TextButton(onClick = { delete = false }) { Text("Annulla") } })
     if (confirmArchive) AlertDialog(
         onDismissRequest = { confirmArchive = false }, title = { Text("Archiviare ${p.name}?") },
         text = { Text("La scheda e tutti i dati collegati rimangono conservati. Puoi riattivare l’immobile dall’archivio.") },

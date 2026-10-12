@@ -36,11 +36,14 @@ class AppNavigationTest {
 
     @Test fun allMainSectionsAndSettingsAreAccessible() {
         compose.onNodeWithTag("nav-calendar").performClick()
-        waitText("Prenotazioni e soggiorni")
-        compose.onNodeWithText("Prenotazioni e soggiorni").assertIsDisplayed()
+        waitText("Calendario")
+        compose.onNodeWithTag("booking-calendar-mode").assertIsDisplayed()
         compose.onNodeWithTag("nav-economy").performClick()
+        compose.onNodeWithTag("open-accounting").performClick()
         waitText("Contabilità operativa")
         compose.onNodeWithText("Contabilità operativa").assertIsDisplayed()
+        compose.runOnUiThread { compose.activity.onBackPressedDispatcher.onBackPressed() }
+        compose.onNodeWithTag("nav-dashboard").performClick()
         compose.onNodeWithTag("nav-activities").performClick()
         compose.onNodeWithText("La tua operatività").assertIsDisplayed()
         compose.onNodeWithTag("nav-settings").performClick()
@@ -48,8 +51,10 @@ class AppNavigationTest {
         compose.onNodeWithText("Nome organizzazione").performTextReplacement("Elledue Management")
         compose.onNodeWithText("Salva").performClick()
         waitText("Impostazioni salvate")
+        compose.runOnUiThread { compose.activity.onBackPressedDispatcher.onBackPressed() }
+        compose.runOnUiThread { compose.activity.onBackPressedDispatcher.onBackPressed() }
         compose.onNodeWithTag("nav-dashboard").performClick()
-        compose.onNodeWithText("La tua gestione").assertIsDisplayed()
+        compose.onNodeWithText("Il tuo portfolio").assertExists()
         screenshot("dashboard-empty")
     }
 
@@ -57,7 +62,7 @@ class AppNavigationTest {
     @Config(sdk = [34], qualifiers = "w411dp-h891dp-night-xxhdpi")
     fun darkThemeRendersWithOfficialNightBackground() {
         waitText("Aggiungi un immobile")
-        screenshot("dashboard-dark", android.graphics.Color.rgb(17, 27, 50))
+        screenshot("dashboard-dark", android.graphics.Color.rgb(9, 21, 36))
     }
 
     @Test fun propertyCanBeCreatedEditedArchivedAndReactivatedThroughUi() {
@@ -73,7 +78,7 @@ class AppNavigationTest {
         compose.onNodeWithTag("property-name").assertTextContains("Casa UI")
         compose.onNodeWithTag("save-property").performClick()
         waitText("Scheda immobile")
-        compose.onNodeWithText("Casa UI").assertIsDisplayed()
+        compose.onNodeWithText("Casa UI").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Modifica").performClick()
         compose.onNodeWithTag("property-name").performTextReplacement("Casa Aggiornata")
         compose.onNodeWithTag("save-property").performClick()

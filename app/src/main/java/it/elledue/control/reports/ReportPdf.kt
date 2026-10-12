@@ -14,6 +14,8 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 /** A4 vector text/tables. Layout floats only; every accounting value remains integer cents. */
+enum class ReportLayout { SUMMARY, DETAILED }
+
 class ReportPdf(private val context: Context) {
     private val night = Color.rgb(17, 27, 50); private val gold = Color.rgb(219, 191, 139)
     private lateinit var document: PDDocument; private lateinit var content: PDPageContentStream
@@ -55,7 +57,12 @@ class ReportPdf(private val context: Context) {
         number++; val page = PDPage(com.tom_roush.pdfbox.pdmodel.common.PDRectangle.A4); document.addPage(page); content = PDPageContentStream(document, page)
         rect(0f, 0f, 595f, 95f, night)
         val bytes = Base64.decode(snapshot.logoBase64, Base64.DEFAULT)
-        val logo = PDImageXObject.createFromByteArray(document, bytes, "Elledue ufficiale")
+        val original = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+        val opaque = Bitmap.createBitmap(original.width, original.height, Bitmap.Config.ARGB_8888)
+        Canvas(opaque).apply { drawColor(night); drawBitmap(original, 0f, 0f, null) }
+        opaque.setHasAlpha(false)
+        val logo = com.tom_roush.pdfbox.pdmodel.graphics.image.LosslessFactory.createFromImage(document, opaque)
+        original.recycle(); opaque.recycle()
         val width = 155f; val height = width * logo.height / logo.width
         content.drawImage(logo, left, 842f - 28f - height, width, height)
         text("RENDICONTO MENSILE", 310f, 26f, 12f, Color.WHITE, true)
@@ -105,7 +112,7 @@ class ReportPdf(private val context: Context) {
         y += 10f
     }
     private fun amount(label: String, cents: Long) { ensure(20f); text(label, left, y, 9f); val value = Amounts.euro(cents); text(value, right - width(value, 9f), y); y += 21f }
-    fun write(value: ReportSnapshot, output: OutputStream) {
+    fun write(value: ReportSnapshot, output: OutputStream, layout: ReportLayout = ReportLayout.DETAILED) {
         require(value.issues().none { it.blocking }) { "Snapshot incoerente." }
         snapshot = value; PDFBoxResourceLoader.init(context); document = PDDocument(); number = 0; rowCounter = 0
         regular = context.assets.open("fonts/DejaVuSans.ttf").use { PDType0Font.load(document, it) }; boldFont = context.assets.open("fonts/DejaVuSans-Bold.ttf").use { PDType0Font.load(document, it) }
@@ -113,14 +120,21 @@ class ReportPdf(private val context: Context) {
             newPage()
             paragraph(value.property.name, 18f, true); paragraph("Proprietario: ${value.owner.name}")
             paragraph("Periodo: ${value.month} · Emissione: ${Instant.ofEpochMilli(value.issuedAt).atZone(ZoneId.of("Europe/Rome")).format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))}")
-            paragraph("Identificativo: ${value.id} · versione ${value.version}")
+            if (layout == ReportLayout.DETAILED) paragraph("Identificativo: ${value.id.take(8)} · versione ${value.version}")
             if (value.previousId != null) paragraph("Rettifica della versione precedente: ${value.revisionReason}")
             section("01  Prenotazioni")
+            if (layout == ReportLayout.SUMMARY) {
+                table(listOf("Ospite", "Soggiorno / ospiti", "Lordo", "Compenso"), listOf(175f, 155f, 90f, 95f), value.bookings.filter { it.status != "CANCELLED" }.map {
+                    listOf("${it.guestFirstName} ${it.guestLastName}", "${BookingDates.display(it.checkInEpochDay)} → ${BookingDates.display(it.checkOutEpochDay)} · ${it.guestCount} ospiti", Amounts.euro(it.grossCents), Amounts.euro(it.managementCents))
+                })
+            } else {
             table(listOf("Ospite / portale", "Soggiorno", "Lordo", "OTA", "Netto", "Gestione", "Compenso"), listOf(139f, 81f, 59f, 58f, 60f, 51f, 67f), value.bookings.filter { it.status != "CANCELLED" }.map {
                 listOf("${it.guestFirstName} ${it.guestLastName}\n${it.guestCount} ospiti · ${it.platform}\n${it.checkOutEpochDay - it.checkInEpochDay} notti", "${BookingDates.display(it.checkInEpochDay)}\n${BookingDates.display(it.checkOutEpochDay)}", Amounts.euro(it.grossCents), "${Amounts.euro(it.otaCents)}\n${if (it.actualOtaCents == null) "Stimata" else "Effettiva"}", Amounts.euro(it.netCents), "${Amounts.editable(it.appliedManagementBasisPoints.toLong())}%", Amounts.euro(it.managementCents))
             })
+            }
             val totals = value.summary()
-            amount("Lordo prenotazioni (tassa esclusa)", value.gross()); amount("Commissioni OTA", value.ota()); amount("Netto dopo OTA al proprietario", value.net()); amount("Compenso Elledue maturato", totals.fees)
+            amount("Lordo prenotazioni (tassa esclusa)", value.gross()); if (layout == ReportLayout.DETAILED) { amount("Commissioni OTA", value.ota()); amount("Netto dopo OTA al proprietario", value.net()) }; amount("Compenso Elledue maturato", totals.fees)
+            if (layout == ReportLayout.DETAILED) {
             section("02  Pulizie")
             fun bookingName(id: String?) = (value.bookings + value.linkedBookings.orEmpty()).firstOrNull { it.id == id }?.let { "${it.guestFirstName} ${it.guestLastName}" } ?: if (id == null) "Non collegata" else "Collegamento storico"
             table(listOf("Data / prenotazione", "Intervento", "Ore", "Tariffa", "Costo effettivo"), listOf(126f, 177f, 50f, 73f, 89f), value.expenses.filter { it.kind == "CLEANING" }.map { listOf("${BookingDates.display(it.dateEpochDay)}\n${bookingName(it.reservationId)}", it.description, it.quantity ?: "—", it.unitCents?.let(Amounts::euro) ?: "—", Amounts.euro(it.actualCents)) })
@@ -132,17 +146,17 @@ class ReportPdf(private val context: Context) {
             table(listOf("Data / categoria", "Descrizione / note", "Rimborso", "Importo"), listOf(127f, 223f, 76f, 89f), value.expenses.filter { it.kind == "OTHER" }.map { listOf("${BookingDates.display(it.dateEpochDay)}\n${it.category}", "${it.description}\n${it.notes}", if (it.advancedByElledue && it.reimbursable) "Sì" else "No", Amounts.euro(it.actualCents)) })
             amount("Spese complessive", totals.expenses); amount("Spese anticipate da Elledue", totals.advanced); amount("Spese anticipate e rimborsabili", totals.reimbursable)
             paragraph("Le tariffe e i costi effettivi degli interventi sono storici. Nel saldo entrano soltanto spese anticipate da Elledue e rimborsabili dal proprietario.", 8f)
-            section("05  Tassa di soggiorno e anticipi")
-            amount("Tassa prevista dei soggiorni del periodo", totals.expectedTax); amount("Tassa materialmente riscossa", totals.collectedTax); amount("Tassa ancora da incassare", totals.residualTax)
-            amount("Riconosciuta in compensazione nel periodo", totals.compensated); amount("Altri anticipi / pagamenti riconosciuti", totals.payments)
-            table(listOf("Data", "Movimento / nota", "Importo"), listOf(90f, 336f, 89f), Ledger.active(value.movements).filter { it.competenceMonth == value.month && it.kind in listOf("COMPENSATION", "OWNER_PAYMENT", "REMITTANCE") }.map { listOf(BookingDates.display(it.dateEpochDay), "${when(it.kind) { "COMPENSATION" -> "Compensazione tassa · ${bookingName(it.reservationId)}"; "REMITTANCE" -> "Riversamento separato (non sottratto dal saldo)"; else -> "Anticipo / pagamento proprietario" }}\n${it.notes}", Amounts.euro(it.amountCents)) })
-            paragraph("La tassa è esterna al lordo e non è un ricavo o una spesa Elledue. La riscossione non comporta una compensazione automatica. Riscossione e riversamento restano distinti.", 8f)
-            paragraph("Le prenotazioni appartengono interamente al mese del check-in; spese e movimenti seguono la competenza assegnata. Gli importi OTA delle prenotazioni sono accreditati al proprietario.", 8f)
+            } else {
+                section("02  Spese rimborsabili")
+                table(listOf("Categoria", "Importo"), listOf(426f, 89f), value.expenses.filter { it.advancedByElledue && it.reimbursable }.groupBy { it.category }.map { (category, rows) -> listOf(category, Amounts.euro(OperationalMoney.total(rows.map { it.actualCents }))) })
+            }
+            section("Tassa di soggiorno e anticipi")
+            amount("Tassa di soggiorno riscossa", totals.collectedTax)
+            amount("Altri anticipi", totals.payments)
+            if (totals.collectedTax != totals.compensated) paragraph("Nel saldo sono riconosciuti ${Amounts.euro(totals.compensated)} di tassa, a fronte di ${Amounts.euro(totals.collectedTax)} riscossi. Riscossione e compensazione sono registrazioni distinte; possono riferirsi a periodi differenti.", 8f)
             if (value.notes.isNotBlank()) { section("Note"); paragraph(value.notes) }
-            val warnings = value.issues().filter { !it.blocking }
-            if (warnings.isNotEmpty()) { section("Avvisi verificati alla conferma"); warnings.forEach { paragraph(it.message, 8f) } }
-            ensure(230f)
-            section("06  Saldo del periodo")
+            ensure(200f)
+            section("Saldo del periodo")
             amount("Compenso di gestione", totals.fees); amount("Rimborsi anticipati", totals.reimbursable); amount("Meno compensazioni riconosciute", totals.compensated); amount("Meno altri anticipi / pagamenti", totals.payments)
             ensure(83f); rect(left, y, right, y + 76f, night)
             text(if (totals.balance >= 0) "BONIFICO ANCORA DOVUTO A ELLEDUE" else "CREDITO DA RICONCILIARE", left + 15f, y + 12f, 10f, gold, true)

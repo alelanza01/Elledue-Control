@@ -55,7 +55,7 @@ class AccountingMigrationTest {
                 val queries = schema.getJSONArray("setupQueries"); for (i in 0 until queries.length()) sqlite.execSQL(queries.getString(i))
                 sqlite.version = 2
             }
-            Room.databaseBuilder(context, AppDatabase::class.java, name).addMigrations(DatabaseMigrations.MIGRATION_2_3, DatabaseMigrations.MIGRATION_3_4).build().withClosing { db ->
+            Room.databaseBuilder(context, AppDatabase::class.java, name).addMigrations(DatabaseMigrations.MIGRATION_2_3, DatabaseMigrations.MIGRATION_3_4, DatabaseMigrations.MIGRATION_4_5).build().withClosing { db ->
                 val preserved = db.propertyDao().get(property.property.id)!!
                 assertEquals("Casa storica", preserved.property.name); assertEquals("Proprietario", preserved.owner.name)
                 assertEquals(0, preserved.platformCommissions.single().basisPoints); assertEquals("Istruzioni storiche", preserved.templates.single().body)
@@ -68,7 +68,7 @@ class AccountingMigrationTest {
                 db.openHelper.readableDatabase.query("SELECT organizationName FROM app_settings").use { it.moveToFirst(); assertEquals("Gestione storica", it.getString(0)) }
                 db.openHelper.readableDatabase.query("SELECT title FROM activities").use { it.moveToFirst(); assertEquals("Controllo", it.getString(0)) }
                 db.openHelper.readableDatabase.query("SELECT status FROM reports").use { it.moveToFirst(); assertEquals("DRAFT", it.getString(0)) }
-                assertEquals(4, db.openHelper.readableDatabase.version)
+                assertEquals(5, db.openHelper.readableDatabase.version)
                 AccountingRepository(db).saveExpense(ExpenseDraft.from(cost).copy(amount = "6", reason = "Rettifica dopo migrazione"))
                 assertEquals(2, db.accountingDao().expenseHistory(cost.id).size)
             }

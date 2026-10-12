@@ -1,6 +1,7 @@
 package it.elledue.control.ui
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.background
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -10,6 +11,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
@@ -26,17 +28,17 @@ import it.elledue.control.domain.BookingStatus
 
 private data class Section(val route: String, val title: String, val icon: ImageVector)
 private val sections = listOf(
-    Section("dashboard", "Dashboard", Icons.Outlined.Dashboard),
+    Section("dashboard", "Home", Icons.Outlined.Home),
     Section("properties", "Immobili", Icons.Outlined.Apartment),
     Section("calendar", "Calendario", Icons.Outlined.CalendarMonth),
     Section("economy", "Economia", Icons.Outlined.AccountBalanceWallet),
-    Section("activities", "Attività", Icons.Outlined.TaskAlt),
-    Section("settings", "Impostazioni", Icons.Outlined.Settings),
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewModel, bookingsModel: ReservationViewModel, accountingModel: AccountingViewModel, reportsModel: ReportViewModel, backupService: it.elledue.control.data.BackupService) {
+    val app = androidx.compose.ui.platform.LocalContext.current.applicationContext as it.elledue.control.ElledueApplication
+    val activities by app.activityRepository.activities.collectAsStateWithLifecycle(initialValue = emptyList())
     val navigation = rememberNavController()
     val entry by navigation.currentBackStackEntryAsState()
     val route = entry?.destination?.route
@@ -61,75 +63,34 @@ fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewMo
     val records = (state as? PropertyLoadState.Ready)?.items.orEmpty()
     val showNavigation = route == null || sections.any { it.route == route }
     val goProperties = { navigation.navigate("properties") { launchSingleTop = true } }
-    Scaffold(bottomBar = {
-        if (showNavigation) NavigationBar(containerColor = MaterialTheme.colorScheme.surfaceContainer) {
-            sections.forEach { section ->
-                NavigationBarItem(
-                    selected = route == section.route,
-                    onClick = {
-                        settingsModel.clearSaveState()
-                        navigation.navigate(section.route) {
-                            popUpTo(navigation.graph.findStartDestination().id) { this.saveState = true }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    },
-                    icon = { Icon(section.icon, contentDescription = section.title) },
-                    label = { Text(if (section.route == "settings") "Impost." else section.title, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                    modifier = Modifier.testTag("nav-${section.route}"),
-                )
+    var quick by remember { mutableStateOf(false) }
+    val jump: (String) -> Unit = { target -> navigation.navigate(target) { launchSingleTop = true } }
+    Scaffold(topBar = {
+        if (showNavigation || route?.startsWith("activities") == true || route in listOf("settings", "profile", "activities", "notifications", "accounting", "analysis")) {
+            Row(Modifier.fillMaxWidth().background(ElledueNight).statusBarsPadding().padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                androidx.compose.foundation.Image(androidx.compose.ui.res.painterResource(R.drawable.elledue_logo_gold), "Intestazione Elledue", Modifier.width(112.dp).height(28.dp))
+                Spacer(Modifier.weight(1f))
+                IconButton(onClick = { jump("notifications") }) { Icon(Icons.Outlined.NotificationsNone, "Centro notifiche", tint = ElledueGold) }
+                IconButton(onClick = { jump("profile") }, modifier = Modifier.testTag("open-profile")) {
+                    if (settings?.operatorPhotoBase64 != null) LocalPhoto(settings?.operatorPhotoBase64, "Profilo operatore", Modifier.size(36.dp).clip(androidx.compose.foundation.shape.CircleShape))
+                    else Icon(Icons.Outlined.AccountCircle, "Profilo operatore", tint = ElledueGold)
+                }
+                IconButton(onClick = { jump("settings") }, modifier = Modifier.testTag("nav-settings")) { Icon(Icons.Outlined.Settings, "Impostazioni", tint = ElledueGold) }
+            }
+        }
+    }, bottomBar = {
+        if (showNavigation) Surface(color = MaterialTheme.colorScheme.surfaceContainer) {
+            Row(Modifier.fillMaxWidth().navigationBarsPadding().heightIn(min = 76.dp), verticalAlignment = Alignment.CenterVertically) {
+                sections.take(2).forEach { section -> NavigationBarItem(selected = route == section.route, onClick = { jump(section.route) }, icon = { Icon(section.icon, section.title) }, label = { Text(section.title, fontSize = 11.sp) }, modifier = Modifier.testTag("nav-${section.route}")) }
+                FloatingActionButton(onClick = { quick = true }, containerColor = ElledueGold, contentColor = ElledueNight, modifier = Modifier.padding(horizontal = 6.dp).size(52.dp).testTag("quick-action")) { Icon(Icons.Outlined.Add, "Azioni rapide") }
+                sections.drop(2).forEach { section -> NavigationBarItem(selected = route == section.route, onClick = { jump(section.route) }, icon = { Icon(section.icon, section.title) }, label = { Text(section.title, fontSize = 11.sp) }, modifier = Modifier.testTag("nav-${section.route}")) }
             }
         }
     }) { outerPadding ->
         NavHost(navigation, startDestination = "dashboard", modifier = Modifier.padding(outerPadding)) {
             composable("dashboard") {
-                Scaffold(topBar = { TopAppBar(title = {
-                    Column { Surface(color = ElledueNight, shape = MaterialTheme.shapes.small) { androidx.compose.foundation.Image(androidx.compose.ui.res.painterResource(R.drawable.elledue_logo_gold), "Logo ufficiale Elledue", modifier = Modifier.padding(6.dp).width(120.dp).height(22.dp)) }; Text("La tua gestione", style = MaterialTheme.typography.titleLarge) }
-                }) }) { padding ->
-                    Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(24.dp)) {
-                        Text("Tutto parte dai tuoi immobili.", style = MaterialTheme.typography.headlineLarge)
-                        when (state) {
-                            PropertyLoadState.Loading -> CircularProgressIndicator()
-                            PropertyLoadState.Failed -> LoadError(propertiesModel::retry)
-                            is PropertyLoadState.Ready -> {
-                                val active = records.filter { !it.property.archived }
-                                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer), modifier = Modifier.fillMaxWidth()) {
-                                    Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        Text(active.size.toString(), style = MaterialTheme.typography.headlineLarge)
-                                        Text("Immobili attivi", style = MaterialTheme.typography.titleMedium)
-                                        Text("${records.count { it.property.archived }} archiviati · storico conservato", style = MaterialTheme.typography.bodySmall)
-                                    }
-                                }
-                                if (active.isEmpty()) EmptyState("Benvenuto in Elledue Control", "Organizza schede, proprietari e tariffe in un unico posto.", "Aggiungi un immobile") { propertiesModel.clearError(); navigation.navigate("property/new") }
-                                else {
-                                    Text("Oggi · ${BookingDates.display(BookingDates.today().toEpochDay())}", style = MaterialTheme.typography.titleLarge)
-                                    when (bookingState) {
-                                        BookingLoadState.Loading -> CircularProgressIndicator()
-                                        BookingLoadState.Failed -> LoadError(bookingsModel::retry)
-                                        is BookingLoadState.Ready -> {
-                                            val today = BookingDates.today().toEpochDay()
-                                            val current = bookings.filter { it.status == BookingStatus.CONFIRMED.name }
-                                            val arrivals = current.filter { it.checkInEpochDay == today }
-                                            val departures = current.filter { it.checkOutEpochDay == today }
-                                            val stays = current.filter { it.checkInEpochDay <= today && it.checkOutEpochDay > today }
-                                            Text("${arrivals.size} arrivi · ${departures.size} partenze · ${stays.sumOf { it.guestCount.toLong() }} ospiti nei soggiorni in corso", style = MaterialTheme.typography.bodyMedium)
-                                            (arrivals + departures + stays).distinctBy { it.id }.forEach { booking ->
-                                                BookingRow(booking, records.firstOrNull { it.property.id == booking.propertyId }?.property?.name ?: "Immobile") { navigation.navigate("booking/${booking.id}") }
-                                            }
-                                            TextButton(onClick = { navigation.navigate("calendar") }) { Text("Apri prenotazioni e calendario") }
-                                        }
-                                    }
-                                    Text("Il tuo portafoglio", style = MaterialTheme.typography.titleLarge)
-                                    active.take(3).forEach { item ->
-                                        OutlinedCard(onClick = { navigation.navigate("property/${item.property.id}") }, modifier = Modifier.fillMaxWidth()) {
-                                            Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) { Text(item.property.name, style = MaterialTheme.typography.titleMedium); Text(item.property.address, style = MaterialTheme.typography.bodyMedium) }
-                                        }
-                                    }
-                                    TextButton(onClick = goProperties) { Text("Tutti gli immobili") }
-                                }
-                            }
-                        }
-                    }
+                BookingDataSurface(bookingState, state, { bookingsModel.retry(); propertiesModel.retry() }) {
+                    CommandHome(records, bookings, reports, accountingData, settings, activities, jump)
                 }
             }
             composable("properties") {
@@ -159,6 +120,8 @@ fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewMo
                         onBack = { navigation.popBackStack() },
                         onEdit = { propertiesModel.clearError(); navigation.navigate("property/$id/edit") },
                         onArchive = { propertiesModel.archive(record.property.id, it) },
+                        onPhoto = { propertiesModel.setCover(record.property.id, it) },
+                        onDelete = { propertiesModel.delete(record.property.id) { navigation.popBackStack() } },
                     )
                 }
             }
@@ -196,7 +159,7 @@ fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewMo
                     val item = bookings.firstOrNull { it.id == destination.arguments?.getString("id") }
                     if (item == null) EmptyState("Prenotazione non trovata", "Torna al calendario.", "Calendario", { navigation.navigate("calendar") })
                     else BookingDetailScreen(item, records.firstOrNull { it.property.id == item.propertyId }?.property?.name ?: "Immobile", bookingBusy, bookingError,
-                        onBack = { navigation.popBackStack() }, onEdit = { bookingsModel.clearError(); navigation.navigate("booking/${item.id}/edit") }, onCancel = { bookingsModel.cancel(item.id) }, onTax = { accountingModel.clear(); navigation.navigate("tax/${item.id}") }, financialChanges = accountingData?.financialChanges.orEmpty())
+                        onBack = { navigation.popBackStack() }, onEdit = { bookingsModel.clearError(); navigation.navigate("booking/${item.id}/edit") }, onCancel = { bookingsModel.cancel(item.id) }, onTax = { accountingModel.clear(); navigation.navigate("tax/${item.id}") }, onExpense = { kind -> accountingModel.clear(); navigation.navigate("expense/new/$kind?booking=${item.id}") }, onActivities = { jump("activities?booking=${item.id}") }, financialChanges = accountingData?.financialChanges.orEmpty())
                 }
             }
             composable("booking/{id}/edit") { destination ->
@@ -209,6 +172,10 @@ fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewMo
                 }
             }
             composable("economy") {
+                EconomyHub(bookings, records, accountingData, jump)
+            }
+            composable("analysis") { EconomyAnalysis(bookings, records) { navigation.popBackStack() } }
+            composable("accounting") {
                 BookingDataSurface(bookingState, state, { bookingsModel.retry(); propertiesModel.retry() }) {
                     AccountingSurface(accountingState, accountingModel::retry) {
                         AccountingHome(accountingData!!, bookings, records, accountingModel,
@@ -219,12 +186,13 @@ fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewMo
                     }
                 }
             }
-            composable("expense/new/{kind}") { destination ->
+            composable("expense/new/{kind}?booking={booking}", arguments = listOf(androidx.navigation.navArgument("booking") { type = androidx.navigation.NavType.StringType; nullable = true; defaultValue = null })) { destination ->
                 AccountingSurface(accountingState, accountingModel::retry) {
                     val kind = destination.arguments?.getString("kind") ?: "OTHER"
-                    val selectedProperty = records.firstOrNull { !it.property.archived }?.property
+                    val linked = bookings.firstOrNull { it.id == destination.arguments?.getString("booking") }
+                    val selectedProperty = records.firstOrNull { it.property.id == linked?.propertyId }?.property ?: records.firstOrNull { !it.property.archived }?.property
                     val category = accountingData!!.categories.firstOrNull { it.kind == kind && !it.archived }
-                    val initial by rememberSaveable(stateSaver = ExpenseDraftSaver) { mutableStateOf(it.elledue.control.domain.ExpenseDraft(propertyId = selectedProperty?.id ?: "", categoryId = category?.id ?: "other", quantity = if (kind != "OTHER") "1" else "", unit = when (kind) { "CLEANING" -> it.elledue.control.domain.Amounts.editable(selectedProperty?.cleaningHourlyCents ?: 800); "LAUNDRY" -> it.elledue.control.domain.Amounts.editable(selectedProperty?.laundrySetCents ?: 500); else -> "" })) }
+                    val initial by rememberSaveable(stateSaver = ExpenseDraftSaver) { mutableStateOf(it.elledue.control.domain.ExpenseDraft(propertyId = selectedProperty?.id ?: "", reservationId = linked?.id ?: "", categoryId = category?.id ?: "other", quantity = if (kind != "OTHER") "1" else "", unit = when (kind) { "CLEANING" -> it.elledue.control.domain.Amounts.editable(selectedProperty?.cleaningHourlyCents ?: 800); "LAUNDRY" -> it.elledue.control.domain.Amounts.editable(selectedProperty?.laundrySetCents ?: 500); else -> "" })) }
                     LaunchedEffect(accountingSaved) { accountingSaved?.takeIf { it == initial.id }?.let { accountingModel.clear(); navigation.popBackStack(); navigation.navigate("expense/$it") } }
                     ExpenseEditor(initial, records, bookings, accountingData.categories, accountingModel) { navigation.popBackStack() }
                 }
@@ -278,20 +246,23 @@ fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewMo
                             owner.lifecycle.addObserver(observer); onDispose { owner.lifecycle.removeObserver(observer) }
                         }
                         LaunchedEffect(savedReportId) { savedReportId?.let { reportsModel.clear(); navigation.navigate("report/$it") } }
-                        if (snapshot != null && runCatching { snapshot.summary(); snapshot.gross(); snapshot.ota(); snapshot.net() }.isFailure) EmptyState("Importi non validi", "Correggi le voci nella contabilità prima di confermare.", "Apri contabilità", { navigation.navigate("economy") })
+                        if (snapshot != null && runCatching { snapshot.summary(); snapshot.gross(); snapshot.ota(); snapshot.net() }.isFailure) EmptyState("Importi non validi", "Correggi le voci nella contabilità prima di confermare.", "Apri contabilità", { navigation.navigate("accounting") })
                         else if (snapshot == null) EmptyState("Snapshot non valido", "Aggiorna la bozza senza confermarla.", "Aggiorna", { reportsModel.refresh(report.id) })
                         else {
-                            val export = rememberPdfExporter(snapshot)
                             ReportDetail(report, snapshot, reportsModel, { navigation.popBackStack() },
                                 onBooking = { bookingsModel.clearError(); navigation.navigate("booking/$it/edit") },
                                 onExpense = { accountingModel.clear(); navigation.navigate("expense/$it/edit") },
                                 onTax = { accountingModel.clear(); navigation.navigate("tax/$it") },
-                                onEconomy = { navigation.navigate("economy") }, onExport = export)
+                                onEconomy = { navigation.navigate("accounting") })
                         }
                     }
                 }
             }
-            composable("activities") { UpcomingScreen("Attività", "La tua operatività", "Scadenze, promemoria e checklist saranno disponibili nelle prossime versioni.", goProperties) }
+            composable("activities?booking={booking}", arguments = listOf(androidx.navigation.navArgument("booking") { type = androidx.navigation.NavType.StringType; nullable = true; defaultValue = null })) { destination ->
+                ActivitiesScreen(app.activityRepository, activities, records, bookings, destination.arguments?.getString("booking")) { navigation.popBackStack() }
+            }
+            composable("profile") { ProfileScreen(settings, settingsModel) { navigation.popBackStack() } }
+            composable("notifications") { UpcomingScreen("Centro notifiche", "Nessuna notifica di sistema attiva", "Le notifiche Android saranno sviluppate nella Milestone 5. Consulta l’agenda Home per gli eventi registrati.", { jump("dashboard") }) }
             composable("settings") {
                 Scaffold(topBar = { TopAppBar(title = { Text("Impostazioni") }) }) { padding ->
                     Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -311,7 +282,7 @@ fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewMo
                             }
                         }
                         HorizontalDivider()
-                        Text("Elledue Control · 0.4.0", style = MaterialTheme.typography.labelLarge)
+                        Text("Elledue Control · 0.4.5", style = MaterialTheme.typography.labelLarge)
                         Text("Dati locali. Esporta un backup verificato prima di cambiare dispositivo o firma Android.", style = MaterialTheme.typography.bodyMedium)
                         BackupControls(backupService)
                     }
@@ -319,6 +290,20 @@ fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewMo
             }
         }
     }
+    if (quick) ModalBottomSheet(onDismissRequest = { quick = false }) {
+        Column(Modifier.fillMaxWidth().padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) { Text("Azione rapida", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f)); IconButton(onClick = { quick = false }, modifier = Modifier.testTag("close-quick")) { Icon(Icons.Outlined.Close, "Chiudi azioni") } }
+            val actions = if (records.none { !it.property.archived }) listOf("Nuovo immobile" to "property/new") else when (route) {
+                "properties" -> listOf("Nuovo immobile" to "property/new")
+                "economy" -> listOf("Nuova spesa" to "expense/new/OTHER", "Registra pulizia" to "expense/new/CLEANING", "Tassa e anticipi" to "accounting")
+                "calendar" -> listOf("Nuova prenotazione" to "booking/new", "Attività" to "activities")
+                else -> listOf("Nuova prenotazione" to "booking/new", "Nuova spesa" to "expense/new/OTHER", "Nuova attività" to "activities")
+            }
+            actions.forEach { (label, target) -> OutlinedButton(onClick = { quick = false; propertiesModel.clearError(); bookingsModel.clearError(); accountingModel.clear(); jump(target) }, modifier = Modifier.fillMaxWidth()) { Text(label) } }
+            Spacer(Modifier.height(20.dp))
+        }
+    }
+
 }
 
 @Composable

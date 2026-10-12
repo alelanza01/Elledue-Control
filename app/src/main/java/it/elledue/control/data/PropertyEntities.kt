@@ -43,6 +43,7 @@ data class PropertyEntity(
     val archived: Boolean = false,
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis(),
+    val coverImageBase64: String? = null,
 )
 
 @Entity(

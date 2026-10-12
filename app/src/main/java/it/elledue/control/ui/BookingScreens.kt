@@ -76,7 +76,7 @@ fun ReservationsScreen(records: List<ReservationEntity>, properties: List<Proper
     // Include departure markers on day 1 of the month, even for a stay that ended overnight.
     val inMonth = filtered.filter { it.checkInEpochDay < end && it.checkOutEpochDay >= start }.sortedBy { it.checkInEpochDay }
     val today = BookingDates.today().toEpochDay()
-    Scaffold(topBar = { TopAppBar(title = { Text("Prenotazioni e soggiorni") }, actions = { IconButton(onClick = onNew, enabled = properties.any { !it.property.archived }, modifier = Modifier.testTag("new-booking")) { Icon(Icons.Outlined.Add, "Nuova prenotazione") } }) }) { padding ->
+    Scaffold(topBar = { TopAppBar(title = { Text("Calendario") }, actions = { IconButton(onClick = onNew, enabled = properties.any { !it.property.archived }, modifier = Modifier.testTag("new-booking")) { Icon(Icons.Outlined.Add, "Nuova prenotazione") } }) }) { padding ->
         LazyColumn(Modifier.fillMaxSize().padding(padding).testTag("bookings-scroll"), contentPadding = PaddingValues(20.dp, 10.dp, 20.dp, 96.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             item { PropertySelector(properties, propertyFilter, allOption = true) { propertyFilter = it } }
             item { Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -140,7 +140,7 @@ private fun MonthGrid(month: YearMonth, selected: Long, today: Long, records: Li
                             val occupied = bookings.filter { epoch < it.checkOutEpochDay }
                             Column(Modifier.weight(1f).height(64.dp).background(if (epoch == selected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent, MaterialTheme.shapes.small).clickable { select(epoch) }.testTag("calendar-day-$epoch").semantics { contentDescription = "${BookingDates.display(epoch)}, $arrivals arrivi, $departures partenze, ${occupied.size} soggiorni" }.padding(4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text(day.toString(), fontWeight = if (epoch == today || epoch == selected) FontWeight.Bold else FontWeight.Normal, color = if (epoch == today) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface)
-                                Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) { occupied.map { it.propertyId }.distinct().take(3).forEach { Box(Modifier.size(5.dp).background(propertyColor(it), CircleShape)) } }
+                                Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) { occupied.map { it.propertyId }.distinct().take(3).forEach { Box(Modifier.width(8.dp).height(4.dp).background(propertyColor(it), CircleShape)) } }
                                 if (arrivals > 0 || departures > 0) Text(listOfNotNull(if (arrivals > 0) "A$arrivals" else null, if (departures > 0) "P$departures" else null).joinToString(" "), style = MaterialTheme.typography.labelSmall)
                             }
                         }
@@ -153,7 +153,7 @@ private fun MonthGrid(month: YearMonth, selected: Long, today: Long, records: Li
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun BookingDetailScreen(item: ReservationEntity, propertyName: String, busy: Boolean, error: String?, onBack: () -> Unit, onEdit: () -> Unit, onCancel: () -> Unit, onTax: () -> Unit = {}, financialChanges: List<it.elledue.control.data.BookingFinancialChangeEntity> = emptyList()) {
+fun BookingDetailScreen(item: ReservationEntity, propertyName: String, busy: Boolean, error: String?, onBack: () -> Unit, onEdit: () -> Unit, onCancel: () -> Unit, onTax: () -> Unit = {}, onExpense: (String) -> Unit = {}, onActivities: () -> Unit = {}, financialChanges: List<it.elledue.control.data.BookingFinancialChangeEntity> = emptyList()) {
     var confirm by rememberSaveable { mutableStateOf(false) }
     Scaffold(topBar = { TopAppBar(title = { Text("Scheda prenotazione") }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Indietro") } }, actions = { TextButton(onClick = onEdit, enabled = !busy) { Text("Modifica") } }) }) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
@@ -169,6 +169,12 @@ fun BookingDetailScreen(item: ReservationEntity, propertyName: String, busy: Boo
                     Text("Partenza prevista: ${item.expectedDepartureTime}")
                     Text("Partenza effettiva: ${item.actualDepartureTime ?: "Non registrata"}")
                 }
+            }
+            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = { onExpense("OTHER") }, modifier = Modifier.testTag("booking-add-expense")) { Text("Spesa") }
+                OutlinedButton(onClick = { onExpense("CLEANING") }, modifier = Modifier.testTag("booking-add-cleaning")) { Text("Pulizia") }
+                OutlinedButton(onClick = { onExpense("LAUNDRY") }) { Text("Lavanderia") }
+                OutlinedButton(onClick = onActivities) { Text("Attività") }
             }
             FinanceCard(item.grossCents, BookingTotals(item.otaCents, item.netCents, item.managementCents), actualOta = item.actualOtaCents != null)
             Text("OTA ${Amounts.editable(item.appliedOtaBasisPoints.toLong())}% · Elledue ${Amounts.editable(item.appliedManagementBasisPoints.toLong())}% sul netto. Parametri storici conservati.", style = MaterialTheme.typography.bodySmall)
