@@ -17,12 +17,14 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import it.elledue.control.R
 import it.elledue.control.data.*
@@ -34,7 +36,8 @@ fun LocalPhoto(value: String?, description: String, modifier: Modifier = Modifie
     val image = remember(value) { value?.let { runCatching { val bytes = Base64.decode(it, Base64.NO_WRAP); BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap() }.getOrNull() } }
     if (image != null) Image(image, description, modifier, contentScale = if (crop) ContentScale.Crop else ContentScale.Fit)
     else Box(modifier.background(Brush.linearGradient(listOf(ElledueNight, Color(0xFF283C52)))), contentAlignment = Alignment.Center) {
-        Icon(placeholder, description, tint = ElledueGold.copy(alpha = .7f), modifier = Modifier.size(40.dp))
+        if(placeholder==Icons.Outlined.Apartment) Image(painterResource(R.drawable.elledue_symbol_gold),description,modifier=Modifier.size(144.dp).alpha(.3f))
+        else Icon(placeholder, description, tint = ElledueGold.copy(alpha = .7f), modifier = Modifier.size(40.dp))
     }
 }
 
@@ -63,26 +66,24 @@ fun PhotoControls(value: String?, avatar: Boolean = false, onPhoto: (String?) ->
 
 @Composable
 fun PortfolioTile(item: PropertyWithOwner, open: () -> Unit) {
-    val stacked = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp < 360 || androidx.compose.ui.platform.LocalDensity.current.fontScale > 1.2f
-    OutlinedCard(onClick = open, modifier = Modifier.fillMaxWidth()) {
-        if (stacked) {
-            LocalPhoto(item.property.coverImageBase64, "Copertina ${item.property.name}", Modifier.fillMaxWidth().height(140.dp))
-            PortfolioInfo(item, Modifier.padding(16.dp))
-        } else Row(Modifier.heightIn(min = 124.dp), verticalAlignment = Alignment.CenterVertically) {
-            LocalPhoto(item.property.coverImageBase64, "Copertina ${item.property.name}", Modifier.width(116.dp).height(132.dp))
-            PortfolioInfo(item, Modifier.weight(1f).padding(14.dp))
-            Icon(Icons.Outlined.ChevronRight, null, modifier = Modifier.padding(end = 8.dp))
+    val large = androidx.compose.ui.platform.LocalDensity.current.fontScale > 1.2f
+    Box(Modifier.fillMaxWidth().heightIn(min = if(large) 178.dp else 134.dp).clip(MaterialTheme.shapes.medium).border(1.dp, ElledueGold.copy(.4f), MaterialTheme.shapes.medium).clickable(onClick = open)) {
+        LocalPhoto(item.property.coverImageBase64, "Copertina ${item.property.name}", Modifier.matchParentSize())
+        Box(Modifier.matchParentSize().background(Brush.horizontalGradient(listOf(Color.Transparent, ConceptBackground.copy(.76f),ConceptBackground.copy(.96f)))))
+        Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+            Spacer(Modifier.width(if(large) 40.dp else 98.dp))
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) { StatusBadge(if(item.property.archived) "Archiviato" else "Attivo", if(item.property.archived) ConceptMuted else ArrivalColor) }
+                Text(item.property.name, style = MaterialTheme.typography.titleLarge, maxLines = 3)
+                Text(item.property.address, style = MaterialTheme.typography.bodySmall, color = ConceptMuted, maxLines = 2)
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Outlined.PeopleOutline, null, Modifier.size(14.dp), tint = ElledueGold); Text(item.property.maxGuests.toString(), style = MaterialTheme.typography.labelMedium)
+                    Icon(Icons.Outlined.Bed, null, Modifier.size(14.dp), tint = ElledueGold); Text(item.property.beds.toString(), style = MaterialTheme.typography.labelMedium)
+                    Icon(Icons.Outlined.ChevronRight, null, Modifier.size(20.dp), tint = ElledueGold)
+                }
+                Text(item.owner.name, style = MaterialTheme.typography.bodySmall, color = ConceptMuted, maxLines = 2)
+            }
         }
-    }
-}
-
-@Composable
-private fun PortfolioInfo(item: PropertyWithOwner, modifier: Modifier) {
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text(item.property.name, style = MaterialTheme.typography.titleLarge, maxLines = 3, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
-        Text(item.property.address, style = MaterialTheme.typography.bodySmall)
-        Text("${item.property.maxGuests} ospiti · ${item.property.beds} ${if (item.property.beds == 1) "letto" else "letti"}", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelMedium)
-        Text(item.owner.name, style = MaterialTheme.typography.bodySmall)
     }
 }
 
@@ -106,47 +107,86 @@ fun ProfileScreen(settings: AppSettings?, model: SettingsViewModel, back: () -> 
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun HomeMetric(label: String, value: String, detail: String, icon: androidx.compose.ui.graphics.vector.ImageVector, modifier: Modifier = Modifier, ring: Float? = null) {
+    Column(modifier.clip(MaterialTheme.shapes.medium).background(Brush.verticalGradient(listOf(ConceptCard,Color(0xFF0E1B2E)))).border(1.dp,ConceptBorder,MaterialTheme.shapes.medium).padding(12.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+        Text(label, style = MaterialTheme.typography.labelMedium, color = ConceptMuted)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Text(value, style = MaterialTheme.typography.headlineMedium.copy(fontFamily = MaterialTheme.typography.bodyMedium.fontFamily,fontSize=if(value.length>6) 20.sp else 26.sp), modifier = Modifier.weight(1f))
+            if(ring != null) Canvas(Modifier.size(29.dp)) { drawArc(ConceptBorder,-90f,360f,false,style=androidx.compose.ui.graphics.drawscope.Stroke(3.dp.toPx()));drawArc(ElledueGold,-90f,ring*360f,false,style=androidx.compose.ui.graphics.drawscope.Stroke(3.dp.toPx())) }
+            else Icon(icon,null,Modifier.size(24.dp),tint=ElledueGold)
+        }
+        Text(detail, style = MaterialTheme.typography.bodySmall, color = ConceptMuted)
+    }
+}
+
 @Composable
 fun CommandHome(properties: List<PropertyWithOwner>, bookings: List<ReservationEntity>, reports: List<ReportEntity>, accounting: AccountingData?, settings: AppSettings?, activities: List<ActivityEntity>, navigate: (String) -> Unit) {
-    val today = BookingDates.today().toEpochDay()
+    val today = BookingDates.today().toEpochDay(); val month = java.time.YearMonth.from(BookingDates.today())
     val active = bookings.filter { it.status != "CANCELLED" }
     val arrivals = active.filter { it.checkInEpochDay == today }; val departures = active.filter { it.checkOutEpochDay == today }
     val present = active.filter { it.status != "COMPLETED" && it.checkInEpochDay <= today && it.checkOutEpochDay > today }
-    val upcoming = active.filter { it.checkInEpochDay > today }.sortedBy { it.checkInEpochDay }.take(3)
-    val drafts = reports.filter { it.status == "DRAFT" }
-    val review = accounting?.taxes?.count { it.needsReview } ?: 0
-    androidx.compose.foundation.lazy.LazyColumn(Modifier.fillMaxSize().testTag("home-scroll"), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
+    val portfolio = properties.filter { !it.property.archived }
+    val metrics = portfolio.map { PortfolioAnalytics.calculate(month,it.property.id,bookings) }
+    val occupied = metrics.sumOf { it.calendarOccupiedDays }; val available = metrics.sumOf { it.calendarDays }
+    val ratio = if(available == 0) 0f else occupied.toFloat()/available
+    val gross = OperationalMoney.total(active.filter { it.competenceMonth == month.toString() }.map { it.grossCents })
+    val fees = OperationalMoney.total(active.filter { it.competenceMonth == month.toString() }.map { it.managementCents })
+    androidx.compose.foundation.lazy.LazyColumn(Modifier.fillMaxSize().testTag("home-scroll"), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
-            Column(Modifier.fillMaxWidth().background(Brush.linearGradient(listOf(ElledueNight, Color(0xFF1D354B))), MaterialTheme.shapes.large).padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("${if (java.time.LocalTime.now(java.time.ZoneId.of("Europe/Rome")).hour < 14) "Buongiorno" else "Benvenuto"}${settings?.operatorFirstName?.takeIf { it.isNotBlank() }?.let { ", $it" } ?: ""}", style = MaterialTheme.typography.headlineLarge, color = Color.White)
-                Text(BookingDates.display(today), color = ElledueGold, style = MaterialTheme.typography.labelLarge)
-                Text("${arrivals.size} ${if (arrivals.size == 1) "arrivo" else "arrivi"} · ${departures.size} ${if (departures.size == 1) "partenza" else "partenze"}", color = Color.White, style = MaterialTheme.typography.titleLarge)
-                Text("${present.sumOf { it.guestCount }} ospiti in casa · ${properties.count { !it.property.archived }} ${if (properties.count { !it.property.archived } == 1) "immobile attivo" else "immobili attivi"}", color = Color(0xFFB4C3D6))
+            Box(Modifier.fillMaxWidth().heightIn(min = 206.dp).clip(MaterialTheme.shapes.large).border(1.dp,ElledueGold.copy(.22f),MaterialTheme.shapes.large)) {
+                LocalPhoto(portfolio.firstOrNull { it.property.coverImageBase64 != null }?.property?.coverImageBase64,"Copertina della tua gestione",Modifier.matchParentSize())
+                Box(Modifier.matchParentSize().background(Brush.verticalGradient(listOf(ConceptBackground.copy(.48f),ConceptBackground.copy(.16f),ConceptBackground.copy(.94f)))))
+                Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                    Text("Buongiorno${settings?.operatorFirstName?.takeIf { it.isNotBlank() }?.let { ",\n$it" } ?: ""}",style=MaterialTheme.typography.headlineLarge)
+                    Text("${arrivals.size} ${if(arrivals.size==1) "arrivo" else "arrivi"} · ${departures.size} ${if(departures.size==1) "partenza" else "partenze"}",style=MaterialTheme.typography.bodyMedium)
+                    Text("Tutto sotto controllo, un giorno alla volta.",style=MaterialTheme.typography.bodySmall,color=ConceptMuted)
+                    Spacer(Modifier.height(23.dp))
+                    Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=Alignment.CenterVertically) {
+                        StatusBadge(BookingDates.display(today),ElledueGold)
+                        Text(portfolio.firstOrNull()?.property?.name ?: "ELLEDUE CONTROL",style=MaterialTheme.typography.labelSmall,color=ConceptMuted,modifier=Modifier.weight(1f).padding(start=12.dp),maxLines=2)
+                    }
+                }
             }
         }
-        item { Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text("Oggi", style = MaterialTheme.typography.titleLarge); TextButton(onClick = { navigate("activities") }, modifier = Modifier.testTag("nav-activities")) { Text("Operatività") } } }
-        val events = (arrivals + departures).distinctBy { it.id }
-        if (events.isEmpty()) item { Text("Nessun arrivo o partenza oggi. Il calendario resta a portata di mano.", style = MaterialTheme.typography.bodyMedium) }
-        events.take(5).forEach { b -> item(key = "today-${b.id}") {
-            ListItem(headlineContent = { Text("${b.guestFirstName} ${b.guestLastName}") }, supportingContent = { Text("${properties.firstOrNull { it.property.id == b.propertyId }?.property?.name ?: "Immobile"} · ${if (b.checkInEpochDay == today) "Arrivo ${b.expectedArrivalTime}" else "Partenza ${b.expectedDepartureTime}"}") }, leadingContent = { Icon(if (b.checkInEpochDay == today) Icons.AutoMirrored.Outlined.Login else Icons.AutoMirrored.Outlined.Logout, null, tint = ElledueGold) }, modifier = Modifier.clickable { navigate("booking/${b.id}") })
-        } }
         item {
-            Text("Da verificare", style = MaterialTheme.typography.titleLarge)
-            TextButton(onClick = { navigate("activities") }) { Text("${activities.count { !it.completed }} attività incomplete") }
-            TextButton(onClick = { navigate("reports") }) { Text("${drafts.size} bozze rendiconto da verificare") }
-            if (review > 0) TextButton(onClick = { navigate("accounting") }) { Text("$review conteggi tassa da ricontrollare") }
-            val residue = accounting?.let { runCatching { operationalSummary(java.time.YearMonth.from(BookingDates.today()).toString(), "", bookings, it.expenses, it.taxes, it.movements).residualTax }.getOrNull() }
-            TextButton(onClick = { navigate("accounting") }) { Text(residue?.let { "Tassa da incassare nel mese: ${Amounts.euro(it)}" } ?: "Apri contabilità e tasse") }
-            val missingTax = accounting?.let { data -> active.count { b -> b.checkOutEpochDay >= today && data.taxes.none { it.reservationId == b.id } } } ?: 0
-            if (missingTax > 0) Text("$missingTax soggiorni con tassa non ancora configurata", style = MaterialTheme.typography.bodySmall)
-            activities.filter { !it.completed }.take(3).forEach { task -> TextButton(onClick = { navigate("activities") }) { Text(task.title) } }
-
+            Column(verticalArrangement=Arrangement.spacedBy(9.dp)) {
+                Row(horizontalArrangement=Arrangement.spacedBy(9.dp)) {
+                    HomeMetric("Movimenti oggi",(arrivals.size+departures.size).toString(),"${arrivals.size} check-in · ${departures.size} check-out",Icons.Outlined.CalendarMonth,Modifier.weight(1f))
+                    HomeMetric("Ospiti in casa",present.sumOf { it.guestCount }.toString(),"su ${portfolio.sumOf { it.property.maxGuests }} posti",Icons.Outlined.PeopleOutline,Modifier.weight(1f))
+                }
+                Row(horizontalArrangement=Arrangement.spacedBy(9.dp)) {
+                    HomeMetric("Occupazione calendario",if(available==0) "—" else "${(ratio*100).toInt()}%",if(available==0) "Aggiungi il primo immobile" else "Giorni occupati nel mese",Icons.Outlined.DonutLarge,Modifier.weight(1f),ratio)
+                    HomeMetric("Lordo proprietari",Amounts.euro(gross),"Compensi ${Amounts.euro(fees)}",Icons.Outlined.BarChart,Modifier.weight(1f))
+                }
+            }
         }
-        if (upcoming.isNotEmpty()) item { Text("Prossimi soggiorni", style = MaterialTheme.typography.titleLarge) }
-        upcoming.forEach { b -> item(key = "next-${b.id}") { ListItem(headlineContent = { Text("${b.guestFirstName} ${b.guestLastName}") }, supportingContent = { Text("${BookingDates.display(b.checkInEpochDay)} · ${properties.firstOrNull { it.property.id == b.propertyId }?.property?.name ?: "Immobile"}") }, modifier = Modifier.clickable { navigate("booking/${b.id}") }) } }
-        item { Text("Il tuo portfolio", style = MaterialTheme.typography.titleLarge) }
-        properties.filter { !it.property.archived }.take(2).forEach { item -> item(key = "property-${item.property.id}") { PortfolioTile(item) { navigate("property/${item.property.id}") } } }
-        if (properties.isEmpty()) item { EmptyState("Pronto per il primo immobile", "Costruisci il tuo portfolio, poi aggiungi i soggiorni.", "Aggiungi un immobile", { navigate("property/new") }) }
+        item {
+            Text("Azioni rapide",style=MaterialTheme.typography.titleMedium,modifier=Modifier.padding(bottom=8.dp))
+            Row(horizontalArrangement=Arrangement.spacedBy(7.dp)) {
+                ActionTile("Prenotazione",Icons.Outlined.AddHome,Modifier.weight(1f)) { navigate(if(portfolio.isEmpty()) "property/new" else "booking/new") }
+                ActionTile("Check-in",Icons.Outlined.Login,Modifier.weight(1f)) { navigate(arrivals.firstOrNull()?.let { "booking/${it.id}" } ?: "calendar") }
+                ActionTile("Pulizie",Icons.Outlined.CleaningServices,Modifier.weight(1f)) { navigate(if(portfolio.isEmpty()) "property/new" else "expense/new/CLEANING") }
+                ActionTile("Rendiconti",Icons.Outlined.Description,Modifier.weight(1f)) { navigate("reports") }
+            }
+        }
+        item { Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.SpaceBetween) { Text("Oggi",style=MaterialTheme.typography.titleLarge);TextButton(onClick={navigate("activities")},modifier=Modifier.testTag("nav-activities")) { Text("Operatività  ›") } } }
+        val events = (arrivals+departures).distinctBy { it.id }
+        if(events.isEmpty()) item { Text("Nessun arrivo o partenza oggi.",color=ConceptMuted,style=MaterialTheme.typography.bodySmall) }
+        events.take(3).forEach { b -> item(key="today-${b.id}") {
+            val arriving=b.checkInEpochDay==today
+            ConceptTimelineRow(if(arriving) b.expectedArrivalTime else b.expectedDepartureTime,if(arriving) "Check-in" else "Check-out","${properties.firstOrNull { it.property.id==b.propertyId }?.property?.name} · ${b.guestLastName}",if(arriving) Icons.Outlined.Login else Icons.Outlined.Logout,if(arriving) ArrivalColor else DepartureColor) { navigate("booking/${b.id}") }
+        } }
+        item { Row(Modifier.fillMaxWidth().clip(MaterialTheme.shapes.medium).background(ConceptCard).padding(12.dp),horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+            Icon(Icons.Outlined.FactCheck,null,tint=ElledueGold,modifier=Modifier.size(20.dp))
+            Column(Modifier.weight(1f)) { Text("${activities.count { !it.completed }} attività · ${reports.count { it.status=="DRAFT" }} bozze da verificare",style=MaterialTheme.typography.labelMedium);Text("Consulta attenzione operativa e contabilità",style=MaterialTheme.typography.bodySmall,color=ConceptMuted) }
+            IconButton(onClick={navigate("accounting")}) { Icon(Icons.Outlined.ChevronRight,"Apri contabilità",tint=ElledueGold) }
+        } }
+        val upcoming=active.filter { it.checkInEpochDay>today }.sortedBy { it.checkInEpochDay }.take(3)
+        if(upcoming.isNotEmpty()) item { Text("Prossimi soggiorni",style=MaterialTheme.typography.titleLarge) }
+        upcoming.forEach { b -> item(key="next-${b.id}") { ConceptTimelineRow(BookingDates.display(b.checkInEpochDay).take(5),"${b.guestFirstName} ${b.guestLastName}",properties.firstOrNull { it.property.id==b.propertyId }?.property?.name ?: "Immobile",Icons.Outlined.Apartment,StayColor) { navigate("booking/${b.id}") } } }
+        item { Text("Il tuo portfolio",style=MaterialTheme.typography.titleLarge) }
+        portfolio.take(2).forEach { p -> item(key="property-${p.property.id}") { PortfolioTile(p) { navigate("property/${p.property.id}") } } }
+        if(properties.isEmpty()) item { EmptyState("Pronto per il primo immobile","Aggiungi la copertina e costruisci il tuo portfolio.","Aggiungi un immobile",{navigate("property/new")}) }
     }
 }

@@ -11,6 +11,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -98,9 +99,9 @@ fun PdfThumbnail(snapshot: ReportSnapshot, layout: ReportLayout, open: () -> Uni
     val state by rememberDocument(snapshot, layout)
     val document = state.document
     OutlinedCard(onClick = open, modifier = Modifier.fillMaxWidth().testTag("open-pdf-preview")) {
-        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text("Anteprima reale · ${if (snapshot.draft) "BOZZA" else "Confermato"}", style = MaterialTheme.typography.labelLarge)
-            document?.let { Box(Modifier.height(220.dp).width(155.dp)) { PdfPage(it, 0) }; Text("${it.pages} pagine · Apri il documento") } ?: if (state.failed) Text("Anteprima non disponibile. I dati sono conservati; riapri il documento.") else LinearProgressIndicator(Modifier.fillMaxWidth())
+            document?.let { Box(Modifier.fillMaxWidth().height(300.dp),contentAlignment=Alignment.Center) { Box(Modifier.width(211.dp)) { PdfPage(it, 0) } }; Text("${it.pages} pagine · Tocca per ingrandire",style=MaterialTheme.typography.labelMedium,color=ElledueGold) } ?: if (state.failed) Text("Anteprima non disponibile. I dati sono conservati; riapri il documento.") else LinearProgressIndicator(Modifier.fillMaxWidth())
         }
     }
 }

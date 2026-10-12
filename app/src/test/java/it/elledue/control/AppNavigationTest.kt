@@ -37,6 +37,7 @@ class AppNavigationTest {
     @Test fun allMainSectionsAndSettingsAreAccessible() {
         compose.onNodeWithTag("nav-calendar").performClick()
         waitText("Calendario")
+        compose.waitUntil(15000) { compose.onAllNodes(hasTestTag("booking-calendar-mode")).fetchSemanticsNodes().isNotEmpty() }; compose.mainClock.advanceTimeBy(700); compose.waitForIdle()
         compose.onNodeWithTag("booking-calendar-mode").assertIsDisplayed()
         compose.onNodeWithTag("nav-economy").performClick()
         compose.onNodeWithTag("open-accounting").performClick()
@@ -54,15 +55,16 @@ class AppNavigationTest {
         compose.runOnUiThread { compose.activity.onBackPressedDispatcher.onBackPressed() }
         compose.runOnUiThread { compose.activity.onBackPressedDispatcher.onBackPressed() }
         compose.onNodeWithTag("nav-dashboard").performClick()
-        compose.onNodeWithText("Il tuo portfolio").assertExists()
+        compose.onNodeWithTag("home-scroll").performScrollToNode(hasText("Il tuo portfolio")); compose.onNodeWithText("Il tuo portfolio").assertIsDisplayed()
         screenshot("dashboard-empty")
     }
 
     @Test
     @Config(sdk = [34], qualifiers = "w411dp-h891dp-night-xxhdpi")
     fun darkThemeRendersWithOfficialNightBackground() {
-        waitText("Aggiungi un immobile")
-        screenshot("dashboard-dark", android.graphics.Color.rgb(9, 21, 36))
+        compose.waitUntil(15000) { compose.onAllNodes(hasTestTag("home-scroll")).fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithTag("home-scroll").performScrollToNode(hasText("Aggiungi un immobile"))
+        screenshot("dashboard-dark", android.graphics.Color.rgb(11, 20, 36))
     }
 
     @Test fun propertyCanBeCreatedEditedArchivedAndReactivatedThroughUi() {

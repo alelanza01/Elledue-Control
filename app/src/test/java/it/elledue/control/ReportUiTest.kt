@@ -42,11 +42,11 @@ class ReportUiTest {
         val file = File("build/reports/screenshots/$name.png"); file.parentFile!!.mkdirs(); file.outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }; bitmap.recycle()
     } }
     private fun generate() { compose.onNodeWithTag("nav-economy").performClick(); waitTag("open-reports"); compose.onNodeWithTag("open-reports").performScrollTo().performClick(); waitTag("generate-report"); screenshot("m4-reports-selection"); compose.onNodeWithTag("generate-report").performClick(); waitTag("report-balance") }
-    private fun confirm() { compose.onNodeWithTag("report-detail-scroll").performScrollToNode(hasTestTag("confirm-report")); compose.onNodeWithTag("confirm-report").performClick(); compose.onNodeWithText("Conferma definitiva").performClick(); waitTag("export-report-pdf") }
+    private fun confirm() { compose.onNodeWithTag("report-detail-scroll").performScrollToNode(hasTestTag("confirm-report")); compose.waitUntil(15000) { compose.onAllNodes(hasTestTag("confirm-report") and isEnabled()).fetchSemanticsNodes().isNotEmpty() }; compose.onNodeWithTag("confirm-report").performClick(); compose.waitUntil(15000) { compose.onAllNodes(hasText("Conferma definitiva")).fetchSemanticsNodes().isNotEmpty() }; compose.onNodeWithText("Conferma definitiva").performClick(); waitTag("export-report-pdf") }
     @Test fun userGeneratesChecksAndConfirmsThenRevisesSourceWithoutOverwritingHistory() {
         generate(); compose.onNodeWithTag("report-balance").assertTextEquals(Amounts.euro(17000)); screenshot("m4-report-draft")
-        compose.onNodeWithTag("report-tab-1").performClick(); screenshot("m4-report-details")
-        compose.onNodeWithTag("report-tab-2").performClick(); compose.onNodeWithTag("report-notes").performScrollTo().performTextReplacement("Nota dimostrativa verificata")
+        compose.onNodeWithTag("report-detail-scroll").performScrollToNode(hasTestTag("report-tab-1")); compose.onNodeWithTag("report-tab-1").performClick(); screenshot("m4-report-details")
+        compose.onNodeWithTag("report-detail-scroll").performScrollToNode(hasTestTag("report-tab-2")); compose.onNodeWithTag("report-tab-2").performClick(); compose.onNodeWithTag("report-detail-scroll").performScrollToNode(hasTestTag("report-notes")); compose.onNodeWithTag("report-notes").performTextReplacement("Nota dimostrativa verificata")
         compose.onNodeWithTag("report-detail-scroll").performScrollToNode(hasTestTag("refresh-report")); compose.onNodeWithTag("refresh-report").performClick()
         compose.waitUntil(15000) { runBlocking { app.reportRepository.reports.first().any { it.notes == "Nota dimostrativa verificata" } } }
         confirm()
@@ -54,7 +54,7 @@ class ReportUiTest {
         compose.onNodeWithTag("report-balance").performScrollTo(); screenshot("m4-report-confirmed")
         compose.onNodeWithTag("report-detail-scroll").performScrollToNode(hasTestTag("revise-report")); compose.onNodeWithTag("revise-report").performClick(); compose.onNodeWithTag("report-revision-reason").performScrollTo().performTextReplacement("Lordo verificato")
         compose.onNodeWithText("Apri nuova bozza rettificativa").performScrollTo().performClick(); compose.waitUntil(15000) { compose.onAllNodes(hasTestTag("report-detail-scroll") and hasStateDescription("DRAFT")).fetchSemanticsNodes().isNotEmpty() }
-        compose.onNodeWithTag("report-tab-1").performClick(); compose.onNodeWithTag("report-detail-scroll").performScrollToNode(hasContentDescription("Modifica prenotazione")); compose.onNodeWithContentDescription("Modifica prenotazione").performClick()
+        compose.onNodeWithTag("report-detail-scroll").performScrollToNode(hasTestTag("report-tab-1")); compose.onNodeWithTag("report-tab-1").performClick(); compose.onNodeWithTag("report-detail-scroll").performScrollToNode(hasContentDescription("Modifica prenotazione")); compose.onNodeWithContentDescription("Modifica prenotazione").performClick()
         compose.onNodeWithTag("booking-gross").performScrollTo().performTextReplacement("1200")
         compose.onNodeWithTag("booking-correction-reason").performScrollTo().performTextReplacement("Lordo del portale verificato")
         compose.onNodeWithTag("save-booking").performClick(); waitTag("report-balance")

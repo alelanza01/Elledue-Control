@@ -2,6 +2,8 @@ package it.elledue.control.ui
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.border
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -61,13 +63,15 @@ fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewMo
     val savedBookingId by bookingsModel.savedId.collectAsStateWithLifecycle()
     val bookings = (bookingState as? BookingLoadState.Ready)?.items.orEmpty()
     val records = (state as? PropertyLoadState.Ready)?.items.orEmpty()
-    val showNavigation = route == null || sections.any { it.route == route }
+    val showNavigation = route == null || sections.any { it.route == route } || route?.startsWith("activities") == true || route?.startsWith("report") == true
     val goProperties = { navigation.navigate("properties") { launchSingleTop = true } }
     val largeFonts = androidx.compose.ui.platform.LocalDensity.current.fontScale > 1.2f
     var quick by remember { mutableStateOf(false) }
     val jump: (String) -> Unit = { target -> navigation.navigate(target) { launchSingleTop = true } }
-    Scaffold(topBar = {
-        if (showNavigation || route?.startsWith("activities") == true || route in listOf("settings", "profile", "activities", "notifications", "accounting", "analysis")) {
+    CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurface) {
+    Column(Modifier.fillMaxSize().background(ConceptBackground)) {
+
+        if (showNavigation || route?.startsWith("activities") == true || (route?.startsWith("report") == true) || route in listOf("settings", "profile", "activities", "notifications", "accounting", "analysis")) {
             Row(Modifier.fillMaxWidth().background(ElledueNight).statusBarsPadding().padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 androidx.compose.foundation.Image(androidx.compose.ui.res.painterResource(R.drawable.elledue_logo_gold), "Intestazione Elledue", Modifier.width(112.dp).height(28.dp))
                 Spacer(Modifier.weight(1f))
@@ -76,19 +80,11 @@ fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewMo
                     if (settings?.operatorPhotoBase64 != null) LocalPhoto(settings?.operatorPhotoBase64, "Profilo operatore", Modifier.size(36.dp).clip(androidx.compose.foundation.shape.CircleShape))
                     else Icon(Icons.Outlined.AccountCircle, "Profilo operatore", tint = ElledueGold)
                 }
-                IconButton(onClick = { jump("settings") }, modifier = Modifier.testTag("nav-settings")) { Icon(Icons.Outlined.Settings, "Impostazioni", tint = ElledueGold) }
+                IconButton(onClick = { jump("settings") }, modifier = Modifier.testTag("nav-settings")) { Icon(Icons.Outlined.MoreHoriz, "Impostazioni", tint = ElledueGold) }
             }
         }
-    }, bottomBar = {
-        if (showNavigation) Surface(color = MaterialTheme.colorScheme.surfaceContainer) {
-            Row(Modifier.fillMaxWidth().navigationBarsPadding().heightIn(min = 76.dp), verticalAlignment = Alignment.CenterVertically) {
-                sections.take(2).forEach { section -> NavigationBarItem(selected = route == section.route, onClick = { jump(section.route) }, icon = { Icon(section.icon, section.title) }, label = if (largeFonts) null else { { Text(section.title, fontSize = 11.sp, maxLines = 1) } }, modifier = Modifier.testTag("nav-${section.route}")) }
-                FloatingActionButton(onClick = { quick = true }, containerColor = ElledueGold, contentColor = ElledueNight, modifier = Modifier.padding(horizontal = 6.dp).size(52.dp).testTag("quick-action")) { Icon(Icons.Outlined.Add, "Azioni rapide") }
-                sections.drop(2).forEach { section -> NavigationBarItem(selected = route == section.route, onClick = { jump(section.route) }, icon = { Icon(section.icon, section.title) }, label = if (largeFonts) null else { { Text(section.title, fontSize = 11.sp, maxLines = 1) } }, modifier = Modifier.testTag("nav-${section.route}")) }
-            }
-        }
-    }) { outerPadding ->
-        NavHost(navigation, startDestination = "dashboard", modifier = Modifier.padding(outerPadding)) {
+
+        NavHost(navigation, startDestination = "dashboard", modifier = Modifier.weight(1f).fillMaxWidth()) {
             composable("dashboard") {
                 BookingDataSurface(bookingState, state, { bookingsModel.retry(); propertiesModel.retry() }) {
                     CommandHome(records, bookings, reports, accountingData, settings, activities, jump)
@@ -260,7 +256,7 @@ fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewMo
                 }
             }
             composable("activities?booking={booking}", arguments = listOf(androidx.navigation.navArgument("booking") { type = androidx.navigation.NavType.StringType; nullable = true; defaultValue = null })) { destination ->
-                ActivitiesScreen(app.activityRepository, activities, records, bookings, destination.arguments?.getString("booking")) { navigation.popBackStack() }
+                ActivitiesScreen(app.activityRepository, activities, records, bookings, destination.arguments?.getString("booking"), expenses=accountingData?.expenses.orEmpty(),open=jump) { navigation.popBackStack() }
             }
             composable("profile") { ProfileScreen(settings, settingsModel) { navigation.popBackStack() } }
             composable("notifications") { UpcomingScreen("Centro notifiche", "Nessuna notifica di sistema attiva", "Le notifiche Android saranno sviluppate nella Milestone 5. Consulta l’agenda Home per gli eventi registrati.", { jump("dashboard") }) }
@@ -283,22 +279,32 @@ fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewMo
                             }
                         }
                         HorizontalDivider()
-                        Text("Elledue Control · 0.4.5", style = MaterialTheme.typography.labelLarge)
+                        Text("Elledue Control · 0.4.6", style = MaterialTheme.typography.labelLarge)
                         Text("Dati locali. Esporta un backup verificato prima di cambiare dispositivo o firma Android.", style = MaterialTheme.typography.bodyMedium)
                         BackupControls(backupService)
                     }
                 }
             }
         }
+        if (showNavigation) Surface(color = MaterialTheme.colorScheme.surfaceContainer) {
+            Row(Modifier.fillMaxWidth().navigationBarsPadding().heightIn(min = 66.dp), verticalAlignment = Alignment.CenterVertically) {
+                sections.take(2).forEach { section -> ConceptNavItem(section.icon, section.title, (route == section.route || (section.route=="economy" && (route?.startsWith("activities")==true || route?.startsWith("report")==true))), !largeFonts, Modifier.weight(1f).testTag("nav-${section.route}")) { jump(section.route) } }
+                Box(Modifier.padding(horizontal=8.dp).size(48.dp).clip(androidx.compose.foundation.shape.CircleShape).background(androidx.compose.ui.graphics.Brush.linearGradient(listOf(androidx.compose.ui.graphics.Color(0xFFEBD2A1),ElledueGold,androidx.compose.ui.graphics.Color(0xFFB8975B)))).border(1.dp,ElledueGold,androidx.compose.foundation.shape.CircleShape).clickable { quick = true }.testTag("quick-action"),contentAlignment=Alignment.Center) { Icon(Icons.Outlined.Add,"Azioni rapide",tint=ElledueNight,modifier=Modifier.size(25.dp)) }
+                sections.drop(2).forEach { section -> ConceptNavItem(section.icon, section.title, (route == section.route || (section.route=="economy" && (route?.startsWith("activities")==true || route?.startsWith("report")==true))), !largeFonts, Modifier.weight(1f).testTag("nav-${section.route}")) { jump(section.route) } }
+
+            }
+        }
+
     }
-    if (quick) ModalBottomSheet(onDismissRequest = { quick = false }) {
+    }
+    if (quick) ModalBottomSheet(onDismissRequest = { quick = false },containerColor=ConceptCard,tonalElevation=0.dp,shape=MaterialTheme.shapes.large) {
         Column(Modifier.fillMaxWidth().padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) { Text("Azione rapida", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f)); IconButton(onClick = { quick = false }, modifier = Modifier.testTag("close-quick")) { Icon(Icons.Outlined.Close, "Chiudi azioni") } }
             val actions = if (records.none { !it.property.archived }) listOf("Nuovo immobile" to "property/new") else when (route) {
                 "properties" -> listOf("Nuovo immobile" to "property/new")
                 "economy" -> listOf("Nuova spesa" to "expense/new/OTHER", "Registra pulizia" to "expense/new/CLEANING", "Tassa e anticipi" to "accounting")
                 "calendar" -> listOf("Nuova prenotazione" to "booking/new", "Attività" to "activities")
-                else -> listOf("Nuova prenotazione" to "booking/new", "Nuova spesa" to "expense/new/OTHER", "Nuova attività" to "activities")
+                else -> listOf("Nuova prenotazione" to "booking/new", "Nuova spesa" to "expense/new/OTHER", "Attività" to "activities")
             }
             actions.forEach { (label, target) -> OutlinedButton(onClick = { quick = false; propertiesModel.clearError(); bookingsModel.clearError(); accountingModel.clear(); jump(target) }, modifier = Modifier.fillMaxWidth()) { Text(label) } }
             Spacer(Modifier.height(20.dp))

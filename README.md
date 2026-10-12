@@ -2,7 +2,7 @@
 
 Applicazione Android nativa per Elledue Management, gestione di immobili per affitti brevi. Il repository è stato creato da zero in Kotlin e Jetpack Compose.
 
-## Milestone 1–4.5 — versione 0.4.5
+## Milestone 1–4.5 e redesign vincolato al concept — versione 0.4.6
 
 Modulo Immobili: creazione, elenco con ricerca e filtri, dettaglio, modifica, archiviazione e riattivazione. Sono persistenti proprietario e recapiti, posti letto/ospiti, orari, note, commissioni, tariffe pulizie/lavanderia, tassa di soggiorno, commissioni diverse per portale e istruzioni di accesso IT/EN. Nessun dato dimostrativo viene inserito nell’app.
 
@@ -24,9 +24,11 @@ Backup manuale da Impostazioni: esportazione dell’intero database applicativo 
 
 Identità visiva: blu notte `#111B32`, dorato `#DBBF8B`, tema chiaro/scuro. Originali PNG caricati dall’utente su GitHub, integrati senza ridisegno né deformazione in icona adattiva/splash, intestazione e PDF. Derivazioni e hash descritti in [docs/brand/ORIGINALS.md](docs/brand/ORIGINALS.md).
 
-Consegna corrente scaricabile in [deliverables/milestone-4.5](deliverables/milestone-4.5): APK debug, PDF esclusivamente sintetici, screenshot e manifest con checksum. Il rendiconto personale originale non è nel repository.
+Consegna corrente scaricabile in [deliverables/redesign-0.4.6](deliverables/redesign-0.4.6): APK debug, PDF esclusivamente sintetici, screenshot e manifest con checksum. Il rendiconto personale originale non è nel repository.
 
 Foto copertina e profilo conservate localmente e incluse nei backup. Portfolio con menu azioni e cancellazione definitiva bloccata in presenza di storico. Analisi mensili reali con confronti, trend e occupazione del calendario, distinta dalla disponibilità commerciale. Due PDF (sintetico/dettagliato) dallo stesso snapshot, miniatura reale e visualizzatore interno multipagina con ingrandimento. [Consegna e limiti M4.5](docs/MILESTONE_4_5.md).
+
+Redesign del concept: dark principale anche con tema Android chiaro, DM Serif Display e Inter incorporati, hero fotografico, KPI 2×2, azioni a icone, portfolio con testo sovrapposto, calendario a pill, timeline e contenitori/dialoghi dedicati. Database, dominio e backup invariati. [Corrispondenze e adattamenti](docs/design/CONCEPT_BINDING.md).
 
 ## Build e test
 

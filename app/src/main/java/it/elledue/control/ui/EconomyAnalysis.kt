@@ -21,10 +21,10 @@ import java.time.YearMonth
 fun EconomyHub(bookings: List<ReservationEntity>, properties: List<PropertyWithOwner>, accounting: AccountingData?, navigate: (String) -> Unit) {
     val month = YearMonth.from(BookingDates.today())
     val current = bookings.filter { it.status != "CANCELLED" && it.competenceMonth == month.toString() }
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
-        item { Text("Economia", style = MaterialTheme.typography.headlineLarge); Text("La gestione interna · $month", style = MaterialTheme.typography.bodyMedium) }
-        item { Column(Modifier.fillMaxWidth().background(ElledueNight, MaterialTheme.shapes.large).padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text("Compensi Elledue maturati", color = ElledueGold)
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        item { Text("Economia", style = MaterialTheme.typography.headlineLarge); Text("La gestione interna · $month", style = MaterialTheme.typography.bodySmall,color=ConceptMuted) }
+        item { Column(Modifier.fillMaxWidth().background(ConceptCard, MaterialTheme.shapes.medium).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text("Compensi Elledue maturati", color = ElledueGold,style=MaterialTheme.typography.labelMedium)
             Text(Amounts.euro(OperationalMoney.total(current.map { it.managementCents })), color = Color.White, style = MaterialTheme.typography.headlineLarge)
             Text("Lordo ai proprietari ${Amounts.euro(OperationalMoney.total(current.map { it.grossCents }))}", color = Color.White)
             Text("Il compenso maturato non è un pagamento ricevuto.", color = Color(0xFFB4C3D6), style = MaterialTheme.typography.bodySmall)
@@ -36,8 +36,11 @@ fun EconomyHub(bookings: List<ReservationEntity>, properties: List<PropertyWithO
             Text("Anticipi / pagamenti riconosciuti ${Amounts.euro(OperationalMoney.total(payments.map { it.amountCents }))}", style = MaterialTheme.typography.bodySmall)
         }
         item { Text("Gestione e controllo", style = MaterialTheme.typography.titleLarge) }
-        item { ListItem(headlineContent = { Text("Analisi e confronti") }, supportingContent = { Text("Immobili, notti e andamento mensile") }, leadingContent = { Icon(Icons.Outlined.BarChart, null) }, modifier = Modifier.clickable { navigate("analysis") }.testTag("open-analysis")) }
-        item { ListItem(headlineContent = { Text("Contabilità operativa") }, supportingContent = { Text("Spese, pulizie, lavanderia, tassa e anticipi") }, leadingContent = { Icon(Icons.Outlined.AccountBalanceWallet, null) }, modifier = Modifier.clickable { navigate("accounting") }.testTag("open-accounting")) }
+        item { Row(horizontalArrangement=Arrangement.spacedBy(9.dp)) {
+            ActionTile("Analisi e confronti",Icons.Outlined.BarChart,Modifier.weight(1f).testTag("open-analysis")) { navigate("analysis") }
+            ActionTile("Operatività",Icons.Outlined.TaskAlt,Modifier.weight(1f)) { navigate("activities") }
+        } }
+        item { ActionTile("Contabilità operativa · Spese, tassa e anticipi",Icons.Outlined.AccountBalanceWallet,Modifier.fillMaxWidth().testTag("open-accounting")) { navigate("accounting") } }
         item { HorizontalDivider(); Text("Documenti per i proprietari", style = MaterialTheme.typography.titleLarge) }
         item { OutlinedButton(onClick = { navigate("reports") }, modifier = Modifier.fillMaxWidth().testTag("open-reports")) { Icon(Icons.Outlined.Description, null); Spacer(Modifier.width(10.dp)); Text("Rendiconti mensili") } }
     }

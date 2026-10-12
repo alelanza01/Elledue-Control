@@ -13,38 +13,38 @@ import androidx.compose.ui.unit.sp
 
 val ElledueNight = Color(0xFF111B32)
 val ElledueGold = Color(0xFFDBBF8B)
-private val LightColors = lightColorScheme(
-    primary = Color(0xFF80643A), onPrimary = Color.White,
-    primaryContainer = Color(0xFFE8EDF5), onPrimaryContainer = ElledueNight,
-    secondary = Color(0xFF79613A), secondaryContainer = Color(0xFFF4E7CF),
-    background = Color(0xFFE8EDF3), surface = Color(0xFFE8EDF3),
-    surfaceContainer = Color(0xFFDCE4EE), surfaceContainerLow = Color(0xFFE3EAF2),
-    outlineVariant = Color(0xFFDFE2E9),
-)
 private val DarkColors = darkColorScheme(
     primary = ElledueGold, onPrimary = ElledueNight,
-    primaryContainer = Color(0xFF263550), onPrimaryContainer = Color(0xFFE6ECF5),
-    secondary = ElledueGold, secondaryContainer = Color(0xFF263550),
-    background = Color(0xFF091524), surface = Color(0xFF091524),
-    surfaceContainer = Color(0xFF17263B), surfaceContainerLow = Color(0xFF182238),
-    outlineVariant = Color(0xFF374258),
+    primaryContainer = Color(0xFF162742), onPrimaryContainer = Color(0xFFF6F2EA),
+    secondary = ElledueGold, secondaryContainer = Color(0xFF162742),
+    background = ConceptBackground, surface = ConceptBackground,
+    onBackground = Color(0xFFF6F2EA), onSurface = Color(0xFFF6F2EA), onSurfaceVariant = ConceptMuted,
+    surfaceContainer = ConceptCard, surfaceContainerLow = Color(0xFF101D30), surfaceContainerHigh = Color(0xFF162742),
+    outline = ConceptBorder, outlineVariant = ConceptBorder,
+    error = Color(0xFFD96B6B),
 )
+private val Serif = FontFamily(androidx.compose.ui.text.font.Font(it.elledue.control.R.font.dm_serif_display))
+private val Sans = FontFamily(androidx.compose.ui.text.font.Font(it.elledue.control.R.font.inter))
 private val AppTypography = Typography(
-    headlineLarge = TextStyle(fontFamily = FontFamily.Serif, fontWeight = FontWeight.Normal, fontSize = 30.sp, lineHeight = 36.sp, letterSpacing = (-0.6).sp),
-    headlineMedium = TextStyle(fontFamily = FontFamily.Serif, fontWeight = FontWeight.Normal, fontSize = 26.sp, lineHeight = 32.sp),
-    titleLarge = TextStyle(fontWeight = FontWeight.SemiBold, fontSize = 21.sp, lineHeight = 28.sp),
-    titleMedium = TextStyle(fontWeight = FontWeight.SemiBold, fontSize = 16.sp, lineHeight = 24.sp),
-    bodyLarge = TextStyle(fontSize = 16.sp, lineHeight = 24.sp),
-    bodyMedium = TextStyle(fontSize = 14.sp, lineHeight = 21.sp),
-    labelLarge = TextStyle(fontWeight = FontWeight.SemiBold, fontSize = 14.sp, lineHeight = 20.sp),
+    headlineLarge = TextStyle(fontFamily = Serif, fontSize = 30.sp, lineHeight = 34.sp),
+    headlineMedium = TextStyle(fontFamily = Serif, fontSize = 27.sp, lineHeight = 31.sp),
+    titleLarge = TextStyle(fontFamily = Serif, fontSize = 23.sp, lineHeight = 28.sp),
+    titleMedium = TextStyle(fontFamily = Sans, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, lineHeight = 20.sp),
+    titleSmall = TextStyle(fontFamily = Sans, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, lineHeight = 18.sp),
+    bodyLarge = TextStyle(fontFamily = Sans, fontSize = 14.sp, lineHeight = 20.sp),
+    bodyMedium = TextStyle(fontFamily = Sans, fontSize = 13.sp, lineHeight = 18.sp),
+    bodySmall = TextStyle(fontFamily = Sans, fontSize = 11.sp, lineHeight = 16.sp),
+    labelLarge = TextStyle(fontFamily = Sans, fontWeight = FontWeight.Medium, fontSize = 12.sp, lineHeight = 16.sp),
+    labelMedium = TextStyle(fontFamily = Sans, fontSize = 11.sp, lineHeight = 15.sp),
+    labelSmall = TextStyle(fontFamily = Sans, fontSize = 10.sp, lineHeight = 13.sp),
 )
 
 @Composable
 fun ElledueTheme(content: @Composable () -> Unit) {
     MaterialTheme(
-        colorScheme = if (isSystemInDarkTheme()) DarkColors else LightColors,
+        colorScheme = DarkColors,
         typography = AppTypography,
-        shapes = Shapes(small = RoundedCornerShape(10.dp), medium = RoundedCornerShape(16.dp), large = RoundedCornerShape(22.dp)),
+        shapes = Shapes(small = RoundedCornerShape(9.dp), medium = RoundedCornerShape(13.dp), large = RoundedCornerShape(16.dp)),
         content = content,
     )
 }

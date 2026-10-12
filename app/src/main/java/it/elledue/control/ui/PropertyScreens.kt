@@ -43,18 +43,18 @@ fun PropertiesScreen(items: List<PropertyWithOwner>, onCreate: () -> Unit, onOpe
         it.property.archived == archived && (it.property.name.contains(query, true) || it.property.address.contains(query, true) || it.owner.name.contains(query, true))
     }
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Immobili") }, actions = {
+        topBar = { TopAppBar(title = { ConceptHeading("Immobili", "Gestisci il tuo portfolio") }, actions = {
             FilledTonalIconButton(onClick = onCreate, modifier = Modifier.testTag("new-property")) { Icon(Icons.Outlined.Add, "Nuovo immobile") }
         }) },
     ) { padding ->
-        LazyColumn(Modifier.fillMaxSize().padding(padding), contentPadding = PaddingValues(20.dp, 12.dp, 20.dp, 96.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        LazyColumn(Modifier.fillMaxSize().padding(padding), contentPadding = PaddingValues(16.dp, 8.dp, 16.dp, 24.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             item {
-                OutlinedTextField(query, { query = it }, label = { Text("Cerca immobile o proprietario") }, singleLine = true, leadingIcon = { Icon(Icons.Outlined.Search, null) }, modifier = Modifier.fillMaxWidth())
+                ConceptSearch(query) { query=it }
             }
             item {
                 Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(selected = !archived, onClick = { archived = false }, label = { Text("Attivi (${items.count { !it.property.archived }})") })
-                    FilterChip(selected = archived, onClick = { archived = true }, label = { Text("Archiviati (${items.count { it.property.archived }})") }, modifier = Modifier.testTag("archived-filter"))
+                    ConceptPill(selected = !archived, onClick = { archived = false }, label = { Text("Attivi (${items.count { !it.property.archived }})") })
+                    ConceptPill(selected = archived, onClick = { archived = true }, label = { Text("Archiviati (${items.count { it.property.archived }})") }, modifier = Modifier.testTag("archived-filter"))
                 }
             }
             if (filtered.isEmpty()) item {
