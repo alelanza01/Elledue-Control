@@ -34,7 +34,8 @@ class ReportRepository(private val db: AppDatabase, private val context: Context
     }
     private suspend fun refreshLocked(report: ReportEntity): ReportSnapshot {
         val property = requireNotNull(db.propertyDao().get(report.propertyId))
-        val bookings = dao.bookings().filter { it.propertyId == report.propertyId && Competence.booking(it.checkInEpochDay) == report.yearMonth }.sortedWith(compareBy({ it.checkInEpochDay }, { it.id }))
+        val allBookings = dao.bookings()
+        val bookings = allBookings.filter { it.propertyId == report.propertyId && Competence.booking(it.checkInEpochDay) == report.yearMonth }.sortedWith(compareBy({ it.checkInEpochDay }, { it.id }))
         val costs = dao.expenses().filter { it.propertyId == report.propertyId && it.competenceMonth == report.yearMonth && !it.voided }.sortedWith(compareBy({ it.dateEpochDay }, { it.id }))
         val allMoney = db.accountingDao().movements().filter { it.propertyId == report.propertyId }
         val related = allMoney.filter { it.reservationId in bookings.map { b -> b.id } || it.competenceMonth == report.yearMonth }
@@ -46,7 +47,8 @@ class ReportRepository(private val db: AppDatabase, private val context: Context
         val organization = db.openHelper.readableDatabase.query("SELECT organizationName FROM app_settings WHERE id=1").use { if (it.moveToFirst()) it.getString(0) else "Elledue Management" }
         val snapshot = ReportSnapshot(id = report.id, month = report.yearMonth, version = report.version, previousId = report.previousId, revisionReason = report.revisionReason,
             issuedAt = report.createdAt, property = property.property, owner = property.owner, organization = organization, logoBase64 = logo, notes = report.notes,
-            bookings = bookings, expenses = costs, taxes = dao.taxes().filter { t -> bookings.any { it.id == t.reservationId } }, movements = allMoney.filter { it.id in ids }.sortedBy { it.id })
+            bookings = bookings, expenses = costs, taxes = dao.taxes().filter { t -> bookings.any { it.id == t.reservationId } }, movements = allMoney.filter { it.id in ids }.sortedBy { it.id },
+            linkedBookings = allBookings.filter { b -> b.propertyId == report.propertyId && bookings.none { it.id == b.id } && (costs.any { it.reservationId == b.id } || allMoney.any { it.id in ids && it.reservationId == b.id }) }.sortedBy { it.id })
         dao.save(report.copy(snapshotJson = ReportCodec.encode(snapshot))); return snapshot
     }
     suspend fun confirm(id: String, previewHash: String, acknowledgeWarnings: Boolean): ReportSnapshot = db.withTransaction {

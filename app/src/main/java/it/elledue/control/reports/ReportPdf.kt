@@ -122,7 +122,7 @@ class ReportPdf(private val context: Context) {
             val totals = value.summary()
             amount("Lordo prenotazioni (tassa esclusa)", value.gross()); amount("Commissioni OTA", value.ota()); amount("Netto dopo OTA al proprietario", value.net()); amount("Compenso Elledue maturato", totals.fees)
             section("02  Pulizie")
-            fun bookingName(id: String?) = value.bookings.firstOrNull { it.id == id }?.let { "${it.guestFirstName} ${it.guestLastName}" } ?: "Non collegata"
+            fun bookingName(id: String?) = (value.bookings + value.linkedBookings.orEmpty()).firstOrNull { it.id == id }?.let { "${it.guestFirstName} ${it.guestLastName}" } ?: if (id == null) "Non collegata" else "Collegamento storico"
             table(listOf("Data / prenotazione", "Intervento", "Ore", "Tariffa", "Costo effettivo"), listOf(126f, 177f, 50f, 73f, 89f), value.expenses.filter { it.kind == "CLEANING" }.map { listOf("${BookingDates.display(it.dateEpochDay)}\n${bookingName(it.reservationId)}", it.description, it.quantity ?: "—", it.unitCents?.let(Amounts::euro) ?: "—", Amounts.euro(it.actualCents)) })
             amount("Totale pulizie", totals.cleaning)
             section("03  Lavanderia")
@@ -135,7 +135,7 @@ class ReportPdf(private val context: Context) {
             section("05  Tassa di soggiorno e anticipi")
             amount("Tassa prevista dei soggiorni del periodo", totals.expectedTax); amount("Tassa materialmente riscossa", totals.collectedTax); amount("Tassa ancora da incassare", totals.residualTax)
             amount("Riconosciuta in compensazione nel periodo", totals.compensated); amount("Altri anticipi / pagamenti riconosciuti", totals.payments)
-            table(listOf("Data", "Movimento / nota", "Importo"), listOf(90f, 336f, 89f), Ledger.active(value.movements).filter { it.competenceMonth == value.month && it.kind in listOf("COMPENSATION", "OWNER_PAYMENT", "REMITTANCE") }.map { listOf(BookingDates.display(it.dateEpochDay), "${when(it.kind) { "COMPENSATION" -> "Compensazione tassa"; "REMITTANCE" -> "Riversamento separato (non sottratto dal saldo)"; else -> "Anticipo / pagamento proprietario" }}\n${it.notes}", Amounts.euro(it.amountCents)) })
+            table(listOf("Data", "Movimento / nota", "Importo"), listOf(90f, 336f, 89f), Ledger.active(value.movements).filter { it.competenceMonth == value.month && it.kind in listOf("COMPENSATION", "OWNER_PAYMENT", "REMITTANCE") }.map { listOf(BookingDates.display(it.dateEpochDay), "${when(it.kind) { "COMPENSATION" -> "Compensazione tassa · ${bookingName(it.reservationId)}"; "REMITTANCE" -> "Riversamento separato (non sottratto dal saldo)"; else -> "Anticipo / pagamento proprietario" }}\n${it.notes}", Amounts.euro(it.amountCents)) })
             paragraph("La tassa è esterna al lordo e non è un ricavo o una spesa Elledue. La riscossione non comporta una compensazione automatica. Riscossione e riversamento restano distinti.", 8f)
             paragraph("Le prenotazioni appartengono interamente al mese del check-in; spese e movimenti seguono la competenza assegnata. Gli importi OTA delle prenotazioni sono accreditati al proprietario.", 8f)
             if (value.notes.isNotBlank()) { section("Note"); paragraph(value.notes) }

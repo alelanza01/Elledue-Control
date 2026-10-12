@@ -25,10 +25,10 @@ android {
     }
     kotlinOptions { jvmTarget = "17" }
     testOptions { unitTests.isIncludeAndroidResources = true }
-    val externalStore = providers.environmentVariable("ELLEDUE_RELEASE_STORE").orNull
-    val externalAlias = providers.environmentVariable("ELLEDUE_RELEASE_ALIAS").orNull
-    val externalStorePassword = providers.environmentVariable("ELLEDUE_RELEASE_STORE_PASSWORD").orNull
-    val externalKeyPassword = providers.environmentVariable("ELLEDUE_RELEASE_KEY_PASSWORD").orNull
+    val externalStore = providers.environmentVariable("ELLEDUE_RELEASE_STORE").orNull ?: providers.gradleProperty("android.injected.signing.store.file").orNull
+    val externalAlias = providers.environmentVariable("ELLEDUE_RELEASE_ALIAS").orNull ?: providers.gradleProperty("android.injected.signing.key.alias").orNull
+    val externalStorePassword = providers.environmentVariable("ELLEDUE_RELEASE_STORE_PASSWORD").orNull ?: providers.gradleProperty("android.injected.signing.store.password").orNull
+    val externalKeyPassword = providers.environmentVariable("ELLEDUE_RELEASE_KEY_PASSWORD").orNull ?: providers.gradleProperty("android.injected.signing.key.password").orNull
     if (listOf(externalStore, externalAlias, externalStorePassword, externalKeyPassword).all { !it.isNullOrBlank() }) {
         val privateStore = file(externalStore!!).canonicalFile
         require(!privateStore.toPath().startsWith(rootProject.projectDir.canonicalFile.toPath())) { "Il keystore release deve rimanere esterno al repository." }

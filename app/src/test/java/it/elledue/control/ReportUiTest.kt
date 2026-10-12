@@ -37,7 +37,7 @@ class ReportUiTest {
         app.accountingRepository.post(cash); app.accountingRepository.post(cash.copy(id = "ui-comp", kind = "COMPENSATION", sourceId = cash.id))
     }
     private fun waitTag(tag: String) { compose.waitUntil(15000) { compose.onAllNodes(hasTestTag(tag)).fetchSemanticsNodes().isNotEmpty() } }
-    private fun screenshot(name: String) { compose.runOnIdle {
+    private fun screenshot(name: String) { compose.mainClock.advanceTimeBy(500); compose.waitForIdle(); compose.runOnIdle {
         val view = compose.activity.window.decorView; val bitmap = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888); view.draw(Canvas(bitmap))
         val file = File("build/reports/screenshots/$name.png"); file.parentFile!!.mkdirs(); file.outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }; bitmap.recycle()
     } }

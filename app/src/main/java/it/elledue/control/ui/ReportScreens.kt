@@ -1,6 +1,7 @@
 package it.elledue.control.ui
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -68,15 +69,15 @@ fun ReportDetail(report: ReportEntity, snapshot: ReportSnapshot, model: ReportVi
     val total = snapshot.summary(); val issues = snapshot.issues(); val draft = report.status == "DRAFT"
     Scaffold(topBar = { TopAppBar(title = { Text("${report.yearMonth} · v${report.version}") }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Indietro documento") } }) }) { padding ->
         LazyColumn(Modifier.fillMaxSize().padding(padding).testTag("report-detail-scroll"), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            item { Surface(color = ElledueNight, contentColor = androidx.compose.ui.graphics.Color.White, shape = MaterialTheme.shapes.large) {
-                Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            item {
+                Column(Modifier.fillMaxWidth().background(ElledueNight, MaterialTheme.shapes.large).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Image(painterResource(R.drawable.elledue_logo_gold), "Logo ufficiale Elledue", modifier = Modifier.width(155.dp).height(28.dp))
-                    Text(snapshot.property.name, style = MaterialTheme.typography.titleLarge)
-                    Text("${snapshot.owner.name} · ${if (draft) "BOZZA" else "CONFERMATO"}", style = MaterialTheme.typography.labelMedium)
-                    Text(if (total.balance >= 0) "Bonifico ancora dovuto" else "Credito da riconciliare", style = MaterialTheme.typography.labelLarge)
-                    Text(if (total.balance < 0) Amounts.euroAbsolute(total.balance) else Amounts.euro(total.balance), style = MaterialTheme.typography.headlineLarge, modifier = Modifier.testTag("report-balance"))
+                    Text(snapshot.property.name, color = androidx.compose.ui.graphics.Color.White, style = MaterialTheme.typography.titleLarge)
+                    Text("${snapshot.owner.name} · ${if (draft) "BOZZA" else "CONFERMATO"}", color = androidx.compose.ui.graphics.Color.White, style = MaterialTheme.typography.labelMedium)
+                    Text(if (total.balance >= 0) "Bonifico ancora dovuto" else "Credito da riconciliare", color = androidx.compose.ui.graphics.Color.White, style = MaterialTheme.typography.labelLarge)
+                    Text(if (total.balance < 0) Amounts.euroAbsolute(total.balance) else Amounts.euro(total.balance), color = androidx.compose.ui.graphics.Color.White, style = MaterialTheme.typography.headlineLarge, modifier = Modifier.testTag("report-balance"))
                 }
-            } }
+            }
             item { Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) { listOf("Riepilogo", "Dettagli", "Verifica").forEachIndexed { i, label -> FilterChip(tab == i, { tab = i }, label = { Text(label) }, modifier = Modifier.testTag("report-tab-$i")) } } }
             if (tab == 0) {
                 item { Column { AmountLine("Lordo (tassa esclusa)", snapshot.gross()); AmountLine("OTA", snapshot.ota()); AmountLine("Netto al proprietario", snapshot.net()); HorizontalDivider(); AmountLine("Compenso Elledue", total.fees); AmountLine("Spese anticipate rimborsabili", total.reimbursable); AmountLine("Compensazioni riconosciute", total.compensated); AmountLine("Altri anticipi / pagamenti", total.payments) } }
@@ -86,6 +87,10 @@ fun ReportDetail(report: ReportEntity, snapshot: ReportSnapshot, model: ReportVi
                 items(snapshot.bookings, key = { "booking-${it.id}" }) { b ->
                     ListItem(headlineContent = { Text("${b.guestFirstName} ${b.guestLastName}") }, supportingContent = { Text("${BookingDates.display(b.checkInEpochDay)} → ${BookingDates.display(b.checkOutEpochDay)} · ${b.guestCount} ospiti\nLordo ${Amounts.euro(b.grossCents)} · OTA ${Amounts.euro(b.otaCents)}\nElledue ${Amounts.euro(b.managementCents)}${if (b.status == "CANCELLED") " · annullata, esclusa dai compensi" else ""}") }, trailingContent = { if (draft) IconButton(onClick = { onBooking(b.id) }) { Icon(Icons.Outlined.Edit, "Modifica prenotazione") } })
                     if (draft) TextButton(onClick = { onTax(b.id) }) { Text("Verifica tassa e movimenti") }
+                }
+                if (snapshot.linkedBookings.orEmpty().isNotEmpty()) item {
+                    Text("Soggiorni collegati di altri periodi", style = MaterialTheme.typography.titleMedium)
+                    snapshot.linkedBookings.orEmpty().forEach { b -> Text("${b.guestFirstName} ${b.guestLastName} · ${BookingDates.display(b.checkInEpochDay)} → ${BookingDates.display(b.checkOutEpochDay)} · riferimento, senza compenso in questo periodo", style = MaterialTheme.typography.bodySmall) }
                 }
                 item { Text("Spese · ${snapshot.expenses.size}", style = MaterialTheme.typography.titleMedium) }
                 items(snapshot.expenses, key = { "expense-${it.id}" }) { e -> ListItem(headlineContent = { Text(e.description) }, supportingContent = { Text("${e.category} · ${BookingDates.display(e.dateEpochDay)}\n${e.quantity ?: ""} ${e.unitCents?.let { "× ${Amounts.euro(it)}" } ?: ""} · ${Amounts.euro(e.actualCents)}\n${if (e.advancedByElledue && e.reimbursable) "Rimborsabile" else "Esclusa dai rimborsi"}") }, trailingContent = { if (draft) IconButton(onClick = { onExpense(e.id) }) { Icon(Icons.Outlined.Edit, "Rettifica spesa") } }) }

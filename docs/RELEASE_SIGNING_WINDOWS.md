@@ -12,7 +12,7 @@ La chiave definitiva deve essere creata e custodita dall’utente. Il progetto n
 
 ## Gradle con keystore esterno
 
-La configurazione legge queste variabili dell’ambiente del processo, senza scrivere segreti nel repository:
+La configurazione supporta anche i parametri di firma temporanei passati dal wizard Android Studio. In alternativa legge queste variabili dell’ambiente del processo, senza scrivere segreti nel repository:
 
 - `ELLEDUE_RELEASE_STORE`: percorso assoluto del keystore privato.
 - `ELLEDUE_RELEASE_ALIAS`: alias.

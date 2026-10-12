@@ -27,14 +27,14 @@ fun rememberPdfExporter(snapshot: ReportSnapshot): () -> Unit {
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/pdf")) { uri ->
         val target = pending
         if (uri != null && target != null) scope.launch {
-            try { withContext(Dispatchers.IO) { context.contentResolver.openOutputStream(uri, "wt")!!.use { ReportPdf(context).write(target, it) } }; saved = uri.toString(); message = "PDF salvato." }
+            try { withContext(Dispatchers.IO) { val bytes = java.io.ByteArrayOutputStream().also { ReportPdf(context).write(target, it) }.toByteArray(); context.contentResolver.openOutputStream(uri, "wt")!!.use { it.write(bytes) } }; saved = uri.toString(); message = "PDF salvato." }
             catch (_: Exception) { message = "Esportazione non riuscita. La versione del rendiconto è conservata." }
         }
     }
     if (message != null) AlertDialog(onDismissRequest = { message = null }, title = { Text(message!!) }, text = { Text("Il documento non viene inviato automaticamente.") }, confirmButton = { TextButton(onClick = { message = null; saved?.let { value ->
-        runCatching { context.startActivity(Intent(Intent.ACTION_VIEW).setDataAndType(value.toUri(), "application/pdf").addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)) }
-    } }) { Text("Apri PDF") } }, dismissButton = { TextButton(onClick = { message = null }) { Text("Chiudi") } })
-    return { pending = snapshot; launcher.launch("Elledue-${snapshot.month}-v${snapshot.version}${if (snapshot.draft) "-bozza" else ""}.pdf") }
+        runCatching { context.startActivity(Intent(Intent.ACTION_VIEW).setDataAndType(value.toUri(), "application/pdf").addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)) }.onFailure { message = "PDF salvato; nessun visualizzatore disponibile. Aprilo dal gestore file." }
+    } }) { Text(if (saved != null) "Apri PDF" else "Chiudi") } }, dismissButton = { TextButton(onClick = { message = null }) { Text("Chiudi") } })
+    return { pending = snapshot; saved = null; launcher.launch("Elledue-${snapshot.month}-v${snapshot.version}${if (snapshot.draft) "-bozza" else ""}.pdf") }
 }
 
 @Composable

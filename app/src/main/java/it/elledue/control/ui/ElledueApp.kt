@@ -278,7 +278,8 @@ fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewMo
                             owner.lifecycle.addObserver(observer); onDispose { owner.lifecycle.removeObserver(observer) }
                         }
                         LaunchedEffect(savedReportId) { savedReportId?.let { reportsModel.clear(); navigation.navigate("report/$it") } }
-                        if (snapshot == null) EmptyState("Snapshot non valido", "Aggiorna la bozza senza confermarla.", "Aggiorna", { reportsModel.refresh(report.id) })
+                        if (snapshot != null && runCatching { snapshot.summary(); snapshot.gross(); snapshot.ota(); snapshot.net() }.isFailure) EmptyState("Importi non validi", "Correggi le voci nella contabilità prima di confermare.", "Apri contabilità", { navigation.navigate("economy") })
+                        else if (snapshot == null) EmptyState("Snapshot non valido", "Aggiorna la bozza senza confermarla.", "Aggiorna", { reportsModel.refresh(report.id) })
                         else {
                             val export = rememberPdfExporter(snapshot)
                             ReportDetail(report, snapshot, reportsModel, { navigation.popBackStack() },
@@ -298,7 +299,7 @@ fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewMo
                         val current = settings
                         if (settingsLoadFailed) Text("Impostazioni non disponibili. Riavvia l’app senza eliminare i dati.", color = MaterialTheme.colorScheme.error)
                         else if (current == null) CircularProgressIndicator() else {
-                            var name by rememberSaveable { mutableStateOf(current.organizationName) }
+                            var name by rememberSaveable(current.organizationName) { mutableStateOf(current.organizationName) }
                             OutlinedTextField(name, { name = it; settingsModel.clearSaveState() }, label = { Text("Nome organizzazione") }, singleLine = true, enabled = saveState != SaveState.Saving, modifier = Modifier.fillMaxWidth())
                             Button(onClick = { settingsModel.save(name) }, enabled = saveState != SaveState.Saving) { Text("Salva") }
                             when (saveState) {

@@ -114,12 +114,19 @@ class BackupService(private val db: AppDatabase, private val context: Context) {
             Competence.month(a.yearMonth)
             require(when (a.kind) { "BOOKING" -> bookings.any { it.id == a.sourceId && it.propertyId == a.propertyId && it.competenceMonth == a.yearMonth }; "EXPENSE" -> costs.any { it.id == a.sourceId && it.propertyId == a.propertyId && it.competenceMonth == a.yearMonth }; "MOVEMENT" -> money.any { it.id == a.sourceId && it.propertyId == a.propertyId && it.competenceMonth == a.yearMonth }; else -> false }) { "Attribuzione rendiconto incoerente." }
         }
+        val snapshots = mutableListOf<ReportSnapshot>()
         val reports = staged.openHelper.readableDatabase.query("SELECT id, propertyId, yearMonth, version, status, snapshotJson FROM reports")
         reports.use { while (it.moveToNext()) {
             if (it.getString(4) == "CONFIRMED") {
-                val snapshot = ReportCodec.decode(it.getString(5)); require(snapshot.id == it.getString(0) && snapshot.property.id == it.getString(1) && snapshot.month == it.getString(2) && snapshot.version == it.getInt(3))
+                val snapshot = ReportCodec.decode(it.getString(5)); snapshots.add(snapshot); require(snapshot.id == it.getString(0) && snapshot.property.id == it.getString(1) && snapshot.month == it.getString(2) && snapshot.version == it.getInt(3))
             }
         } }
+        val allocations = dao.allocations()
+        snapshots.forEach { snapshot ->
+            snapshot.allocations().forEach { item -> require(allocations.contains(item)) { "Snapshot confermato senza attribuzione contabile coerente." } }
+            snapshot.previousId?.let { id -> val previous = requireNotNull(dao.get(id)); require(previous.status == "CONFIRMED" && previous.propertyId == snapshot.property.id && previous.yearMonth == snapshot.month && previous.version < snapshot.version) { "Catena delle versioni non valida." } }
+        }
+        allocations.forEach { allocation -> require(snapshots.any { it.allocations().contains(allocation) }) { "Attribuzione priva di un rendiconto confermato." } }
     }
     companion object {
         const val MAX_BYTES = 32 * 1024 * 1024

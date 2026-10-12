@@ -1,0 +1,76 @@
+{
+  "version": "0.4.0",
+  "applicationId": "it.elledue.control",
+  "versionCode": 4,
+  "minSdk": 26,
+  "targetSdk": 35,
+  "signing": "debug",
+  "tests": {
+    "tests": 98,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "lint": {
+    "errors": 0,
+    "warnings": 3,
+    "warningSource": "BouncyCastle transitive dependency, unused EST TLS helper classes"
+  },
+  "files": [
+    {
+      "path": "Elledue-Control-debug.apk",
+      "bytes": 28673619,
+      "sha256": "46fbf62afd645610f507abcc9d4a2917e005f527f02768453879db045ca4f218"
+    },
+    {
+      "path": "Elledue-multipagina-sintetico.pdf",
+      "bytes": 203779,
+      "sha256": "d9fada1ad7bd16fcd329457d482d78cca2ffcfa912fbaeb142775f8e9fd6b63b"
+    },
+    {
+      "path": "Elledue-rendiconto-rettificato-sintetico.pdf",
+      "bytes": 52709,
+      "sha256": "60b6784a979b2b29802df7c0282a9638cfa8914229caba88b9564d7a9f140a7b"
+    },
+    {
+      "path": "Elledue-rendiconto-sintetico.pdf",
+      "bytes": 52440,
+      "sha256": "56c84fe78c963d4aff15eb6e0ce1280e1498caffb8d0d3f47fb6cb8dd2933e86"
+    },
+    {
+      "path": "screenshots/m4-backup-settings.png",
+      "bytes": 145737,
+      "sha256": "6319abf8bd8655f0fdad716eb1b5240d596b1d36f542c084644473cabaddf35c"
+    },
+    {
+      "path": "screenshots/m4-icon-light-dark.png",
+      "bytes": 23447,
+      "sha256": "55437f05c71035ff1ece51daae7b014c3418701d0d4455f8bee0d530c6bfd3e0"
+    },
+    {
+      "path": "screenshots/m4-report-confirmed.png",
+      "bytes": 195560,
+      "sha256": "77e19baf3ac96c9aca4ab6e9b58662d082c5eda9b80c0046663707603357e905"
+    },
+    {
+      "path": "screenshots/m4-report-dark.png",
+      "bytes": 210108,
+      "sha256": "333db57bbcf7cd9717ee5a91c44acb4cc02468e384edf8e0c0e6b7a8a650dd5f"
+    },
+    {
+      "path": "screenshots/m4-report-details.png",
+      "bytes": 184252,
+      "sha256": "8ae9567fb14e8e5da179e2d64a7df696228981148a3ed3df8cdc69c1d05aab2a"
+    },
+    {
+      "path": "screenshots/m4-report-draft.png",
+      "bytes": 208790,
+      "sha256": "75957ad8f2e95c7fe759193bd4d2473d2e2db9695c3415253855e7c43a3e6dce"
+    },
+    {
+      "path": "screenshots/m4-reports-selection.png",
+      "bytes": 118892,
+      "sha256": "ceebc8bbccbcac12ad4e9e93b4d90431172a85aad9cb91b96bab47ba2f660b97"
+    }
+  ]
+}

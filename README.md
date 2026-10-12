@@ -2,7 +2,7 @@
 
 Applicazione Android nativa per Elledue Management, gestione di immobili per affitti brevi. Il repository è stato creato da zero in Kotlin e Jetpack Compose.
 
-## Milestone 1, 2 e 3 — versione 0.3.0
+## Milestone 1–4 — versione 0.4.0
 
 Modulo Immobili: creazione, elenco con ricerca e filtri, dettaglio, modifica, archiviazione e riattivazione. Sono persistenti proprietario e recapiti, posti letto/ospiti, orari, note, commissioni, tariffe pulizie/lavanderia, tassa di soggiorno, commissioni diverse per portale e istruzioni di accesso IT/EN. Nessun dato dimostrativo viene inserito nell’app.
 
@@ -18,7 +18,13 @@ Competenza definitiva: ogni prenotazione appartiene interamente al mese/anno del
 
 Navigazione: Dashboard, Immobili, Calendario, Economia, Attività, Impostazioni. Attività e le funzioni delle milestone successive restano predisposte, non operative.
 
-Identità visiva: blu notte `#111B32`, dorato `#DBBF8B`, tema chiaro/scuro automatico. L’icona edificio è un segnaposto neutro, non il logo definitivo. Sostituire `app/src/main/res/drawable/ic_launcher.xml` con il logo ufficiale quando disponibile come file originale PNG/SVG; lo splash utilizza già il segnaposto. Le varianti ufficiali sono state mostrate nella conversazione, ma non sono disponibili nel checkout come file utilizzabili: non vengono ridisegnate né dichiarate integrate.
+Rendiconti: da Economia → Rendiconti mensili, selezionare immobile e periodo. Generazione bozza completa, aggiornamento dai sorgenti, criticità/OTA stimate, note, conferma manuale con snapshot immutabile, rettifiche come nuove versioni e attribuzioni univoche. Le correzioni economiche avvengono nei sorgenti: non esistono totali PDF indipendenti dai dettagli. Versioni storiche rigenerabili; PDF professionale A4 con font incorporati, logo originale e tabelle multipagina. Nessun invio automatico.
+
+Backup manuale da Impostazioni: esportazione dell’intero database applicativo (incluse revisioni, movimenti, rendiconti e snapshot); validazione in database isolato e ripristino atomico dopo conferma. File JSON con checksum SHA-256, non cifrato: conservare privatamente. Nessun upload automatico. Gli allegati/scontrini non sono ancora implementati.
+
+Identità visiva: blu notte `#111B32`, dorato `#DBBF8B`, tema chiaro/scuro. Originali PNG caricati dall’utente su GitHub, integrati senza ridisegno né deformazione in icona adattiva/splash, intestazione e PDF. Derivazioni e hash descritti in [docs/brand/ORIGINALS.md](docs/brand/ORIGINALS.md).
+
+Consegna scaricabile in [deliverables/milestone-4](deliverables/milestone-4): APK debug, PDF esclusivamente sintetici, screenshot e manifest con checksum. Il rendiconto personale originale non è nel repository.
 
 ## Build e test
 
@@ -35,7 +41,7 @@ Aprire in Android Studio oppure impostare `ANDROID_HOME` sul proprio SDK e poi:
 
 APK installabile: `app/build/outputs/apk/debug/app-debug.apk`. Firma debug locale; nessuna chiave è versionata. Il debug APK è preliminare e non una release per la produzione. APK release con firma privata esterna al repository nella milestone finale.
 
-I test comprendono persistenza su database a file riaperto, CRUD/archiviazione immobili, prenotazioni, annullamenti, conflitti e consenso esplicito, cambio ospiti, snapshot economici, date/DST, arrotondamento, migrazione Room 1 → 2 con dati preesistenti e navigazione Compose, contabilità operativa, movimenti/storni, competenza al check-in e migrazioni alla versione 3. I test Android sono eseguiti con Robolectric; non equivalgono a una verifica su telefono fisico.
+I test comprendono persistenza su database a file riaperto, CRUD/archiviazione immobili, prenotazioni, annullamenti, conflitti e consenso esplicito, cambio ospiti, snapshot economici, date/DST, arrotondamento, migrazione Room 1 → 2 con dati preesistenti e navigazione Compose, contabilità operativa, movimenti/storni, competenza al check-in e migrazioni fino alla versione 4, bozze/conferme/versioni, ripristino e PDF reali multipagina. I test Android sono eseguiti con Robolectric; non equivalgono a una verifica su telefono fisico.
 
 ## Ambiente cloud
 
@@ -58,7 +64,9 @@ Il setup installa JDK e SDK con verifica dei checksum, accetta le licenze SDK, c
 - `docs/ROADMAP.md`: stato e criteri delle successive consegne.
 - `docs/VALIDATION.md`: verifica storica della Milestone 1.
 - `docs/MILESTONE_2.md`: consegna storica della Milestone 2.
-- `docs/MILESTONE_3.md`: consegna e verifiche correnti della contabilità operativa.
+- `docs/MILESTONE_3.md`: consegna storica della contabilità operativa.
+- `docs/MILESTONE_4.md`: consegna e verifiche correnti.
+- `docs/RELEASE_SIGNING_WINDOWS.md`: keystore definitivo sul PC, copia privata recuperabile e aggiornamenti.
 - `docs/REFERENCE_REPORT_REVIEW.md`: incongruenze del PDF di riferimento, senza dati personali.
 
-I dati rimangono sul dispositivo nel sandbox Android. In questa milestone non sono presenti backup esportabile, sincronizzazione, documenti ospiti, scontrini/allegati, notifiche o PDF: non disinstallare l’app per conservare i dati. Le nuove versioni devono mantenere lo stesso application ID e la stessa firma per aggiornare l’installazione senza cancellarli.
+I dati rimangono sul dispositivo nel sandbox Android. Non sono presenti sincronizzazione, documenti ospiti, scontrini/allegati o notifiche. Prima di disinstallare o cambiare dispositivo/firma, esportare e provare il ripristino del backup. Le nuove versioni devono mantenere lo stesso application ID e la stessa firma per aggiornare l’installazione senza cancellarli.

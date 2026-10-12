@@ -11,6 +11,7 @@ data class ReportSnapshot(
     val issuedAt: Long, val property: PropertyEntity, val owner: OwnerEntity, val organization: String,
     val logoBase64: String, val notes: String, val bookings: List<ReservationEntity>, val expenses: List<ExpenseEntity>,
     val taxes: List<TaxAssessmentEntity>, val movements: List<MoneyMovementEntity>,
+    val linkedBookings: List<ReservationEntity>? = emptyList(),
 ) {
     fun summary() = operationalSummary(month, property.id, bookings, expenses, taxes, movements)
     fun gross() = OperationalMoney.total(bookings.filter { it.status != "CANCELLED" }.map { it.grossCents })

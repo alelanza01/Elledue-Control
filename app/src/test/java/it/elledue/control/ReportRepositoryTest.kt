@@ -137,4 +137,14 @@ class ReportRepositoryTest {
         assertEquals(30000L, snapshot.summary().payments)
     }
 
+    @Test fun crossMonthExpenseAndCompensationKeepBookingReferenceWithoutCountingFeeAgain() = runBlocking<Unit> {
+        accounting.saveExpense(ExpenseDraft(propertyId = property.id, reservationId = input.id, date = "03/12/2026", month = "2026-12", categoryId = "cleaning", quantity = "1", unit = "8"))
+        val collected = cash("COLLECTION", 3000); accounting.post(collected); accounting.post(cash("COMPENSATION", 3000, collected.id, month = "2026-12"))
+        val nov = report.snapshot(report.generate(property.id, "2026-11")); assertEquals(16100L, nov.summary().fees)
+        val dec = report.snapshot(report.generate(property.id, "2026-12"))
+        assertTrue(dec.bookings.isEmpty()); assertEquals(input.id, dec.linkedBookings!!.single().id)
+        assertEquals(0L, dec.summary().fees); assertEquals(800L, dec.summary().expenses); assertEquals(3000L, dec.summary().compensated)
+        assertEquals(0, dec.allocations().count { it.kind == "BOOKING" })
+    }
+
 }

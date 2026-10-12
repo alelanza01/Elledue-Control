@@ -75,4 +75,14 @@ class BackupServiceTest {
             Room.databaseBuilder(context, AppDatabase::class.java, name).build().withClosing { reopened -> assertEquals(17000L, ReportRepository(reopened, context).snapshot(snapshot.id).summary().balance); assertEquals(3, reopened.accountingDao().observeExpenses().first().size) }
         } finally { context.deleteDatabase(name) }
     }
+    @Test fun missingReportAllocationsAreRejectedEvenWithCorrectChecksum() = runBlocking {
+        val snapshot = reportFixture(db, context)
+        val root = JSONObject(service.export().toString(Charsets.UTF_8)); val payload = JSONObject(root.getString("payload"))
+        payload.put("report_allocations", org.json.JSONArray())
+        root.put("payload", payload.toString()).put("sha256", ReportCodec.hash(payload.toString()))
+        reject { service.prepare(root.toString().toByteArray()) }
+        assertEquals(17000L, ReportRepository(db, context).snapshot(snapshot.id).summary().balance)
+        assertEquals(5, db.reportDao().allocations().size)
+    }
+
 }
