@@ -60,8 +60,8 @@ fun EconomyAnalysis(bookings: List<ReservationEntity>, properties: List<Property
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text("Lordo ${Amounts.euro(m.gross)}"); Text("Elledue ${Amounts.euro(m.fees)}", color = MaterialTheme.colorScheme.primary) }
                 // Only the visual ratio uses floats; all accounting calculations use exact cents.
                 LinearProgressIndicator(progress = { (m.gross.toDouble() / maxGross).toFloat() }, modifier = Modifier.fillMaxWidth().height(6.dp), color = ElledueGold)
-                Text("${m.bookings} prenotazioni · ${m.nights} notti · media ${m.averageStay.toPlainString()} notti")
-                Text("Occupazione calendario ${m.calendarPercent.toPlainString()}% (${m.calendarOccupiedDays}/${m.calendarDays})")
+                Text("${m.bookings} ${if (m.bookings == 1) "prenotazione" else "prenotazioni"} · ${m.nights} notti · media ${m.averageStay.toPlainString().replace('.', ',')} notti")
+                Text("Occupazione calendario ${m.calendarPercent.toPlainString().replace('.', ',')}% (${m.calendarOccupiedDays}/${m.calendarDays})")
                 Text("Lordo rispetto al mese precedente: ${Amounts.euro(m.gross - previous.gross)}", style = MaterialTheme.typography.bodySmall)
                 Row(Modifier.fillMaxWidth().height(92.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = androidx.compose.ui.Alignment.Bottom) {
                     val trend = (5 downTo 0).map { offset -> val mo = month.minusMonths(offset.toLong()); mo to PortfolioAnalytics.calculate(mo, p.property.id, bookings).gross }

@@ -63,6 +63,7 @@ fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewMo
     val records = (state as? PropertyLoadState.Ready)?.items.orEmpty()
     val showNavigation = route == null || sections.any { it.route == route }
     val goProperties = { navigation.navigate("properties") { launchSingleTop = true } }
+    val largeFonts = androidx.compose.ui.platform.LocalDensity.current.fontScale > 1.2f
     var quick by remember { mutableStateOf(false) }
     val jump: (String) -> Unit = { target -> navigation.navigate(target) { launchSingleTop = true } }
     Scaffold(topBar = {
@@ -81,9 +82,9 @@ fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewMo
     }, bottomBar = {
         if (showNavigation) Surface(color = MaterialTheme.colorScheme.surfaceContainer) {
             Row(Modifier.fillMaxWidth().navigationBarsPadding().heightIn(min = 76.dp), verticalAlignment = Alignment.CenterVertically) {
-                sections.take(2).forEach { section -> NavigationBarItem(selected = route == section.route, onClick = { jump(section.route) }, icon = { Icon(section.icon, section.title) }, label = { Text(section.title, fontSize = 11.sp) }, modifier = Modifier.testTag("nav-${section.route}")) }
+                sections.take(2).forEach { section -> NavigationBarItem(selected = route == section.route, onClick = { jump(section.route) }, icon = { Icon(section.icon, section.title) }, label = if (largeFonts) null else { { Text(section.title, fontSize = 11.sp, maxLines = 1) } }, modifier = Modifier.testTag("nav-${section.route}")) }
                 FloatingActionButton(onClick = { quick = true }, containerColor = ElledueGold, contentColor = ElledueNight, modifier = Modifier.padding(horizontal = 6.dp).size(52.dp).testTag("quick-action")) { Icon(Icons.Outlined.Add, "Azioni rapide") }
-                sections.drop(2).forEach { section -> NavigationBarItem(selected = route == section.route, onClick = { jump(section.route) }, icon = { Icon(section.icon, section.title) }, label = { Text(section.title, fontSize = 11.sp) }, modifier = Modifier.testTag("nav-${section.route}")) }
+                sections.drop(2).forEach { section -> NavigationBarItem(selected = route == section.route, onClick = { jump(section.route) }, icon = { Icon(section.icon, section.title) }, label = if (largeFonts) null else { { Text(section.title, fontSize = 11.sp, maxLines = 1) } }, modifier = Modifier.testTag("nav-${section.route}")) }
             }
         }
     }) { outerPadding ->

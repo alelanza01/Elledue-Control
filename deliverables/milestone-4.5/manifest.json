@@ -1,0 +1,164 @@
+{
+  "applicationId": "it.elledue.control",
+  "versionName": "0.4.5",
+  "versionCode": 5,
+  "roomVersion": 5,
+  "baseCommit": "b1ecb100e1359d0af69e55517196197b20a62b95",
+  "tests": {
+    "tests": 111,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "lint": {
+    "errors": 0,
+    "warnings": 7,
+    "origin": "3 unused BouncyCastle EST TLS helpers; platform ExifInterface, window width API, 2 KTX recommendations. No app INTERNET permission."
+  },
+  "build": {
+    "assembleDebug": "passed",
+    "testDebugUnitTest": "passed",
+    "lintDebug": "passed",
+    "minifyReleaseWithR8": "passed"
+  },
+  "debugCertificateSha256": "cc45fdd9dccf37a2d94fb35e142bfde73b25de3e46e3b8ce93d4d5b9a7b2065c",
+  "compatibleDebugCertificateWithMilestone4": true,
+  "physicalPhoneTest": false,
+  "files": [
+    {
+      "file": "Elledue-Control-0.4.5-debug.apk",
+      "bytes": 28911741,
+      "sha256": "5a66254ae6371cba0061d84dbfe9ce6bd02324c2423164801eb72ea623daf485"
+    },
+    {
+      "file": "Elledue-prova-multipagina.pdf",
+      "bytes": 138539,
+      "sha256": "f9467becc772070efddde5d38ad14b32577f83ae17210ffa71159963d6c0e59f"
+    },
+    {
+      "file": "Elledue-rendiconto-dettagliato.pdf",
+      "bytes": 37377,
+      "sha256": "5719cff866ae20cda58159376d45a6d92e864558bf1a12c6a190a46cb1015ca0"
+    },
+    {
+      "file": "Elledue-rendiconto-sintetico.pdf",
+      "bytes": 27838,
+      "sha256": "e9edf71bbc20c3dc90a93689d6b989afd98a503685aa65b08ad024ca48db8741"
+    },
+    {
+      "file": "README.md",
+      "bytes": 1376,
+      "sha256": "1eccb4fc64a51f4053ee9eba0a5dd6aa51a7918b32167a3ce56062795e8346d2"
+    },
+    {
+      "file": "screenshots/m45-activities.png",
+      "bytes": 112277,
+      "sha256": "444850cd136ba49dcfd81e1f893cd426011586242bb00ac66a09b57053ac94c4"
+    },
+    {
+      "file": "screenshots/m45-analysis.png",
+      "bytes": 155844,
+      "sha256": "22dc69527e92065a8f69ab7d4c27412823594e93e7e7b6e09a63a8f5d3b01e79"
+    },
+    {
+      "file": "screenshots/m45-archive-dialog.png",
+      "bytes": 233835,
+      "sha256": "4396e694633edf4e61a6f4292be4d29851171d214dd05de98609c195820b5a64"
+    },
+    {
+      "file": "screenshots/m45-booking.png",
+      "bytes": 222588,
+      "sha256": "8092bb3996b53936ef2641c567b729a93703c71a1325c5d6a9f6ddac931f3b3c"
+    },
+    {
+      "file": "screenshots/m45-calendar.png",
+      "bytes": 140063,
+      "sha256": "6c7b0512e3a80a9b1ae4d5f4cebed817b0faacd02c5dda84ae98219b42f50ea2"
+    },
+    {
+      "file": "screenshots/m45-cover-photo.png",
+      "bytes": 132834,
+      "sha256": "ee21015488c16c5a6b1ee12b01f656b47e519a86577cc4385accf81ca3cac936"
+    },
+    {
+      "file": "screenshots/m45-economy.png",
+      "bytes": 185719,
+      "sha256": "a2b4369cb925b192ca08c6906c573615722f61ab3997842429aac24f71a430de"
+    },
+    {
+      "file": "screenshots/m45-home-light.png",
+      "bytes": 479062,
+      "sha256": "56e02c31d61c72aeebfd05145c795c7ac45cfbd3402b7b90e8ea51996104cc19"
+    },
+    {
+      "file": "screenshots/m45-home.png",
+      "bytes": 478542,
+      "sha256": "f3aea8da6766c9fbd2dddb0ad451ed5efd965d156de76b0df6ecc7af1d389db0"
+    },
+    {
+      "file": "screenshots/m45-icon-masks.png",
+      "bytes": 31315,
+      "sha256": "a04a75c8d07b7874592d7457b92c9a3afbe41a59136ff605397833495fea2280"
+    },
+    {
+      "file": "screenshots/m45-pdf-detailed-preview.png",
+      "bytes": 62841,
+      "sha256": "d886d477ff621f9404ce796b721603a4abe5ef35c6bb1bde05220f838c642ca7"
+    },
+    {
+      "file": "screenshots/m45-pdf-summary-preview.png",
+      "bytes": 62235,
+      "sha256": "32d88571fa18e6a705ab208e2bbe7aeaf31b2e1293ccec698e2efeef8002972c"
+    },
+    {
+      "file": "screenshots/m45-portfolio-light.png",
+      "bytes": 181150,
+      "sha256": "3b90f28647eaff389528c9dd683a8388a220e806a388c267c1325166d981c97f"
+    },
+    {
+      "file": "screenshots/m45-portfolio.png",
+      "bytes": 181848,
+      "sha256": "f3d430c941e84dc4bb4936c954bcde7fb1f40ecb7543cb896b7f49eff0f4144b"
+    },
+    {
+      "file": "screenshots/m45-profile.png",
+      "bytes": 343552,
+      "sha256": "b925aaa977dc76fa6260478623472f1408a014efe6b9c611a1fe1007fec53031"
+    },
+    {
+      "file": "screenshots/m45-property-detail.png",
+      "bytes": 364691,
+      "sha256": "882fe7ce336145ab2119b9287d603eb848a576dc0f0909aab0d60973b5ffb4d4"
+    },
+    {
+      "file": "screenshots/m45-property-menu.png",
+      "bytes": 364691,
+      "sha256": "882fe7ce336145ab2119b9287d603eb848a576dc0f0909aab0d60973b5ffb4d4"
+    },
+    {
+      "file": "screenshots/m45-quick-actions.png",
+      "bytes": 335727,
+      "sha256": "d02db5fc59f33605e3d7319d0bbcc475fcecba8d12167ec5a4a766475f3e394c"
+    },
+    {
+      "file": "screenshots/m45-reports.png",
+      "bytes": 95163,
+      "sha256": "2e6619096a9a72acacdf99ddfaf09222da650ced61edda3966417321b66c3d96"
+    },
+    {
+      "file": "screenshots/m45-small-editor-keyboard.png",
+      "bytes": 117430,
+      "sha256": "9546382db448ab70a5db69d991d0fe724b5d1cabf2ec0dae1218000217ef64d6"
+    },
+    {
+      "file": "screenshots/m45-small-large-font-actions.png",
+      "bytes": 262418,
+      "sha256": "289ea47dfdd7b0f6954754c3f8433443db1b12e8bf554d51b79ee76e73fb62e2"
+    },
+    {
+      "file": "screenshots/m45-small-large-font-portfolio.png",
+      "bytes": 247945,
+      "sha256": "b9cffd85d13ed5f769e7a722f66573a3ae7bd407faf0be211dda3aad1c94bd9a"
+    }
+  ]
+}

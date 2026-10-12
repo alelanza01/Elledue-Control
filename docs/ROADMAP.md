@@ -11,3 +11,15 @@ Il brief completo ricevuto dall’utente è il riferimento. Le funzioni sono con
 7. **Qualità e consegna**: migrazioni testate, backup esportabile/ripristino verificato, test integrati/contabili/notifiche, verifica su dispositivo, firma release esterna, APK finale e documentazione.
 
 Restano fuori dalla prima versione: PMS completo, integrazioni dirette OTA, account obbligatori, abbonamenti, API a pagamento e sincronizzazione multiutente. Il logo ufficiale è recuperato dagli originali GitHub e integrato in icona adattiva, splash, intestazioni e PDF. Backup manuale verificato e configurazione firma release esterna sono anticipati nella Milestone 4; la chiave definitiva resta da creare e custodire sul PC dell’utente.
+
+## Milestone 4.5 — evoluzione richiesta dopo M4
+
+Versione 0.4.5: nuova navigazione a quattro destinazioni con azioni contestuali,
+Home operativa, profilo locale, foto copertina con backup, portfolio e azioni protette,
+scorciatoie dalla prenotazione, attività locali, analisi e confronto immobili,
+PDF sintetico/dettagliato e anteprima interna reale. Room 5 con migrazione additiva
+ed importazione compatibile dei backup database 4. Evidenze in docs/MILESTONE_4_5.md
+ed artefatti in deliverables/milestone-4.5.
+
+Fermata prima di M5: nessuna notifica di sistema implementata. Il collaudo su telefono,
+la firma release privata sul PC e la prova d’aggiornamento rimangono necessari.

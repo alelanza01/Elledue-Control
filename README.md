@@ -2,7 +2,7 @@
 
 Applicazione Android nativa per Elledue Management, gestione di immobili per affitti brevi. Il repository è stato creato da zero in Kotlin e Jetpack Compose.
 
-## Milestone 1–4 — versione 0.4.0
+## Milestone 1–4.5 — versione 0.4.5
 
 Modulo Immobili: creazione, elenco con ricerca e filtri, dettaglio, modifica, archiviazione e riattivazione. Sono persistenti proprietario e recapiti, posti letto/ospiti, orari, note, commissioni, tariffe pulizie/lavanderia, tassa di soggiorno, commissioni diverse per portale e istruzioni di accesso IT/EN. Nessun dato dimostrativo viene inserito nell’app.
 
@@ -16,7 +16,7 @@ Tassa di soggiorno: conteggi soggetti/esenti e notti, parametri dell’immobile 
 
 Competenza definitiva: ogni prenotazione appartiene interamente al mese/anno del check-in; ogni spesa ha il proprio mese di competenza modificabile. Il saldo operativo deriva dal dettaglio e distingue le compensazioni dalla riscossione. Non è ancora un rendiconto confermato. Le rettifiche economiche delle prenotazioni richiedono motivazione e conservano snapshot prima/dopo.
 
-Navigazione: Dashboard, Immobili, Calendario, Economia, Attività, Impostazioni. Attività e le funzioni delle milestone successive restano predisposte, non operative.
+Navigazione: Home, Immobili, Calendario, Economia, con + centrale contestuale. Profilo locale, centro notifiche futuro e impostazioni nell’intestazione. Attività locali dalla Home o dalla prenotazione; scheduler ricorrente e notifiche non ancora implementati. Economia separa Analisi, Contabilità e Rendiconti. [Mappa completa](docs/product/NAVIGATION_4_5.md).
 
 Rendiconti: da Economia → Rendiconti mensili, selezionare immobile e periodo. Generazione bozza completa, aggiornamento dai sorgenti, criticità/OTA stimate, note, conferma manuale con snapshot immutabile, rettifiche come nuove versioni e attribuzioni univoche. Le correzioni economiche avvengono nei sorgenti: non esistono totali PDF indipendenti dai dettagli. Versioni storiche rigenerabili; PDF professionale A4 con font incorporati, logo originale e tabelle multipagina. Nessun invio automatico.
 
@@ -24,7 +24,9 @@ Backup manuale da Impostazioni: esportazione dell’intero database applicativo 
 
 Identità visiva: blu notte `#111B32`, dorato `#DBBF8B`, tema chiaro/scuro. Originali PNG caricati dall’utente su GitHub, integrati senza ridisegno né deformazione in icona adattiva/splash, intestazione e PDF. Derivazioni e hash descritti in [docs/brand/ORIGINALS.md](docs/brand/ORIGINALS.md).
 
-Consegna scaricabile in [deliverables/milestone-4](deliverables/milestone-4): APK debug, PDF esclusivamente sintetici, screenshot e manifest con checksum. Il rendiconto personale originale non è nel repository.
+Consegna corrente scaricabile in [deliverables/milestone-4.5](deliverables/milestone-4.5): APK debug, PDF esclusivamente sintetici, screenshot e manifest con checksum. Il rendiconto personale originale non è nel repository.
+
+Foto copertina e profilo conservate localmente e incluse nei backup. Portfolio con menu azioni e cancellazione definitiva bloccata in presenza di storico. Analisi mensili reali con confronti, trend e occupazione del calendario, distinta dalla disponibilità commerciale. Due PDF (sintetico/dettagliato) dallo stesso snapshot, miniatura reale e visualizzatore interno multipagina con ingrandimento. [Consegna e limiti M4.5](docs/MILESTONE_4_5.md).
 
 ## Build e test
 
@@ -39,9 +41,9 @@ Aprire in Android Studio oppure impostare `ANDROID_HOME` sul proprio SDK e poi:
 ./gradlew :app:assembleDebug :app:testDebugUnitTest :app:lintDebug
 ```
 
-APK installabile: `app/build/outputs/apk/debug/app-debug.apk`. Firma debug locale; nessuna chiave è versionata. Il debug APK è preliminare e non una release per la produzione. APK release con firma privata esterna al repository nella milestone finale.
+APK installabile: `app/build/outputs/apk/debug/app-debug.apk`. Firma debug locale; nessuna chiave è versionata. Il debug APK è preliminare e non una release per la produzione. Certificato debug confrontato con M4; aggiornamento sul telefono ancora da provare. APK release con firma privata esterna al repository nella milestone finale.
 
-I test comprendono persistenza su database a file riaperto, CRUD/archiviazione immobili, prenotazioni, annullamenti, conflitti e consenso esplicito, cambio ospiti, snapshot economici, date/DST, arrotondamento, migrazione Room 1 → 2 con dati preesistenti e navigazione Compose, contabilità operativa, movimenti/storni, competenza al check-in e migrazioni fino alla versione 4, bozze/conferme/versioni, ripristino e PDF reali multipagina. I test Android sono eseguiti con Robolectric; non equivalgono a una verifica su telefono fisico.
+I test comprendono persistenza su database a file riaperto, CRUD/archiviazione immobili, prenotazioni, annullamenti, conflitti e consenso esplicito, cambio ospiti, snapshot economici, date/DST, arrotondamento, migrazione Room 1 → 2 con dati preesistenti e navigazione Compose, contabilità operativa, movimenti/storni, competenza al check-in e migrazioni fino alla versione 5, bozze/conferme/versioni, ripristino e PDF reali multipagina. I test Android sono eseguiti con Robolectric; non equivalgono a una verifica su telefono fisico.
 
 ## Ambiente cloud
 

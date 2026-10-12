@@ -30,16 +30,16 @@ import it.elledue.control.domain.*
 import kotlinx.coroutines.*
 
 @Composable
-fun LocalPhoto(value: String?, description: String, modifier: Modifier = Modifier, crop: Boolean = true) {
+fun LocalPhoto(value: String?, description: String, modifier: Modifier = Modifier, crop: Boolean = true, placeholder: androidx.compose.ui.graphics.vector.ImageVector = Icons.Outlined.Apartment) {
     val image = remember(value) { value?.let { runCatching { val bytes = Base64.decode(it, Base64.NO_WRAP); BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap() }.getOrNull() } }
     if (image != null) Image(image, description, modifier, contentScale = if (crop) ContentScale.Crop else ContentScale.Fit)
     else Box(modifier.background(Brush.linearGradient(listOf(ElledueNight, Color(0xFF283C52)))), contentAlignment = Alignment.Center) {
-        Icon(Icons.Outlined.Apartment, description, tint = ElledueGold.copy(alpha = .7f), modifier = Modifier.size(40.dp))
+        Icon(placeholder, description, tint = ElledueGold.copy(alpha = .7f), modifier = Modifier.size(40.dp))
     }
 }
 
 @Composable
-fun PhotoControls(value: String?, onPhoto: (String?) -> Unit) {
+fun PhotoControls(value: String?, avatar: Boolean = false, onPhoto: (String?) -> Unit) {
     val context = LocalContext.current; val scope = rememberCoroutineScope()
     var busy by remember { mutableStateOf(false) }; var error by remember { mutableStateOf<String?>(null) }
     var fit by rememberSaveable { mutableStateOf(false) }
@@ -51,29 +51,38 @@ fun PhotoControls(value: String?, onPhoto: (String?) -> Unit) {
             finally { busy = false }
         }
     }
-    LocalPhoto(value, "Anteprima fotografia", Modifier.fillMaxWidth().height(180.dp).clip(MaterialTheme.shapes.medium), crop = !fit)
+    LocalPhoto(value, "Anteprima fotografia", Modifier.fillMaxWidth().height(180.dp).clip(MaterialTheme.shapes.medium), crop = !fit, placeholder = if (avatar) Icons.Outlined.Person else Icons.Outlined.Apartment)
     Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         TextButton(onClick = { picker.launch(arrayOf("image/*")) }, enabled = !busy, modifier = Modifier.testTag("select-photo")) { Text(if (value == null) "Aggiungi foto" else "Sostituisci") }
         if (value != null) { TextButton(onClick = { onPhoto(null) }, enabled = !busy, modifier = Modifier.testTag("remove-photo")) { Text("Rimuovi") }; TextButton(onClick = { fit = !fit }) { Text(if (fit) "Copertina" else "Immagine intera") } }
     }
-    Text("Copia privata locale · massimo 1200 px / 180 KiB · inclusa nel backup. La vista copertina non ritaglia il file conservato.", style = MaterialTheme.typography.bodySmall)
+    Text("La foto è conservata nell’app e nel backup. La vista copertina non modifica l’immagine salvata.", style = MaterialTheme.typography.bodySmall)
     if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
     error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
 }
 
 @Composable
 fun PortfolioTile(item: PropertyWithOwner, open: () -> Unit) {
+    val stacked = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp < 360 || androidx.compose.ui.platform.LocalDensity.current.fontScale > 1.2f
     OutlinedCard(onClick = open, modifier = Modifier.fillMaxWidth()) {
-        Row(Modifier.heightIn(min = 124.dp), verticalAlignment = Alignment.CenterVertically) {
+        if (stacked) {
+            LocalPhoto(item.property.coverImageBase64, "Copertina ${item.property.name}", Modifier.fillMaxWidth().height(140.dp))
+            PortfolioInfo(item, Modifier.padding(16.dp))
+        } else Row(Modifier.heightIn(min = 124.dp), verticalAlignment = Alignment.CenterVertically) {
             LocalPhoto(item.property.coverImageBase64, "Copertina ${item.property.name}", Modifier.width(116.dp).height(132.dp))
-            Column(Modifier.weight(1f).padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(item.property.name, style = MaterialTheme.typography.titleLarge)
-                Text(item.property.address, style = MaterialTheme.typography.bodySmall)
-                Text("${item.property.maxGuests} ospiti · ${item.property.beds} letti", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelMedium)
-                Text(item.owner.name, style = MaterialTheme.typography.bodySmall)
-            }
+            PortfolioInfo(item, Modifier.weight(1f).padding(14.dp))
             Icon(Icons.Outlined.ChevronRight, null, modifier = Modifier.padding(end = 8.dp))
         }
+    }
+}
+
+@Composable
+private fun PortfolioInfo(item: PropertyWithOwner, modifier: Modifier) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(item.property.name, style = MaterialTheme.typography.titleLarge, maxLines = 3, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+        Text(item.property.address, style = MaterialTheme.typography.bodySmall)
+        Text("${item.property.maxGuests} ospiti · ${item.property.beds} ${if (item.property.beds == 1) "letto" else "letti"}", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelMedium)
+        Text(item.owner.name, style = MaterialTheme.typography.bodySmall)
     }
 }
 
@@ -90,7 +99,7 @@ fun ProfileScreen(settings: AppSettings?, model: SettingsViewModel, back: () -> 
         Text("Operatore locale · nessun account remoto", style = MaterialTheme.typography.bodyMedium)
         OutlinedTextField(first, { first = it }, label = { Text("Nome") }, singleLine = true, modifier = Modifier.fillMaxWidth().testTag("profile-first"))
         OutlinedTextField(last, { last = it }, label = { Text("Cognome") }, singleLine = true, modifier = Modifier.fillMaxWidth().testTag("profile-last"))
-        PhotoControls(settings.operatorPhotoBase64) { model.profile(first, last, it) }
+        PhotoControls(settings.operatorPhotoBase64, avatar = true) { model.profile(first, last, it) }
         Button(onClick = { model.profile(first, last, settings.operatorPhotoBase64) }, enabled = status != SaveState.Saving, modifier = Modifier.testTag("save-profile")) { Text("Salva profilo") }
         if (status == SaveState.Saved) Text("Profilo salvato")
         if (status == SaveState.Failed) Text("Salvataggio non riuscito", color = MaterialTheme.colorScheme.error)

@@ -3,6 +3,8 @@ package it.elledue.control.ui
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -13,6 +15,8 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -71,7 +75,7 @@ fun ReportDetail(report: ReportEntity, snapshot: ReportSnapshot, model: ReportVi
     val busy by model.busy.collectAsStateWithLifecycle(); val error by model.error.collectAsStateWithLifecycle()
     val total = snapshot.summary(); val issues = snapshot.issues(); val draft = report.status == "DRAFT"
     Scaffold(topBar = { TopAppBar(title = { Text("${report.yearMonth} · v${report.version}") }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Indietro documento") } }) }) { padding ->
-        LazyColumn(Modifier.fillMaxSize().padding(padding).testTag("report-detail-scroll"), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        LazyColumn(Modifier.fillMaxSize().padding(padding).testTag("report-detail-scroll").semantics { stateDescription = report.status }, contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             item {
                 Column(Modifier.fillMaxWidth().background(ElledueNight, MaterialTheme.shapes.large).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Image(painterResource(R.drawable.elledue_logo_gold), "Logo ufficiale Elledue", modifier = Modifier.width(155.dp).height(28.dp))
@@ -81,12 +85,12 @@ fun ReportDetail(report: ReportEntity, snapshot: ReportSnapshot, model: ReportVi
                     Text(if (total.balance < 0) Amounts.euroAbsolute(total.balance) else Amounts.euro(total.balance), color = androidx.compose.ui.graphics.Color.White, style = MaterialTheme.typography.headlineLarge, modifier = Modifier.testTag("report-balance"))
                 }
             }
-            item { Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            item { Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 FilterChip(layout == ReportLayout.SUMMARY, { layout = ReportLayout.SUMMARY }, label = { Text("Sintetico") }, modifier = Modifier.testTag("pdf-summary"))
                 FilterChip(layout == ReportLayout.DETAILED, { layout = ReportLayout.DETAILED }, label = { Text("Dettagliato") }, modifier = Modifier.testTag("pdf-detailed"))
             } }
             item { PdfThumbnail(snapshot, layout) { preview = true } }
-            item { Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) { listOf("Riepilogo", "Dettagli", "Verifica").forEachIndexed { i, label -> FilterChip(tab == i, { tab = i }, label = { Text(label) }, modifier = Modifier.testTag("report-tab-$i")) } } }
+            item { Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) { listOf("Riepilogo", "Dettagli", "Verifica").forEachIndexed { i, label -> FilterChip(tab == i, { tab = i }, label = { Text(label) }, modifier = Modifier.testTag("report-tab-$i")) } } }
             if (tab == 0) {
                 item { Column { AmountLine("Lordo (tassa esclusa)", snapshot.gross()); AmountLine("OTA", snapshot.ota()); AmountLine("Netto al proprietario", snapshot.net()); HorizontalDivider(); AmountLine("Compenso Elledue", total.fees); AmountLine("Spese anticipate rimborsabili", total.reimbursable); AmountLine("Compensazioni riconosciute", total.compensated); AmountLine("Altri anticipi / pagamenti", total.payments) } }
                 item { Text("Le prenotazioni appartengono interamente al mese del check-in. La tassa è esterna al lordo; soltanto la compensazione riconosciuta riduce il saldo.", style = MaterialTheme.typography.bodySmall) }

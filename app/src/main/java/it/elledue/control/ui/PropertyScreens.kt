@@ -2,6 +2,7 @@ package it.elledue.control.ui
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -45,14 +46,13 @@ fun PropertiesScreen(items: List<PropertyWithOwner>, onCreate: () -> Unit, onOpe
         topBar = { TopAppBar(title = { Text("Immobili") }, actions = {
             FilledTonalIconButton(onClick = onCreate, modifier = Modifier.testTag("new-property")) { Icon(Icons.Outlined.Add, "Nuovo immobile") }
         }) },
-        floatingActionButton = { ExtendedFloatingActionButton(onClick = onCreate, icon = { Icon(Icons.Outlined.Add, null) }, text = { Text("Nuovo immobile") }) },
     ) { padding ->
         LazyColumn(Modifier.fillMaxSize().padding(padding), contentPadding = PaddingValues(20.dp, 12.dp, 20.dp, 96.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             item {
                 OutlinedTextField(query, { query = it }, label = { Text("Cerca immobile o proprietario") }, singleLine = true, leadingIcon = { Icon(Icons.Outlined.Search, null) }, modifier = Modifier.fillMaxWidth())
             }
             item {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     FilterChip(selected = !archived, onClick = { archived = false }, label = { Text("Attivi (${items.count { !it.property.archived }})") })
                     FilterChip(selected = archived, onClick = { archived = true }, label = { Text("Archiviati (${items.count { it.property.archived }})") }, modifier = Modifier.testTag("archived-filter"))
                 }
@@ -82,7 +82,7 @@ fun PropertyDetailScreen(item: PropertyWithOwner, busy: Boolean, error: String?,
         }
     } }) }) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
-            PhotoControls(p.coverImageBase64, onPhoto)
+            PhotoControls(p.coverImageBase64, onPhoto = onPhoto)
             Text(p.name, style = MaterialTheme.typography.headlineLarge)
             Text(p.address, color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (p.archived) SuggestionChip(onClick = {}, label = { Text("Archiviato · storico conservato") })

@@ -79,7 +79,7 @@ fun ReservationsScreen(records: List<ReservationEntity>, properties: List<Proper
     Scaffold(topBar = { TopAppBar(title = { Text("Calendario") }, actions = { IconButton(onClick = onNew, enabled = properties.any { !it.property.archived }, modifier = Modifier.testTag("new-booking")) { Icon(Icons.Outlined.Add, "Nuova prenotazione") } }) }) { padding ->
         LazyColumn(Modifier.fillMaxSize().padding(padding).testTag("bookings-scroll"), contentPadding = PaddingValues(20.dp, 10.dp, 20.dp, 96.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             item { PropertySelector(properties, propertyFilter, allOption = true) { propertyFilter = it } }
-            item { Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            item { Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 FilterChip(!listMode, { listMode = false }, label = { Text("Calendario") }, modifier = Modifier.testTag("booking-calendar-mode"))
                 FilterChip(listMode, { listMode = true }, label = { Text("Elenco") }, modifier = Modifier.testTag("booking-list-mode"))
                 FilterChip(showCancelled, { showCancelled = !showCancelled }, label = { Text("Annullate") }, modifier = Modifier.testTag("booking-cancelled-filter"))

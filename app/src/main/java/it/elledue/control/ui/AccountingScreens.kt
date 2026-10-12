@@ -2,6 +2,7 @@ package it.elledue.control.ui
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.lazy.LazyColumn
@@ -44,7 +45,7 @@ fun AccountingHome(data: AccountingData, bookings: List<ReservationEntity>, prop
                 Text(month, style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f).testTag("accounting-month"))
                 IconButton(onClick = { month = YearMonth.parse(month).plusMonths(1).toString() }) { Icon(Icons.Outlined.ChevronRight, "Mese successivo contabilità") }
             } }
-            item { Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            item { Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf("Riepilogo", "Spese", "Tassa").forEachIndexed { i, label -> FilterChip(tab == i, { tab = i }, label = { Text(label) }, modifier = Modifier.testTag("accounting-tab-$i")) }
             } }
             if (tab == 0) {
@@ -80,7 +81,7 @@ fun AccountingHome(data: AccountingData, bookings: List<ReservationEntity>, prop
                 val ownerMovements = data.movements.filter { it.competenceMonth == month && (property.isEmpty() || it.propertyId == property) && (it.kind == "OWNER_PAYMENT" || it.reversesId != null && data.movements.any { original -> original.id == it.reversesId && original.kind == "OWNER_PAYMENT" }) }
                 items(ownerMovements, key = { it.id }) { movement -> MovementRow(movement, data.movements, busy) { model.clear(); reversalId = movement.id } }
             } else if (tab == 1) {
-                item { Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                item { Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(onClick = { onNew("OTHER") }, enabled = properties.any { !it.property.archived }, modifier = Modifier.testTag("new-expense")) { Text("+ Spesa") }
                     OutlinedButton(onClick = { onNew("CLEANING") }, enabled = properties.any { !it.property.archived }) { Text("Pulizia") }
                     OutlinedButton(onClick = { onNew("LAUNDRY") }, enabled = properties.any { !it.property.archived }) { Text("Lavanderia") }

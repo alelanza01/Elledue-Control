@@ -53,7 +53,7 @@ class ReportUiTest {
         val original = runBlocking { app.reportRepository.reports.first().single() }; assertEquals("CONFIRMED", original.status)
         compose.onNodeWithTag("report-balance").performScrollTo(); screenshot("m4-report-confirmed")
         compose.onNodeWithTag("report-detail-scroll").performScrollToNode(hasTestTag("revise-report")); compose.onNodeWithTag("revise-report").performClick(); compose.onNodeWithTag("report-revision-reason").performScrollTo().performTextReplacement("Lordo verificato")
-        compose.onNodeWithText("Apri nuova bozza rettificativa").performScrollTo().performClick(); waitTag("report-detail-scroll")
+        compose.onNodeWithText("Apri nuova bozza rettificativa").performScrollTo().performClick(); compose.waitUntil(15000) { compose.onAllNodes(hasTestTag("report-detail-scroll") and hasStateDescription("DRAFT")).fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithTag("report-tab-1").performClick(); compose.onNodeWithTag("report-detail-scroll").performScrollToNode(hasContentDescription("Modifica prenotazione")); compose.onNodeWithContentDescription("Modifica prenotazione").performClick()
         compose.onNodeWithTag("booking-gross").performScrollTo().performTextReplacement("1200")
         compose.onNodeWithTag("booking-correction-reason").performScrollTo().performTextReplacement("Lordo del portale verificato")

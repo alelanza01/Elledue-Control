@@ -16,12 +16,12 @@ Kotlin, Compose/Material 3, Navigation Compose, Room, Coroutines, ViewModel e St
 | message_templates | Chiave immobile/tipologia/lingua; testi reali inseriti dall’operatore, senza codici inventati. |
 | reservations | Modulo attivo; immobile obbligatorio, nominativo e ospiti, portale, date epoch-day, orari previsti/effettivi, stato, note, importi in centesimi e percentuali applicate fotografate sulla prenotazione. |
 | expenses | Modulo attivo: una riga per acquisto/intervento, immobile obbligatorio, prenotazione opzionale dello stesso immobile, data/competenza, categoria e tipo storici, quantità/tariffa, costo calcolato/effettivo, flag anticipo/rimborso, note, versione e annullamento. |
-| activities | Base per milestone 6; immobile opzionale, istante di scadenza e fuso Europe/Rome. |
+| activities | Attività locali utilizzabili; immobile opzionale, prenotazione opzionale coerente, completamento, istante e fuso Europe/Rome. Ricorrenze e notifiche future. |
 | reports | Modulo attivo: immobile, periodo/versione univoci, bozza/confermato, predecessore, motivo rettifica, note, emissione e snapshot immutabile. |
 
-La tabella activities resta una fondazione di schema, non un modulo già utilizzabile. Le rispettive milestone aggiungeranno campi e migrazioni per gli ulteriori requisiti (ospiti tassabili, orari effettivi, riscossioni, pagamenti, quantità, allegati, attribuzioni ai rendiconti, ricorrenze). Le foreign key RESTRICT impediscono orfani; non è esposto alcun comando di cancellazione immobile. Archiviare non modifica prenotazioni o spese.
+La tabella activities supporta ora l’operatività locale; ricorrenze, notifiche e collaborazione richiedono le milestone successive. Le rispettive milestone aggiungeranno campi e migrazioni per gli ulteriori requisiti (ospiti tassabili, orari effettivi, riscossioni, pagamenti, quantità, allegati, attribuzioni ai rendiconti, ricorrenze). Le foreign key RESTRICT impediscono orfani; l’eliminazione immobile è esposta soltanto con conferma e verifica transazionale dell’assenza di storico. Archiviare non modifica prenotazioni o spese.
 
-Room è alla versione 4, con schemi 1, 2, 3 e 4 esportati e committati. `MIGRATION_1_2` aggiunge campi alle prenotazioni e ricostruisce gli importi economici dai parametri già salvati; preserva le tabelle e i dati della Milestone 1. Un test crea il database dallo schema originale e verifica la migrazione reale con validazione Room. Non usare `fallbackToDestructiveMigration`. Ogni cambio successivo deve incrementare la versione, avere migrazione esplicita, schema esportato e test da ogni versione già distribuita.
+Room è alla versione 5, con schemi 1, 2, 3, 4 e 5 esportati e committati. `MIGRATION_1_2` aggiunge campi alle prenotazioni e ricostruisce gli importi economici dai parametri già salvati; preserva le tabelle e i dati della Milestone 1. Un test crea il database dallo schema originale e verifica la migrazione reale con validazione Room. Non usare `fallbackToDestructiveMigration`. Ogni cambio successivo deve incrementare la versione, avere migrazione esplicita, schema esportato e test da ogni versione già distribuita.
 
 `ReservationRepository` salva in transazione, verifica immobile, capacità e conflitti sull’intervallo [check-in, check-out). Annullare mantiene lo storico e libera l’intervallo. Le prenotazioni annullate sono escluse dai riepiloghi economici e dalle occupazioni. Il consenso a sovrapposizioni deve corrispondere agli ID e timestamp correnti dei conflitti: nuovi conflitti o modifiche richiedono una nuova conferma. I campi fiscali e l’attribuzione contabile sono predisposti, senza flussi operativi della Milestone 3 o regole di competenza attive.
 
@@ -84,3 +84,22 @@ Backup JSON versione formato 1/database 4: tutte le 16 tabelle applicative, incl
 Release: keystore esterno, env ELLEDUE_RELEASE_* o parametri del wizard Android Studio; blocco della creazione del pacchetto senza configurazione. Nessuna generazione della chiave definitiva nel cloud. Procedura PC/Windows e verifica certificati in RELEASE_SIGNING_WINDOWS.md.
 
 Per interventi e riconoscimenti collegati a soggiorni di un altro periodo, `linkedBookings` conserva riferimenti storici separati: il PDF mostra l’ospite, senza sommare di nuovo lordo/OTA/compenso o attribuire la prenotazione al mese della spesa.
+
+## Evoluzione Milestone 4.5
+
+Room 4→5 aggiunge esclusivamente foto e profilo locale e collegamento attività/prenotazione.
+`LocalImages` normalizza orientamento, lato e peso delle immagini selezionate; i byte JPEG
+base64 in Room sono durevoli e inclusi nel backup atomico. I vecchi backup database 4
+sono aggiornati in staging con campi vuoti; snapshot e contabilità restano invariati.
+
+`PortfolioAnalytics` separa la competenza finanziaria al check-in dall’occupazione reale
+sul calendario [check-in, check-out), conteggiando giorni distinti anche in presenza di
+sovrapposizioni autorizzate. Non conosce la disponibilità commerciale.
+
+`ReportLayout` seleziona soltanto l’impaginazione, senza una seconda fonte economica.
+`PdfPreviewDocument` legge i byte PDF effettivamente generati, dipinge tutte le pagine
+su bitmap Android e le mostra pigramente nel visualizzatore Compose. Le immagini RGB
+sono convertite tramite Color.rgb per evitare dipendenze dall’ordine dei byte del
+motore grafico host. Nessun server, account, invio o visualizzatore esterno obbligatorio.
+
+Navigazione e futura integrazione staff/documenti/partner: [mappa M4.5](product/NAVIGATION_4_5.md).

@@ -15,7 +15,7 @@ operativa e documenti per i proprietari. Backup nelle impostazioni.
 ## Design e operatività
 
 Superfici profonde, blu notte e oro ufficiali, titoli serif, gerarchia dei numeri,
-righe compatte per l'agenda e immagini locali nei portfolio. Tema chiaro con
+righe compatte per l'agenda e immagini locali nei portfolio. Su schermo stretto o con caratteri ingranditi le copertine precedono il testo; i filtri scorrono e la barra usa icone con descrizioni accessibili per evitare etichette spezzate. Tema chiaro con
 superfici grigio azzurro e intestazione navy; tema scuro senza card bianche.
 Il concept è una direzione artistica: nessuno sfondo, logo, nome, foto o metrica
 inventati della reference è inserito nell'archivio normale.
@@ -89,3 +89,27 @@ definitiva va creata e custodita sul PC dell'utente come descritto in
 [RELEASE_SIGNING_WINDOWS.md](RELEASE_SIGNING_WINDOWS.md). Staff/sync, manutenzioni
 con assegnazione, archivio documentale e catalogo partner sono architettura futura,
 non schermate fittizie. Non iniziare la Milestone 5 senza richiesta esplicita.
+
+Verifica conclusiva: build debug e minificazione release riuscite; 111 test, 0
+falliti/errori/saltati. Lint 0 errori e 7 avvisi non soppressi: tre nei soli helper
+EST TLS transitivi BouncyCastle non invocati dall'app (nessun permesso INTERNET),
+un suggerimento AndroidX ExifInterface, uno sull'API di larghezza finestra e due
+sulle funzioni Bitmap KTX. Nessun errore di build o validazione Room.
+Guardia firma release verificata: senza chiave esterna blocca la release, come previsto.
+Certificato debug M4/M4.5 identico (apksigner), senza simulare un aggiornamento fisico.
+
+Prove nuove: importazione del risultato SAF per foto, sostituzione/rimozione,
+ricreazione Activity, ripristino foto/profilo e riapertura database a file, importazione
+backup v4, eliminazione protetta e archivio reversibile, attività dalla prenotazione,
+spesa/pulizia unica con collegamenti e competenza, analisi cross-month, colori/safe area
+icona e maschere, due PDF con tutte le pagine rese su bitmap Android e oro verificato.
+La regressione include bozza, conferma, rettifica dei sorgenti e snapshot precedenti.
+Gestito il cambio layout mentre il documento precedente viene chiuso: le richieste
+obsolete vengono annullate; gli errori reali di pagina sono mostrati esplicitamente.
+
+Controllo visivo di Home, portfolio/dettaglio, calendario/prenotazione, economia,
+analisi, rendiconti/anteprima, profilo, azioni rapide e dialogo archiviazione;
+chiaro/scuro e 320dp con font al 150%, inclusa apertura del form nel test Android.
+Robolectric non sostituisce il collaudo della tastiera di sistema, dei launcher e
+dell'aggiornamento sul telefono reale. Nei PDF verificati con un secondo parser anche
+margini dei testi, saldo 170 €, 85 ospiti e nota terminale nello stress multipagina.

@@ -57,7 +57,7 @@ fun BackupControls(service: BackupService) {
     }
     HorizontalDivider(); Text("Backup e ripristino", style = MaterialTheme.typography.titleMedium)
     Text("Include dati personali, contabilità e tutte le versioni dei rendiconti. Nessun caricamento automatico. Scegli una destinazione privata; il file non è cifrato dall’app.", style = MaterialTheme.typography.bodySmall)
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         OutlinedButton(onClick = { rollback = false; exporter.launch("Elledue-backup.json") }, enabled = !busy, modifier = Modifier.testTag("export-backup")) { Text("Esporta backup") }
         OutlinedButton(onClick = { importer.launch(arrayOf("application/json", "application/octet-stream", "*/*")) }, enabled = !busy, modifier = Modifier.testTag("import-backup")) { Text("Importa") }
     }

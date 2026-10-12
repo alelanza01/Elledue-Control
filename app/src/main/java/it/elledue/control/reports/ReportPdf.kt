@@ -133,7 +133,7 @@ class ReportPdf(private val context: Context) {
             })
             }
             val totals = value.summary()
-            amount("Lordo prenotazioni (tassa esclusa)", value.gross()); if (layout == ReportLayout.DETAILED) { amount("Commissioni OTA", value.ota()); amount("Netto dopo OTA al proprietario", value.net()) }; amount("Compenso Elledue maturato", totals.fees)
+            amount("Lordo prenotazioni (tassa esclusa)", value.gross()); if (layout == ReportLayout.DETAILED) { amount("Commissioni OTA", value.ota()); amount("Netto dopo OTA al proprietario", value.net()) }; if (layout == ReportLayout.DETAILED) amount("Compenso Elledue maturato", totals.fees)
             if (layout == ReportLayout.DETAILED) {
             section("02  Pulizie")
             fun bookingName(id: String?) = (value.bookings + value.linkedBookings.orEmpty()).firstOrNull { it.id == id }?.let { "${it.guestFirstName} ${it.guestLastName}" } ?: if (id == null) "Non collegata" else "Collegamento storico"
@@ -155,10 +155,10 @@ class ReportPdf(private val context: Context) {
             amount("Altri anticipi", totals.payments)
             if (totals.collectedTax != totals.compensated) paragraph("Nel saldo sono riconosciuti ${Amounts.euro(totals.compensated)} di tassa, a fronte di ${Amounts.euro(totals.collectedTax)} riscossi. Riscossione e compensazione sono registrazioni distinte; possono riferirsi a periodi differenti.", 8f)
             if (value.notes.isNotBlank()) { section("Note"); paragraph(value.notes) }
-            ensure(200f)
+            ensure(if (layout == ReportLayout.SUMMARY) 180f else 210f)
             section("Saldo del periodo")
-            amount("Compenso di gestione", totals.fees); amount("Rimborsi anticipati", totals.reimbursable); amount("Meno compensazioni riconosciute", totals.compensated); amount("Meno altri anticipi / pagamenti", totals.payments)
-            ensure(83f); rect(left, y, right, y + 76f, night)
+            amount("Compenso di gestione", totals.fees); amount("Rimborsi anticipati", totals.reimbursable); if (layout == ReportLayout.SUMMARY) amount("Meno anticipi riconosciuti (tassa e altri)", OperationalMoney.total(listOf(totals.compensated, totals.payments))) else { amount("Meno compensazioni riconosciute", totals.compensated); amount("Meno altri anticipi / pagamenti", totals.payments) }
+            ensure(76f); rect(left, y, right, y + 76f, night)
             text(if (totals.balance >= 0) "BONIFICO ANCORA DOVUTO A ELLEDUE" else "CREDITO DA RICONCILIARE", left + 15f, y + 12f, 10f, gold, true)
             val balance = java.math.BigDecimal.valueOf(totals.balance).abs().movePointLeft(2).toPlainString().replace('.', ',') + " €"
             text(balance, left + 15f, y + 33f, 23f, Color.WHITE, true); y += 91f

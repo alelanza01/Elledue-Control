@@ -51,9 +51,13 @@ class PdfPreviewDocument(context: Context, bytes: ByteArray) : Closeable {
                 }
         }
     }
-    val pages get() = document.numberOfPages
-    @Synchronized fun render(index: Int, width: Int): Bitmap = renderer.renderImage(index, width / document.getPage(index).mediaBox.width, com.tom_roush.pdfbox.rendering.ImageType.RGB)
-    @Synchronized override fun close() { document.close() }
+    private var closed = false
+    val pages = document.numberOfPages
+    @Synchronized fun render(index: Int, width: Int): Bitmap {
+        if (closed) throw CancellationException("Anteprima precedente chiusa.")
+        return renderer.renderImage(index, width / document.getPage(index).mediaBox.width, com.tom_roush.pdfbox.rendering.ImageType.RGB)
+    }
+    @Synchronized override fun close() { if (!closed) { closed = true; document.close() } }
 }
 
 private data class PreviewState(val document: PdfPreviewDocument? = null, val failed: Boolean = false)
@@ -73,12 +77,18 @@ private fun rememberDocument(snapshot: ReportSnapshot, layout: ReportLayout): St
 
 @Composable
 private fun PdfPage(document: PdfPreviewDocument, index: Int, zoom: Boolean = false) {
+    var failed by remember(document, index, zoom) { mutableStateOf(false) }
     val bitmap by produceState<Bitmap?>(null, document, index, zoom) {
         value = null
-        val created = withContext(Dispatchers.IO) { document.render(index, if (zoom) 1200 else 600) }
-        value = created
+        try {
+            val created = withContext(Dispatchers.IO) { currentCoroutineContext().ensureActive(); document.render(index, if (zoom) 1200 else 600) }
+            value = created
+        } catch (e: CancellationException) { throw e }
+        catch (_: Exception) { failed = true }
+
         // Compose may still draw the previous bitmap during disposal; let GC reclaim it safely.
     }
+    if (failed) Text("Pagina non disponibile: riapri l’anteprima.", color = MaterialTheme.colorScheme.error)
     bitmap?.let { Image(it.asImageBitmap(), "Pagina ${index + 1} del PDF", Modifier.then(if (zoom) Modifier.width(720.dp) else Modifier.fillMaxWidth()).aspectRatio(it.width.toFloat() / it.height)) }
 }
 
