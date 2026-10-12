@@ -101,7 +101,16 @@ fun PdfThumbnail(snapshot: ReportSnapshot, layout: ReportLayout, open: () -> Uni
     OutlinedCard(onClick = open, modifier = Modifier.fillMaxWidth().testTag("open-pdf-preview")) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text("Anteprima reale · ${if (snapshot.draft) "BOZZA" else "Confermato"}", style = MaterialTheme.typography.labelLarge)
-            document?.let { Box(Modifier.fillMaxWidth().height(300.dp),contentAlignment=Alignment.Center) { Box(Modifier.width(211.dp)) { PdfPage(it, 0) } }; Text("${it.pages} pagine · Tocca per ingrandire",style=MaterialTheme.typography.labelMedium,color=ElledueGold) } ?: if (state.failed) Text("Anteprima non disponibile. I dati sono conservati; riapri il documento.") else LinearProgressIndicator(Modifier.fillMaxWidth())
+            // Keep document space stable across refreshes: controls below must not jump.
+            Box(Modifier.fillMaxWidth().height(300.dp),contentAlignment=Alignment.Center) {
+                val loaded=document
+                when {
+                    loaded!=null -> Box(Modifier.width(211.dp)) { PdfPage(loaded,0) }
+                    state.failed -> Text("Anteprima non disponibile. Riapri il documento.",style=MaterialTheme.typography.bodySmall)
+                    else -> CircularProgressIndicator(color=ElledueGold,modifier=Modifier.size(26.dp))
+                }
+            }
+            Text(document?.let { "${it.pages} pagine · Tocca per ingrandire" } ?: "Preparazione anteprima…",style=MaterialTheme.typography.labelMedium,color=ElledueGold)
         }
     }
 }

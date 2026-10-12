@@ -24,7 +24,7 @@ In assenza di copertina: placeholder scenografico di marca, non dati fittizi.
 | Hero fotografico e saluto | Copertina conservata nell'archivio, gradiente per leggibilità, nome operatore locale |
 | KPI 2×2 | Arrivi/partenze, ospiti, occupazione calendario, lordo ai proprietari con compensi distinti |
 | Azioni a icone | Prenotazione, check-in, pulizia e rendiconto; solo funzioni esistenti |
-| Portfolio fotografico | Copertina a piena card, gradienti, stato attivo/archiviato, posti/lettti e proprietario |
+| Portfolio fotografico | Copertina a piena card, gradienti, stato attivo/archiviato, posti/letti e proprietario |
 | Calendario con pill | UUID immobile → palette stabile; vista singola con check-in teal, check-out coral, soggiorno blu |
 | Timeline attività | Arrivi/partenze con orari previsti; interventi registrati e task persistenti; orario sconosciuto mostrato come — |
 | Rendiconti | Selettore sintetico/dettagliato, stato/periodo/versione, pagina PDF vera, export e controlli sorgenti |
@@ -63,3 +63,12 @@ Installazione, tastiera e launcher sul telefono fisico restano da collaudare.
 
 Consegna: `deliverables/redesign-0.4.6`, con APK, galleria delle schermate effettive e
 manifest SHA-256. Il collaudo non prosegue verso altre milestone o notifiche.
+
+Esito finale: assembleDebug e lintDebug riusciti; 113 test passati, zero falliti,
+errori o saltati. Lint zero errori e sei avvisi non soppressi (tre helper TLS
+BouncyCastle non usati, ExifInterface piattaforma e due suggerimenti Bitmap KTX).
+La preview mantiene l'altezza durante la rigenerazione per evitare spostamenti
+delle azioni. La viewport di navigazione è delimitata e il chrome ha priorità di
+disegno, evitando sovrapposizioni delle schermate all'intestazione.
+Firma debug verificata e identica alla 0.4.5. Foto demo escluse dall'APK, licenze dei
+font incluse nell'APK oltre che nel repository. Collaudo fisico non eseguito.

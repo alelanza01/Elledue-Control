@@ -1,0 +1,103 @@
+{
+  "applicationId": "it.elledue.control",
+  "versionName": "0.4.6",
+  "versionCode": 6,
+  "roomVersion": 5,
+  "baseCommit": "48a0ef6c296598da6065141091d03cf3e82ff043",
+  "tests": {
+    "tests": 113,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "lint": {
+    "errors": 0,
+    "warnings": 6
+  },
+  "databaseDomainBackupUnchanged": true,
+  "debugCertificateSha256": "cc45fdd9dccf37a2d94fb35e142bfde73b25de3e46e3b8ce93d4d5b9a7b2065c",
+  "testPhotoExcludedFromApk": true,
+  "physicalPhoneTest": false,
+  "files": [
+    {
+      "file": "Elledue-Control-0.4.6-debug.apk",
+      "bytes": 29574807,
+      "sha256": "67eb09a4848c25f79f172b8c0fa73580732140cba7ca7bdb1abdf80707a40531"
+    },
+    {
+      "file": "README.md",
+      "bytes": 1284,
+      "sha256": "3037ce620b53f48eab7a0e7946be2ef725a786a3c6071416765c8bc50b21a143"
+    },
+    {
+      "file": "galleria.png",
+      "bytes": 370717,
+      "sha256": "67783e5313fb1327a208fb0d36679b638c1860026079e8818243250d3af1aa15"
+    },
+    {
+      "file": "screenshots/concept-activities.png",
+      "bytes": 214188,
+      "sha256": "3ed1eaeacd466fb822a20703f46bf8b2a6bfbd528df632b15010316d791788a0"
+    },
+    {
+      "file": "screenshots/concept-calendar-single-property.png",
+      "bytes": 226012,
+      "sha256": "ee45c0e8de236d13e9608d977c68ae266ea1d4197abcf4ff204e02e8730a5696"
+    },
+    {
+      "file": "screenshots/concept-calendar.png",
+      "bytes": 231953,
+      "sha256": "36a85e1a4a53e822e21c200a87e7eb24700b0890a57ed12434c2563082970a47"
+    },
+    {
+      "file": "screenshots/concept-economy.png",
+      "bytes": 201494,
+      "sha256": "08471aaa22e2ed67676d3238fc9aaafc694148531365ee1b68e48ac38029579c"
+    },
+    {
+      "file": "screenshots/concept-home.png",
+      "bytes": 968730,
+      "sha256": "28f5e847ec8cc7ae196653d8ff9c65ac37f42335a95f14fbfbf2c1828600c99e"
+    },
+    {
+      "file": "screenshots/concept-pdf-detailed-preview.png",
+      "bytes": 405689,
+      "sha256": "2bcedbc670a40bc9d92c7b53e0b198b2c91114920c73dd1f7de6b6702391f686"
+    },
+    {
+      "file": "screenshots/concept-pdf-preview.png",
+      "bytes": 334598,
+      "sha256": "8c1f30d53d5f43ea3c33264ac14426a43bfc3b3cba573e8a111a36b895e010f3"
+    },
+    {
+      "file": "screenshots/concept-portfolio.png",
+      "bytes": 1564654,
+      "sha256": "5751d7052c486112b93a545994c4b26732ca0c1f278c618768588c274a5f28a6"
+    },
+    {
+      "file": "screenshots/concept-report-document.png",
+      "bytes": 319554,
+      "sha256": "0340ae47a3180c13f51dbc62e37ef7d0046d0a88ea48ba6ed2b69fabb076fabf"
+    },
+    {
+      "file": "screenshots/concept-reports.png",
+      "bytes": 163274,
+      "sha256": "1d1435663d4f13128c731f1fba1f3e95b969ed48cea77d3db9ca64290f2ff5c5"
+    },
+    {
+      "file": "screenshots/concept-small-calendar.png",
+      "bytes": 176933,
+      "sha256": "d49a4a72358e280b3a7d25e975ea3c2e6345e088b6d93ea9a5d3160dcdd0367f"
+    },
+    {
+      "file": "screenshots/concept-small-home.png",
+      "bytes": 813796,
+      "sha256": "71c8f7f3ad3ca0aa705e4bd9bcf7f5835e0ad4f41c4f6013b513bfd8752afcee"
+    },
+    {
+      "file": "screenshots/concept-small-portfolio.png",
+      "bytes": 927286,
+      "sha256": "b994aa17b4cac90107ecd2687ed7e1b590e5c75414ea8fcb73b682a83548a97a"
+    }
+  ]
+}

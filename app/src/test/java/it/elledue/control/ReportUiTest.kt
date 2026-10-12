@@ -51,13 +51,13 @@ class ReportUiTest {
         compose.waitUntil(15000) { runBlocking { app.reportRepository.reports.first().any { it.notes == "Nota dimostrativa verificata" } } }
         confirm()
         val original = runBlocking { app.reportRepository.reports.first().single() }; assertEquals("CONFIRMED", original.status)
-        compose.onNodeWithTag("report-balance").performScrollTo(); screenshot("m4-report-confirmed")
-        compose.onNodeWithTag("report-detail-scroll").performScrollToNode(hasTestTag("revise-report")); compose.onNodeWithTag("revise-report").performClick(); compose.onNodeWithTag("report-revision-reason").performScrollTo().performTextReplacement("Lordo verificato")
-        compose.onNodeWithText("Apri nuova bozza rettificativa").performScrollTo().performClick(); compose.waitUntil(15000) { compose.onAllNodes(hasTestTag("report-detail-scroll") and hasStateDescription("DRAFT")).fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithTag("report-detail-scroll").performScrollToNode(hasTestTag("report-balance")); screenshot("m4-report-confirmed")
+        compose.onNodeWithTag("report-detail-scroll").performScrollToNode(hasTestTag("revise-report")); compose.onNodeWithTag("revise-report").performClick(); compose.onNodeWithTag("report-detail-scroll").performScrollToNode(hasTestTag("report-revision-reason")); compose.onNodeWithTag("report-revision-reason").performTextReplacement("Lordo verificato")
+        compose.onNodeWithTag("report-detail-scroll").performScrollToNode(hasText("Apri nuova bozza rettificativa")); compose.onNodeWithText("Apri nuova bozza rettificativa").performClick(); compose.waitUntil(15000) { compose.onAllNodes(hasTestTag("report-detail-scroll") and hasStateDescription("DRAFT")).fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithTag("report-detail-scroll").performScrollToNode(hasTestTag("report-tab-1")); compose.onNodeWithTag("report-tab-1").performClick(); compose.onNodeWithTag("report-detail-scroll").performScrollToNode(hasContentDescription("Modifica prenotazione")); compose.onNodeWithContentDescription("Modifica prenotazione").performClick()
         compose.onNodeWithTag("booking-gross").performScrollTo().performTextReplacement("1200")
         compose.onNodeWithTag("booking-correction-reason").performScrollTo().performTextReplacement("Lordo del portale verificato")
-        compose.onNodeWithTag("save-booking").performClick(); waitTag("report-balance")
+        compose.onNodeWithTag("save-booking").performClick(); waitTag("report-detail-scroll"); compose.onNodeWithTag("report-detail-scroll").performScrollToNode(hasTestTag("report-balance")); waitTag("report-balance")
         compose.waitUntil(15000) { compose.onAllNodes(hasTestTag("report-balance") and hasText(Amounts.euro(21000))).fetchSemanticsNodes().isNotEmpty() }
         confirm()
         runBlocking { val versions = app.reportRepository.reports.first(); assertEquals(2, versions.size); assertEquals(original.snapshotJson, versions.first { it.id == original.id }.snapshotJson); assertEquals(17000L, app.reportRepository.snapshot(original.id).summary().balance) }

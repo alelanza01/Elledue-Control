@@ -14,6 +14,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
@@ -72,7 +74,7 @@ fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewMo
     Column(Modifier.fillMaxSize().background(ConceptBackground)) {
 
         if (showNavigation || route?.startsWith("activities") == true || (route?.startsWith("report") == true) || route in listOf("settings", "profile", "activities", "notifications", "accounting", "analysis")) {
-            Row(Modifier.fillMaxWidth().background(ElledueNight).statusBarsPadding().padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.fillMaxWidth().zIndex(2f).background(ElledueNight).statusBarsPadding().padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 androidx.compose.foundation.Image(androidx.compose.ui.res.painterResource(R.drawable.elledue_logo_gold), "Intestazione Elledue", Modifier.width(112.dp).height(28.dp))
                 Spacer(Modifier.weight(1f))
                 IconButton(onClick = { jump("notifications") }) { Icon(Icons.Outlined.NotificationsNone, "Centro notifiche", tint = ElledueGold) }
@@ -84,7 +86,8 @@ fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewMo
             }
         }
 
-        NavHost(navigation, startDestination = "dashboard", modifier = Modifier.weight(1f).fillMaxWidth()) {
+        Box(Modifier.weight(1f).fillMaxWidth().clipToBounds()) {
+        NavHost(navigation, startDestination = "dashboard", modifier = Modifier.fillMaxSize()) {
             composable("dashboard") {
                 BookingDataSurface(bookingState, state, { bookingsModel.retry(); propertiesModel.retry() }) {
                     CommandHome(records, bookings, reports, accountingData, settings, activities, jump)
@@ -286,7 +289,8 @@ fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewMo
                 }
             }
         }
-        if (showNavigation) Surface(color = MaterialTheme.colorScheme.surfaceContainer) {
+        }
+        if (showNavigation) Surface(modifier=Modifier.zIndex(2f),color = MaterialTheme.colorScheme.surfaceContainer) {
             Row(Modifier.fillMaxWidth().navigationBarsPadding().heightIn(min = 66.dp), verticalAlignment = Alignment.CenterVertically) {
                 sections.take(2).forEach { section -> ConceptNavItem(section.icon, section.title, (route == section.route || (section.route=="economy" && (route?.startsWith("activities")==true || route?.startsWith("report")==true))), !largeFonts, Modifier.weight(1f).testTag("nav-${section.route}")) { jump(section.route) } }
                 Box(Modifier.padding(horizontal=8.dp).size(48.dp).clip(androidx.compose.foundation.shape.CircleShape).background(androidx.compose.ui.graphics.Brush.linearGradient(listOf(androidx.compose.ui.graphics.Color(0xFFEBD2A1),ElledueGold,androidx.compose.ui.graphics.Color(0xFFB8975B)))).border(1.dp,ElledueGold,androidx.compose.foundation.shape.CircleShape).clickable { quick = true }.testTag("quick-action"),contentAlignment=Alignment.Center) { Icon(Icons.Outlined.Add,"Azioni rapide",tint=ElledueNight,modifier=Modifier.size(25.dp)) }

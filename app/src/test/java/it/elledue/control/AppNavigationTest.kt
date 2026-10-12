@@ -26,7 +26,7 @@ class AppNavigationTest {
             val view = compose.activity.window.decorView
             val bitmap = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
             view.draw(Canvas(bitmap))
-            if (expectedBackground != null) org.junit.Assert.assertEquals(expectedBackground, bitmap.getPixel(view.width / 2, view.height * 3 / 4))
+            if (expectedBackground != null) org.junit.Assert.assertEquals(expectedBackground, bitmap.getPixel(3, view.height * 3 / 4))
             val file = File("build/reports/screenshots/$name.png")
             file.parentFile!!.mkdirs()
             file.outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
