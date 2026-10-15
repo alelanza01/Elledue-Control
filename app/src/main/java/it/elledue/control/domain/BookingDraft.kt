@@ -27,7 +27,7 @@ data class BookingDraft(
     val correctionReason: String = "",
 ) {
     fun totals(): BookingTotals = BookingFinance.calculate(
-        Amounts.parseCents(gross), Amounts.parseBasisPoints(otaPercent),
+        Amounts.parseCents(gross), Amounts.parseBasisPoints(if(otaPercent.isBlank() && actualOta.isNotBlank()) "0" else otaPercent),
         actualOta.takeIf { it.isNotBlank() }?.let(Amounts::parseCents), Amounts.parseBasisPoints(managementPercent),
     )
     fun withPropertyDefaults(item: PropertyWithOwner): BookingDraft = copy(
@@ -49,7 +49,7 @@ data class BookingDraft(
         val totals = totals()
         return ReservationEntity(
             id, propertyId, firstName.trim(), lastName.trim(), count, start, end, platform.trim(),
-            Amounts.parseCents(gross), Amounts.parseBasisPoints(otaPercent),
+            Amounts.parseCents(gross), Amounts.parseBasisPoints(if(otaPercent.isBlank() && actualOta.isNotBlank()) "0" else otaPercent),
             actualOta.takeIf { it.isNotBlank() }?.let(Amounts::parseCents), Amounts.parseBasisPoints(managementPercent), parsedStatus.name,
             BookingDates.time(expectedArrival)!!, BookingDates.time(actualArrival, true),
             BookingDates.time(expectedDeparture)!!, BookingDates.time(actualDeparture, true),
@@ -61,10 +61,13 @@ data class BookingDraft(
         )
     }
     companion object {
-        fun otaDefault(item: PropertyWithOwner, platform: String): String = Amounts.editable(
-            (item.platformCommissions.firstOrNull { it.platform.equals(platform.trim(), true) }?.basisPoints
-                ?: item.property.otaBasisPoints).toLong(),
-        )
+        fun otaDefault(item: PropertyWithOwner, platform: String): String {
+            if(platform.equals("Prenotazione diretta",true)) return "0,00"
+            val configured=item.platformCommissions.firstOrNull {it.platform.equals(platform.trim(),true)}?.basisPoints
+            if(configured!=null) return Amounts.editable(configured.toLong())
+            // A legacy generic default is not evidence of a configured rate for another portal.
+            return ""
+        }
         fun from(item: ReservationEntity): BookingDraft = with(item) {
             BookingDraft(id, propertyId, guestFirstName, guestLastName, guestCount.toString(), platform,
                 BookingDates.display(checkInEpochDay), BookingDates.display(checkOutEpochDay),

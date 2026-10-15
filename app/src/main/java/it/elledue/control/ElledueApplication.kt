@@ -7,8 +7,9 @@ import it.elledue.control.data.SettingsRepository
 
 class ElledueApplication : Application() {
     private val database by lazy {
-        Room.databaseBuilder(this, AppDatabase::class.java, "elledue-control.db").addMigrations(it.elledue.control.data.DatabaseMigrations.MIGRATION_1_2, it.elledue.control.data.DatabaseMigrations.MIGRATION_2_3, it.elledue.control.data.DatabaseMigrations.MIGRATION_3_4, it.elledue.control.data.DatabaseMigrations.MIGRATION_4_5).build()
+        Room.databaseBuilder(this, AppDatabase::class.java, "elledue-control.db").addMigrations(it.elledue.control.data.DatabaseMigrations.MIGRATION_1_2, it.elledue.control.data.DatabaseMigrations.MIGRATION_2_3, it.elledue.control.data.DatabaseMigrations.MIGRATION_3_4, it.elledue.control.data.DatabaseMigrations.MIGRATION_4_5, it.elledue.control.data.DatabaseMigrations.MIGRATION_5_6).build()
     }
+    val messageRepository by lazy { it.elledue.control.data.MessageRepository(database) }
     val activityRepository by lazy { it.elledue.control.data.ActivityRepository(database) }
     val reportRepository by lazy { it.elledue.control.data.ReportRepository(database, this) }
     val backupService by lazy { it.elledue.control.data.BackupService(database, this) }

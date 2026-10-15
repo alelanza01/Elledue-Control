@@ -51,21 +51,21 @@ fun TaxScreen(booking: ReservationEntity, property: PropertyEntity, data: Accoun
             AccountingField("Motivo rettifica", draft.reason, "tax-reason", !busy) { draft = draft.copy(reason = it) }
             ChoiceField("Soggetto del riversamento", draft.responsible, listOf("UNDEFINED" to "Da definire", "OWNER" to "Proprietario", "ELLEDUE" to "Elledue", "OTHER" to "Altro soggetto"), !busy) { draft = draft.copy(responsible = it) }
             AccountingField("Obblighi / note riversamento", draft.remittanceNotes, enabled = !busy) { draft = draft.copy(remittanceNotes = it) }
-            Button(onClick = { model.saveTax(booking.id, draft) }, enabled = !busy && (booking.status != BookingStatus.CANCELLED.name || assessment != null), modifier = Modifier.fillMaxWidth().testTag("save-tax")) { Text("Conferma conteggi e impostazione tassa") }
+            Button(onClick = { model.saveTax(booking.id, draft) }, enabled = !busy && (booking.status != BookingStatus.CANCELLED.name || assessment != null), modifier = Modifier.fillMaxWidth().testTag("save-tax")) { Text("Salva tassa prevista · nessun incasso") }
             HorizontalDivider()
             Text(if (booking.status == BookingStatus.CANCELLED.name) { if (collected > 0) "Annullata: riscossioni da riconciliare" else "Annullata: nessuna riscossione" } else Ledger.taxStatus(assessment?.expectedCents, collected), style = MaterialTheme.typography.titleLarge, modifier = Modifier.testTag("tax-status"))
             assessment?.let { AmountLine("Prevista confermata", it.expectedCents); if (booking.status != BookingStatus.CANCELLED.name) AmountLine("Ancora da incassare", Ledger.residual(it.expectedCents, collected)); if (collected > it.expectedCents) Text("Eccedenza ${Amounts.euro(collected - it.expectedCents)}: riconcilia con uno storno motivato.", color = MaterialTheme.colorScheme.error) }
             AmountLine("Effettivamente riscossa", collected); AmountLine("Riconosciuta in compensazione", compensated); AmountLine("Riversamento registrato", remitted)
             Text("Riscossione e compensazione sono separate. Il check-out non registra incassi. Il riversamento segue gli obblighi configurati, senza presumere il soggetto responsabile.", style = MaterialTheme.typography.bodySmall)
-            Button(onClick = { model.clear(); sourceId = null; movementKind = "COLLECTION" }, enabled = canPost && collected < (assessment?.expectedCents ?: 0), modifier = Modifier.fillMaxWidth().testTag("collect-tax")) { Text("Conferma riscossione, anche parziale") }
+            Button(onClick = { model.clear(); sourceId = null; movementKind = "COLLECTION" }, enabled = canPost && collected < (assessment?.expectedCents ?: 0), modifier = Modifier.fillMaxWidth().testTag("collect-tax")) { Text("Registra incasso · anche parziale") }
             active.filter { it.kind == "COLLECTION" }.forEach { source ->
                 val compAvailable = source.amountCents - OperationalMoney.total(active.filter { it.kind == "COMPENSATION" && it.sourceId == source.id }.map { it.amountCents })
                 val remitAvailable = source.amountCents - OperationalMoney.total(active.filter { it.kind == "REMITTANCE" && it.sourceId == source.id }.map { it.amountCents })
                 OutlinedCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Riscossione del ${BookingDates.display(source.dateEpochDay)} · ${Amounts.euro(source.amountCents)}", style = MaterialTheme.typography.titleSmall)
                     Text("Disponibile per compensazione ${Amounts.euro(compAvailable)}", style = MaterialTheme.typography.bodySmall)
-                    TextButton(onClick = { model.clear(); sourceId = source.id; movementKind = "COMPENSATION" }, enabled = canPost && compAvailable > 0, modifier = Modifier.testTag("compensate-${source.id}")) { Text("Riconosci in compensazione") }
-                    TextButton(onClick = { model.clear(); sourceId = source.id; movementKind = "REMITTANCE" }, enabled = canPost && remitAvailable > 0 && assessment?.remittanceResponsible != "UNDEFINED") { Text("Registra riversamento separato") }
+                    TextButton(onClick = { model.clear(); sourceId = source.id; movementKind = "COMPENSATION" }, enabled = canPost && compAvailable > 0, modifier = Modifier.testTag("compensate-${source.id}")) { Text("Compensa con proprietario") }
+                    TextButton(onClick = { model.clear(); sourceId = source.id; movementKind = "REMITTANCE" }, enabled = canPost && remitAvailable > 0 && assessment?.remittanceResponsible != "UNDEFINED") { Text("Registra riversamento") }
                 } }
             }
             Text("Storico movimenti", style = MaterialTheme.typography.titleLarge)

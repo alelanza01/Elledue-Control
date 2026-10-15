@@ -26,7 +26,7 @@ fun ActivitiesScreen(repository: ActivityRepository, activities: List<ActivityEn
     val day=if(filter==2) today.plusDays(1) else today
     val selectedBookings=bookings.filter { it.status!="CANCELLED" && (bookingId==null || it.id==bookingId) }
     LazyColumn(Modifier.fillMaxSize().imePadding().testTag("activities-scroll"), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        item { ConceptHeading("Attività","La tua operatività") { IconButton(onClick={edit=!edit}) { Icon(Icons.Outlined.Add,"Nuova attività",tint=ElledueGold) } };TextButton(onClick=back) { Text("Indietro") } }
+        item { ConceptHeading("Attività","La tua operatività") { IconButton(onClick={open("activity/new")}) { Icon(Icons.Outlined.Add,"Nuova attività",tint=ElledueGold) } };TextButton(onClick=back) { Text("Indietro") } }
         item { Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(7.dp)) { listOf("Tutte","Oggi","Domani","Scadenze").forEachIndexed { i,label -> ConceptPill(filter==i,{filter=i},label={Text(label)}) } } }
         if (booking != null) item { Text("${booking.guestFirstName} ${booking.guestLastName} · prenotazione collegata",style=MaterialTheme.typography.bodySmall,color=ConceptMuted) }
         if(edit) {
@@ -53,7 +53,7 @@ fun ActivitiesScreen(repository: ActivityRepository, activities: List<ActivityEn
         if(shown.isEmpty()) item { Text("Nessuna attività per questo filtro.",style=MaterialTheme.typography.bodySmall,color=ConceptMuted) }
         items(shown,key={it.id}) { task ->
             val due=task.dueEpochMillis?.let { Instant.ofEpochMilli(it).atZone(ZoneId.of(task.zoneId)) }
-            Row(verticalAlignment=androidx.compose.ui.Alignment.CenterVertically) {
+            Row(Modifier.clickable { open("activity/${task.id}") }.testTag("activity-${task.id}"),verticalAlignment=androidx.compose.ui.Alignment.CenterVertically) {
                 Box(Modifier.weight(1f)) { ConceptTimelineRow(due?.toLocalTime()?.toString()?.take(5) ?: "—",task.title,(properties.firstOrNull { it.property.id==task.propertyId }?.property?.name ?: "Gestione generale")+if(due==null) " · Da pianificare" else " · ${BookingDates.display(due.toLocalDate().toEpochDay())}",if(task.title.contains("manut",true)) Icons.Outlined.Build else Icons.Outlined.ChatBubbleOutline,if(task.title.contains("manut",true)) TaskColor else StayColor) }
                 Checkbox(task.completed,{completed->scope.launch {try {repository.save(task.copy(completed=completed))}catch(_:Exception){error="Stato non aggiornato."}}})
             }

@@ -153,7 +153,16 @@ fun PropertyEditorScreen(initial: PropertyDraft, isNew: Boolean, busy: Boolean, 
                 Text("La commissione Elledue si applica al netto dopo le commissioni OTA.", style = MaterialTheme.typography.bodyMedium)
                 EditorField("Commissione Elledue (%)", draft.managementPercent, busy, KeyboardType.Decimal) { draft = draft.copy(managementPercent = it) }
                 EditorField("Commissione OTA predefinita (%)", draft.otaPercent, busy, KeyboardType.Decimal) { draft = draft.copy(otaPercent = it) }
-                EditorField("Commissioni per portale (Portale=percentuale)", draft.platformRates, busy, multiline = true) { draft = draft.copy(platformRates = it) }
+                Text("Percentuali OTA per immobile · lascia vuoto se da configurare. Nessun valore universale.",style=MaterialTheme.typography.bodySmall)
+                listOf("Booking.com","Airbnb","Vrbo").forEach {portal ->
+                    val rate=draft.platformRates.lineSequence().map{it.split('=')}.firstOrNull{it.size==2 && it[0].trim().equals(portal,true)}?.get(1) ?: ""
+                    EditorField("$portal (%)",rate,busy,KeyboardType.Decimal) {value ->
+                        val retained=draft.platformRates.lineSequence().filter{it.isNotBlank() && !it.substringBefore('=').trim().equals(portal,true)}.toList()
+                        draft=draft.copy(platformRates=(retained+if(value.isBlank())emptyList() else listOf("$portal=$value")).joinToString("\n"))
+                    }
+                }
+                Text("Prenotazione diretta: OTA iniziale 0%; eventuali costi di pagamento sono spese distinte.",style=MaterialTheme.typography.bodySmall)
+                EditorField("Configurazione portali anche storici (Portale=percentuale)", draft.platformRates, busy, multiline = true) { draft = draft.copy(platformRates = it) }
                 EditorField("Pulizie (€/ora)", draft.cleaningRate, busy, KeyboardType.Decimal) { draft = draft.copy(cleaningRate = it) }
                 EditorField("Lavanderia (€/set matrimoniale)", draft.laundryRate, busy, KeyboardType.Decimal) { draft = draft.copy(laundryRate = it) }
             }

@@ -71,4 +71,16 @@ object DatabaseMigrations {
         }
     }
 
+    val MIGRATION_5_6 = object : Migration(5, 6) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE activities ADD COLUMN notes TEXT NOT NULL DEFAULT ''")
+            db.execSQL("ALTER TABLE app_settings ADD COLUMN homeCover INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("ALTER TABLE app_settings ADD COLUMN messageCategoriesInitialized INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("CREATE TABLE IF NOT EXISTS message_categories (id TEXT NOT NULL PRIMARY KEY, label TEXT NOT NULL)")
+            db.execSQL("CREATE TABLE IF NOT EXISTS guest_messages (id TEXT NOT NULL PRIMARY KEY, propertyId TEXT, categoryId TEXT NOT NULL, title TEXT NOT NULL, italian TEXT NOT NULL, english TEXT NOT NULL, archived INTEGER NOT NULL, FOREIGN KEY(propertyId) REFERENCES properties(id) ON DELETE RESTRICT, FOREIGN KEY(categoryId) REFERENCES message_categories(id) ON DELETE RESTRICT)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_guest_messages_propertyId ON guest_messages(propertyId)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_guest_messages_categoryId ON guest_messages(categoryId)")
+        }
+    }
+
 }

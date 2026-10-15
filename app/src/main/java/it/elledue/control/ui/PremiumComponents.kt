@@ -135,8 +135,10 @@ fun CommandHome(properties: List<PropertyWithOwner>, bookings: List<ReservationE
     androidx.compose.foundation.lazy.LazyColumn(Modifier.fillMaxSize().testTag("home-scroll"), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
             Box(Modifier.fillMaxWidth().heightIn(min = 206.dp).clip(MaterialTheme.shapes.large).border(1.dp,ElledueGold.copy(.22f),MaterialTheme.shapes.large)) {
-                LocalPhoto(portfolio.firstOrNull { it.property.coverImageBase64 != null }?.property?.coverImageBase64,"Copertina della tua gestione",Modifier.matchParentSize())
-                Box(Modifier.matchParentSize().background(Brush.verticalGradient(listOf(ConceptBackground.copy(.48f),ConceptBackground.copy(.16f),ConceptBackground.copy(.94f)))))
+                val custom=portfolio.firstOrNull { it.property.coverImageBase64 != null }?.property?.coverImageBase64
+                if((settings?.homeCover ?: 0)==0 && custom!=null) LocalPhoto(custom,"Copertina della tua gestione",Modifier.matchParentSize())
+                else Image(painterResource(homeCovers[((settings?.homeCover ?: 1).coerceIn(1,3))-1]),"Copertina artistica Elledue",Modifier.matchParentSize(),contentScale=ContentScale.Crop)
+                Box(Modifier.matchParentSize().background(Brush.verticalGradient(listOf(ConceptBackground.copy(.78f),ConceptBackground.copy(.55f),ConceptBackground.copy(.94f)))))
                 Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
                     Text("Buongiorno${settings?.operatorFirstName?.takeIf { it.isNotBlank() }?.let { ",\n$it" } ?: ""}",style=MaterialTheme.typography.headlineLarge)
                     Text("${arrivals.size} ${if(arrivals.size==1) "arrivo" else "arrivi"} · ${departures.size} ${if(departures.size==1) "partenza" else "partenze"}",style=MaterialTheme.typography.bodyMedium)

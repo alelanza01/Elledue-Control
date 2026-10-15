@@ -21,7 +21,7 @@ import java.time.YearMonth
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class ReservationUiTest {
     @get:Rule val compose = createAndroidComposeRule<MainActivity>()
-    private val property = PropertyDraft(id = "ui-property-a", ownerId = "ui-owner-a", name = "Casa A", address = "Via Test A", ownerName = "Proprietario A", maxGuests = "4")
+    private val property = PropertyDraft(id = "ui-property-a", ownerId = "ui-owner-a", name = "Casa A", address = "Via Test A", ownerName = "Proprietario A", maxGuests = "4", platformRates="Booking.com=19,50")
     private val other = property.copy(id = "ui-property-b", ownerId = "ui-owner-b", name = "Casa B")
     private val today = BookingDates.today()
     private val app get() = compose.activity.application as ElledueApplication

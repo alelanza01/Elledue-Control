@@ -30,7 +30,7 @@ class PropertyRepository(private val database: AppDatabase) {
     suspend fun deleteEmpty(id: String) = database.withTransaction {
         requireNotNull(dao.get(id)) { "Immobile non trovato." }
         val sql = database.openHelper.writableDatabase
-        listOf("reservations", "expenses", "activities", "reports", "money_movements", "report_allocations").forEach { table ->
+        listOf("reservations", "expenses", "activities", "reports", "money_movements", "report_allocations", "guest_messages").forEach { table ->
             sql.query("SELECT 1 FROM `$table` WHERE propertyId = ? LIMIT 1", arrayOf(id)).use { require(!it.moveToFirst()) { "Immobile con storico: utilizza l’archiviazione per conservare i dati." } }
         }
         sql.execSQL("DELETE FROM platform_commissions WHERE propertyId = ?", arrayOf(id))

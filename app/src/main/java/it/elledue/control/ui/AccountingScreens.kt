@@ -27,10 +27,10 @@ import java.util.UUID
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AccountingHome(data: AccountingData, bookings: List<ReservationEntity>, properties: List<PropertyWithOwner>, model: AccountingViewModel,
-                   onNew: (String) -> Unit, onExpense: (String) -> Unit, onTax: (String) -> Unit, onCategories: () -> Unit, onReports: () -> Unit = {}) {
+                   onNew: (String) -> Unit, onExpense: (String) -> Unit, onTax: (String) -> Unit, onCategories: () -> Unit, onReports: () -> Unit = {}, initialTab:Int=0) {
     var month by rememberSaveable { mutableStateOf(YearMonth.from(BookingDates.today()).toString()) }
     var property by rememberSaveable { mutableStateOf("") }
-    var tab by rememberSaveable { mutableIntStateOf(0) }
+    var tab by rememberSaveable { mutableIntStateOf(initialTab) }
     var kind by rememberSaveable { mutableStateOf("") }
     var showVoided by rememberSaveable { mutableStateOf(false) }
     var payment by rememberSaveable { mutableStateOf(false) }
@@ -46,7 +46,7 @@ fun AccountingHome(data: AccountingData, bookings: List<ReservationEntity>, prop
                 IconButton(onClick = { month = YearMonth.parse(month).plusMonths(1).toString() }) { Icon(Icons.Outlined.ChevronRight, "Mese successivo contabilità") }
             } }
             item { Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf("Riepilogo", "Spese", "Tassa").forEachIndexed { i, label -> FilterChip(tab == i, { tab = i }, label = { Text(label) }, modifier = Modifier.testTag("accounting-tab-$i")) }
+                listOf("Riepilogo", "Spese", "Tassa e anticipi").forEachIndexed { i, label -> FilterChip(tab == i, { tab = i }, label = { Text(label) }, modifier = Modifier.testTag("accounting-tab-$i")) }
             } }
             if (tab == 0) {
                 item { Button(onClick = onReports, modifier = Modifier.fillMaxWidth().testTag("open-reports")) { Text("Rendiconti mensili") } }
@@ -101,6 +101,8 @@ fun AccountingHome(data: AccountingData, bookings: List<ReservationEntity>, prop
                     }
                 }
             } else {
+                item { Text("Previsione, incasso, compensazione e riversamento sono passaggi separati. Apri il soggiorno per registrare il movimento effettivo.",style=MaterialTheme.typography.bodySmall) }
+                item { OutlinedButton(onClick={model.clear();payment=true},enabled=property.isNotEmpty()){Text("Altri pagamenti / anticipi del proprietario")}; if(property.isBlank()) Text("Seleziona prima un immobile.",style=MaterialTheme.typography.bodySmall) }
                 val stays = bookings.filter { Competence.booking(it.checkInEpochDay) == month && (property.isEmpty() || it.propertyId == property) }
                 if (stays.isEmpty()) item { Text("Nessuna prenotazione con check-in nel periodo.") }
                 items(stays, key = { it.id }) { booking ->

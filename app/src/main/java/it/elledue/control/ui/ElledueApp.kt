@@ -141,7 +141,7 @@ fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewMo
                 BookingDataSurface(bookingState, state, { bookingsModel.retry(); propertiesModel.retry() }) {
                     ReservationsScreen(bookings, records,
                         onNew = { bookingsModel.clearError(); navigation.navigate("booking/new") },
-                        onOpen = { bookingsModel.clearError(); navigation.navigate("booking/$it") })
+                        onOpen = { bookingsModel.clearError(); navigation.navigate("booking/$it") }, activities=activities, onActivity={jump("activity/$it")}, onCopy={property,month,day->jump("calendar-copy?property=$property&month=$month&day=$day")})
                 }
             }
             composable("booking/new") {
@@ -159,7 +159,7 @@ fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewMo
                     val item = bookings.firstOrNull { it.id == destination.arguments?.getString("id") }
                     if (item == null) EmptyState("Prenotazione non trovata", "Torna al calendario.", "Calendario", { navigation.navigate("calendar") })
                     else BookingDetailScreen(item, records.firstOrNull { it.property.id == item.propertyId }?.property?.name ?: "Immobile", bookingBusy, bookingError,
-                        onBack = { navigation.popBackStack() }, onEdit = { bookingsModel.clearError(); navigation.navigate("booking/${item.id}/edit") }, onCancel = { bookingsModel.cancel(item.id) }, onTax = { accountingModel.clear(); navigation.navigate("tax/${item.id}") }, onExpense = { kind -> accountingModel.clear(); navigation.navigate("expense/new/$kind?booking=${item.id}") }, onActivities = { jump("activities?booking=${item.id}") }, financialChanges = accountingData?.financialChanges.orEmpty())
+                        onBack = { navigation.popBackStack() }, onEdit = { bookingsModel.clearError(); navigation.navigate("booking/${item.id}/edit") }, onCancel = { bookingsModel.cancel(item.id) }, onTax = { accountingModel.clear(); navigation.navigate("tax/${item.id}") }, onExpense = { kind -> accountingModel.clear(); navigation.navigate("expense/new/$kind?booking=${item.id}") }, onActivities = { jump("activities?booking=${item.id}") }, onMessages={jump("messages?booking=${item.id}")}, financialChanges = accountingData?.financialChanges.orEmpty())
                 }
             }
             composable("booking/{id}/edit") { destination ->
@@ -174,7 +174,10 @@ fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewMo
             composable("economy") {
                 EconomyHub(bookings, records, accountingData, jump)
             }
-            composable("analysis") { EconomyAnalysis(bookings, records) { navigation.popBackStack() } }
+            composable("analysis") { EconomyAnalysis(bookings, records, accountingData) { navigation.popBackStack() } }
+            composable("tax-overview") {
+                AccountingSurface(accountingState,accountingModel::retry){ AccountingHome(accountingData!!,bookings,records,accountingModel,{jump("expense/new/$it")},{jump("expense/$it")},{jump("tax/$it")},{jump("categories")},{jump("reports")},initialTab=2) }
+            }
             composable("accounting") {
                 BookingDataSurface(bookingState, state, { bookingsModel.retry(); propertiesModel.retry() }) {
                     AccountingSurface(accountingState, accountingModel::retry) {
@@ -261,6 +264,16 @@ fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewMo
             composable("activities?booking={booking}", arguments = listOf(androidx.navigation.navArgument("booking") { type = androidx.navigation.NavType.StringType; nullable = true; defaultValue = null })) { destination ->
                 ActivitiesScreen(app.activityRepository, activities, records, bookings, destination.arguments?.getString("booking"), expenses=accountingData?.expenses.orEmpty(),open=jump) { navigation.popBackStack() }
             }
+            composable("activity/new") { ActivityEditor(app.activityRepository,null,records,bookings){navigation.popBackStack()} }
+            composable("activity/{id}") { d ->
+                val task=activities.firstOrNull {it.id==d.arguments?.getString("id")}
+                if(task!=null) ActivityEditor(app.activityRepository,task,records,bookings){navigation.popBackStack()} else EmptyState("Attività non disponibile","Torna all’elenco.")
+            }
+            composable("calendar-copy?property={property}&month={month}&day={day}",arguments=listOf(
+                androidx.navigation.navArgument("property"){defaultValue=""},androidx.navigation.navArgument("month"){defaultValue=java.time.YearMonth.from(BookingDates.today()).toString()},androidx.navigation.navArgument("day"){type=androidx.navigation.NavType.LongType;defaultValue=BookingDates.today().toEpochDay()}
+            )) { d -> CopyCalendarScreen(bookings,records,d.arguments?.getString("property") ?: "",d.arguments?.getString("month") ?: java.time.YearMonth.from(BookingDates.today()).toString(),d.arguments?.getLong("day") ?: BookingDates.today().toEpochDay()){navigation.popBackStack()} }
+            composable("messages?booking={booking}",arguments=listOf(androidx.navigation.navArgument("booking"){nullable=true;defaultValue=null})) {d -> BookingDataSurface(bookingState,state,{bookingsModel.retry();propertiesModel.retry()}) { MessagesScreen(app.messageRepository,records,bookings,d.arguments?.getString("booking"),accountingData){navigation.popBackStack()} } }
+            composable("appearance") { AppearanceScreen(settings,settingsModel){navigation.popBackStack()} }
             composable("profile") { ProfileScreen(settings, settingsModel) { navigation.popBackStack() } }
             composable("notifications") { UpcomingScreen("Centro notifiche", "Nessuna notifica di sistema attiva", "Le notifiche Android saranno sviluppate nella Milestone 5. Consulta l’agenda Home per gli eventi registrati.", { jump("dashboard") }) }
             composable("settings") {
@@ -282,7 +295,9 @@ fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewMo
                             }
                         }
                         HorizontalDivider()
-                        Text("Elledue Control · 0.4.6", style = MaterialTheme.typography.labelLarge)
+                        OutlinedButton(onClick={jump("appearance")},modifier=Modifier.fillMaxWidth()){Text("Aspetto · copertina Home")}
+                        OutlinedButton(onClick={jump("messages")},modifier=Modifier.fillMaxWidth()){Text("Messaggi ospiti IT/EN")}
+                        Text("Elledue Control · 0.4.7", style = MaterialTheme.typography.labelLarge)
                         Text("Dati locali. Esporta un backup verificato prima di cambiare dispositivo o firma Android.", style = MaterialTheme.typography.bodyMedium)
                         BackupControls(backupService)
                     }
@@ -306,9 +321,9 @@ fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewMo
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) { Text("Azione rapida", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f)); IconButton(onClick = { quick = false }, modifier = Modifier.testTag("close-quick")) { Icon(Icons.Outlined.Close, "Chiudi azioni") } }
             val actions = if (records.none { !it.property.archived }) listOf("Nuovo immobile" to "property/new") else when (route) {
                 "properties" -> listOf("Nuovo immobile" to "property/new")
-                "economy" -> listOf("Nuova spesa" to "expense/new/OTHER", "Registra pulizia" to "expense/new/CLEANING", "Tassa e anticipi" to "accounting")
-                "calendar" -> listOf("Nuova prenotazione" to "booking/new", "Attività" to "activities")
-                else -> listOf("Nuova prenotazione" to "booking/new", "Nuova spesa" to "expense/new/OTHER", "Attività" to "activities")
+                "economy" -> listOf("Nuova spesa" to "expense/new/OTHER", "Registra pulizia" to "expense/new/CLEANING", "Tassa e anticipi" to "tax-overview")
+                "calendar" -> listOf("Nuova prenotazione" to "booking/new", "Nuova attività" to "activity/new")
+                else -> listOf("Nuova prenotazione" to "booking/new", "Nuova spesa" to "expense/new/OTHER", "Nuova attività" to "activity/new")
             }
             actions.forEach { (label, target) -> OutlinedButton(onClick = { quick = false; propertiesModel.clearError(); bookingsModel.clearError(); accountingModel.clear(); jump(target) }, modifier = Modifier.fillMaxWidth()) { Text(label) } }
             Spacer(Modifier.height(20.dp))

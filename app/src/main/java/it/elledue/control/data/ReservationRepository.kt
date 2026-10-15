@@ -30,6 +30,7 @@ class ReservationRepository(private val database: AppDatabase) {
         if (currentTokens.isNotEmpty() && currentTokens != approved) throw OverlapException(conflicts)
         val saved = candidate.copy(overlapAcknowledged = conflicts.isNotEmpty())
         dao.save(saved)
+        if(previous!=null && previous.propertyId!=saved.propertyId) database.activityDao().moveWithBooking(saved.id,saved.propertyId)
         if (financialChange) database.accountingDao().insertFinancialChange(BookingFinancialChangeEntity(java.util.UUID.randomUUID().toString(), saved.id,
             AccountingRepository.snapshot(previous!!), AccountingRepository.snapshot(saved), draft.correctionReason.trim(), saved.updatedAt))
     }

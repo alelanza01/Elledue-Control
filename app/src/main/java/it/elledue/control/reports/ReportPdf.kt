@@ -148,7 +148,8 @@ class ReportPdf(private val context: Context) {
             paragraph("Le tariffe e i costi effettivi degli interventi sono storici. Nel saldo entrano soltanto spese anticipate da Elledue e rimborsabili dal proprietario.", 8f)
             } else {
                 section("02  Spese rimborsabili")
-                table(listOf("Categoria", "Importo"), listOf(426f, 89f), value.expenses.filter { it.advancedByElledue && it.reimbursable }.groupBy { it.category }.map { (category, rows) -> listOf(category, Amounts.euro(OperationalMoney.total(rows.map { it.actualCents }))) })
+                table(listOf("Rimborso dovuto", "Importo"), listOf(426f, 89f), listOf("CLEANING" to "Pulizie", "LAUNDRY" to "Lavanderia", "OTHER" to "Altre spese").map { (kind,label) -> listOf(label,Amounts.euro(OperationalMoney.total(value.expenses.filter {it.kind==kind && !it.voided && it.advancedByElledue && it.reimbursable}.map {it.actualCents}))) })
+                amount("Totale rimborsi effettivamente dovuti",totals.reimbursable)
             }
             section("Tassa di soggiorno e anticipi")
             amount("Tassa di soggiorno riscossa", totals.collectedTax)

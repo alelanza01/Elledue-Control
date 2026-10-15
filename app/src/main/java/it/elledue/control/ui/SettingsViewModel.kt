@@ -56,6 +56,12 @@ class SettingsViewModel(private val repository: SettingsRepository) : ViewModel(
         }
     }
 
+    fun cover(value:Int) {
+        if(mutableSaveState.value == SaveState.Saving) return
+        mutableSaveState.value=SaveState.Saving
+        viewModelScope.launch { try { repository.cover(value); mutableSaveState.value=SaveState.Saved } catch(e:CancellationException){throw e} catch(_:Exception){mutableSaveState.value=SaveState.Failed} }
+    }
+
     fun profile(first: String, last: String, image: String?) {
         if (mutableSaveState.value == SaveState.Saving) return
         mutableSaveState.value = SaveState.Saving

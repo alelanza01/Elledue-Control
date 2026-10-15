@@ -84,6 +84,7 @@ data class ActivityEntity(
     val zoneId: String = "Europe/Rome",
     val completed: Boolean = false,
     val reservationId: String? = null,
+    @ColumnInfo(defaultValue = "''") val notes: String = "",
 )
 
 @Entity(tableName = "reports", foreignKeys = [

@@ -2,7 +2,13 @@
 
 Applicazione Android nativa per Elledue Management, gestione di immobili per affitti brevi. Il repository è stato creato da zero in Kotlin e Jetpack Compose.
 
-## Milestone 1–4.5 e redesign vincolato al concept — versione 0.4.6
+## 0.4.7 — rifinitura operativa (branch dedicato)
+
+Copertine Home selezionabili, attività complete, copia calendario per appartamento, portali e OTA esplicite, messaggi ospiti IT/EN, analisi e PDF sintetico raffinati. Design0.4.6 mantenuto. Room6 con migrazione additiva e import backup4/5/6; ID Android invariato. Nessun merge o APK pubblico della0.4.7.
+
+Documentazione: [changelog](docs/0.4.7/CHANGELOG.md), [matrice e verifiche](docs/0.4.7/REQUIREMENTS.md), [aggiornamento senza disinstallazione](docs/0.4.7/UPDATE.md), [asset](docs/0.4.7/ASSETS.md).
+
+## Milestone 1–4.5 e redesign vincolato al concept — base 0.4.6
 
 Modulo Immobili: creazione, elenco con ricerca e filtri, dettaglio, modifica, archiviazione e riattivazione. Sono persistenti proprietario e recapiti, posti letto/ospiti, orari, note, commissioni, tariffe pulizie/lavanderia, tassa di soggiorno, commissioni diverse per portale e istruzioni di accesso IT/EN. Nessun dato dimostrativo viene inserito nell’app.
 
@@ -24,7 +30,7 @@ Backup manuale da Impostazioni: esportazione dell’intero database applicativo 
 
 Identità visiva: blu notte `#111B32`, dorato `#DBBF8B`, tema chiaro/scuro. Originali PNG caricati dall’utente su GitHub, integrati senza ridisegno né deformazione in icona adattiva/splash, intestazione e PDF. Derivazioni e hash descritti in [docs/brand/ORIGINALS.md](docs/brand/ORIGINALS.md).
 
-Consegna corrente scaricabile in [deliverables/redesign-0.4.6](deliverables/redesign-0.4.6): APK debug, PDF esclusivamente sintetici, screenshot e manifest con checksum. Il rendiconto personale originale non è nel repository.
+Consegna precedente0.4.6 scaricabile in [deliverables/redesign-0.4.6](deliverables/redesign-0.4.6): APK debug, PDF esclusivamente sintetici, screenshot e manifest con checksum. Il rendiconto personale originale non è nel repository.
 
 Foto copertina e profilo conservate localmente e incluse nei backup. Portfolio con menu azioni e cancellazione definitiva bloccata in presenza di storico. Analisi mensili reali con confronti, trend e occupazione del calendario, distinta dalla disponibilità commerciale. Due PDF (sintetico/dettagliato) dallo stesso snapshot, miniatura reale e visualizzatore interno multipagina con ingrandimento. [Consegna e limiti M4.5](docs/MILESTONE_4_5.md).
 

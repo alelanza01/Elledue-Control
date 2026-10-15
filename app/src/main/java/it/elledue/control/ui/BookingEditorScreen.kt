@@ -22,7 +22,6 @@ import it.elledue.control.domain.*
 @Composable
 fun BookingEditorScreen(initial: BookingDraft, properties: List<PropertyWithOwner>, isNew: Boolean, busy: Boolean, error: String?, pending: PendingOverlap?, onBack: () -> Unit, onSave: (BookingDraft) -> Unit, onConfirm: () -> Unit, onDismiss: () -> Unit) {
     var draft by rememberSaveable(initial.id, stateSaver = BookingDraftSaver) { mutableStateOf(initial) }
-    var otaEdited by rememberSaveable { mutableStateOf(false) }
     var discard by rememberSaveable { mutableStateOf(false) }
     val back = { if (draft != initial) discard = true else onBack() }
     val enabled = !busy && pending == null
@@ -36,17 +35,16 @@ fun BookingEditorScreen(initial: BookingDraft, properties: List<PropertyWithOwne
             Text("Soggiorno", style = MaterialTheme.typography.titleLarge)
             PropertySelector(properties.filter { !it.property.archived || it.property.id == initial.propertyId }, draft.propertyId, enabled) { id ->
                 val item = properties.first { it.property.id == id }
-                if (isNew) otaEdited = false
                 draft = if (isNew) draft.withPropertyDefaults(item) else draft.copy(propertyId = id)
             }
             if (!isNew) Text("Le percentuali salvate restano invariate. Puoi rettificarle esplicitamente qui.", style = MaterialTheme.typography.bodySmall)
             BookingField("Nome ospite *", draft.firstName, enabled, tag = "booking-first-name") { draft = draft.copy(firstName = it) }
             BookingField("Cognome ospite *", draft.lastName, enabled, tag = "booking-last-name") { draft = draft.copy(lastName = it) }
             BookingField("Ospiti totali", draft.guests, enabled, KeyboardType.Number, "booking-guests") { draft = draft.copy(guests = it) }
-            BookingField("Piattaforma", draft.platform, enabled, tag = "booking-platform") { value ->
-                // For existing bookings, preserve historical rates when platform text changes.
-                draft = draft.copy(platform = value, otaPercent = if (isNew && !otaEdited && selected != null) BookingDraft.otaDefault(selected, value) else draft.otaPercent)
+            PortalSelector(draft.platform,enabled) { value ->
+                draft=draft.copy(platform=value,otaPercent=if(isNew && selected!=null) BookingDraft.otaDefault(selected,value) else draft.otaPercent)
             }
+            if(isNew && draft.otaPercent.isBlank()) Text("Percentuale del portale non configurata. Inseriscila qui oppure nelle commissioni dell’immobile; puoi usare l’importo OTA effettivo.",color=ElledueGold)
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 BookingDateField("Check-in", draft.checkIn, enabled, "booking-check-in", Modifier.weight(1f)) { draft = draft.copy(checkIn = it) }
                 BookingDateField("Check-out", draft.checkOut, enabled, "booking-check-out", Modifier.weight(1f)) { draft = draft.copy(checkOut = it) }
@@ -68,7 +66,7 @@ fun BookingEditorScreen(initial: BookingDraft, properties: List<PropertyWithOwne
             Text("Pagamento accreditato al proprietario. Elledue matura il compenso sul netto dopo OTA.", style = MaterialTheme.typography.bodyMedium)
             BookingField("Lordo (€) *", draft.gross, enabled, KeyboardType.Decimal, "booking-gross") { draft = draft.copy(gross = it) }
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                BookingField("OTA (%)", draft.otaPercent, enabled, KeyboardType.Decimal, "booking-ota-percent", Modifier.weight(1f)) { otaEdited = true; draft = draft.copy(otaPercent = it) }
+                BookingField("OTA (%)", draft.otaPercent, enabled, KeyboardType.Decimal, "booking-ota-percent", Modifier.weight(1f)) { draft = draft.copy(otaPercent = it) }
                 BookingField("Elledue (%)", draft.managementPercent, enabled, KeyboardType.Decimal, "booking-management-percent", Modifier.weight(1f)) { draft = draft.copy(managementPercent = it) }
             }
             BookingField("OTA effettiva (€) · facoltativa", draft.actualOta, enabled, KeyboardType.Decimal, "booking-actual-ota") { draft = draft.copy(actualOta = it) }

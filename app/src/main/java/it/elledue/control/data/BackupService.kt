@@ -30,14 +30,14 @@ class BackupService(private val db: AppDatabase, private val context: Context) {
             }; tables.put(table, rows)
         }
         val payload = tables.toString()
-        val bytes = JSONObject().put("format", "ElledueControlBackup").put("formatVersion", 1).put("databaseVersion", 5)
+        val bytes = JSONObject().put("format", "ElledueControlBackup").put("formatVersion", 1).put("databaseVersion", 6)
             .put("payload", payload).put("sha256", ReportCodec.hash(payload)).toString().toByteArray(Charsets.UTF_8)
         require(bytes.size <= MAX_BYTES) { "Backup oltre il limite di 32 MiB." }; bytes
     }
     private fun parse(bytes: ByteArray): JSONObject {
         require(bytes.size in 1..MAX_BYTES) { "File vuoto o troppo grande." }
         val envelope = JSONObject(bytes.toString(Charsets.UTF_8))
-        require(envelope.getString("format") == "ElledueControlBackup" && envelope.getInt("formatVersion") == 1 && envelope.getInt("databaseVersion") in 4..5) { "Formato o versione backup non compatibile." }
+        require(envelope.getString("format") == "ElledueControlBackup" && envelope.getInt("formatVersion") == 1 && envelope.getInt("databaseVersion") in 4..6) { "Formato o versione backup non compatibile." }
         val payload = envelope.getString("payload")
         require(ReportCodec.hash(payload) == envelope.getString("sha256")) { "Backup corrotto: checksum non valido." }
         return JSONObject(payload).also { tables ->
@@ -48,6 +48,13 @@ class BackupService(private val db: AppDatabase, private val context: Context) {
                 for (i in 0 until properties.length()) properties.getJSONObject(i).put("coverImageBase64", JSONObject.NULL)
                 val settings = tables.getJSONArray("app_settings")
                 for (i in 0 until settings.length()) settings.getJSONObject(i).put("operatorFirstName", "").put("operatorLastName", "").put("operatorPhotoBase64", JSONObject.NULL)
+            }
+            if(envelope.getInt("databaseVersion") < 6) {
+                tables.put("guest_messages", JSONArray()).put("message_categories", JSONArray())
+                val tasks=tables.getJSONArray("activities")
+                for(i in 0 until tasks.length()) tasks.getJSONObject(i).put("notes", "")
+                val settings=tables.getJSONArray("app_settings")
+                for(i in 0 until settings.length()) settings.getJSONObject(i).put("homeCover", 0).put("messageCategoriesInitialized", 0)
             }
         }.also { require(it.keys().asSequence().toSet() == TABLES.toSet()) { "Tabelle del backup incomplete o sconosciute." } }
     }
@@ -106,6 +113,10 @@ class BackupService(private val db: AppDatabase, private val context: Context) {
         staged.openHelper.readableDatabase.query("SELECT a.title, a.propertyId, b.propertyId FROM activities a LEFT JOIN reservations b ON a.reservationId = b.id WHERE a.reservationId IS NOT NULL").use { c ->
             while (c.moveToNext()) require(c.getString(0).isNotBlank() && c.getString(1) == c.getString(2)) { "Attività con collegamento incoerente." }
         }
+        staged.openHelper.readableDatabase.query("SELECT title,notes,zoneId FROM activities").use { c -> while(c.moveToNext()) { require(c.getString(0).isNotBlank() && c.getString(0).length<=300 && c.getString(1).length<=20000); java.time.ZoneId.of(c.getString(2)) } }
+        staged.openHelper.readableDatabase.query("SELECT label FROM message_categories").use{c->while(c.moveToNext())require(c.getString(0).isNotBlank() && c.getString(0).length<=100)}
+        staged.settingsDao().get()?.let { require(it.homeCover in 0..3) }
+        staged.messageDao().all().forEach { require(it.title.isNotBlank() && it.title.length<=300 && (it.italian.isNotBlank() || it.english.isNotBlank()) && it.italian.length<=20000 && it.english.length<=20000) }
         val dao = staged.reportDao(); val bookings = dao.bookings(); val costs = dao.expenses(); val taxes = dao.taxes(); val money = staged.accountingDao().movements()
         bookings.forEach { b ->
             require(b.checkOutEpochDay > b.checkInEpochDay && b.guestCount > 0 && Competence.booking(b.checkInEpochDay) == b.competenceMonth && b.status in listOf("CONFIRMED", "COMPLETED", "CANCELLED")) { "Prenotazione del backup non valida." }
@@ -145,6 +156,6 @@ class BackupService(private val db: AppDatabase, private val context: Context) {
     }
     companion object {
         const val MAX_BYTES = 32 * 1024 * 1024
-        val TABLES = listOf("app_settings", "owners", "properties", "platform_commissions", "message_templates", "reservations", "expense_categories", "expenses", "activities", "reports", "expense_revisions", "tax_assessments", "tax_assessment_revisions", "money_movements", "booking_financial_changes", "report_allocations")
+        val TABLES = listOf("app_settings", "owners", "properties", "platform_commissions", "message_templates", "reservations", "expense_categories", "expenses", "activities", "reports", "expense_revisions", "tax_assessments", "tax_assessment_revisions", "money_movements", "booking_financial_changes", "report_allocations", "message_categories", "guest_messages")
     }
 }
