@@ -319,7 +319,7 @@ fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewMo
     if (quick) ModalBottomSheet(onDismissRequest = { quick = false },containerColor=ConceptCard,tonalElevation=0.dp,shape=MaterialTheme.shapes.large) {
         Column(Modifier.fillMaxWidth().padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) { Text("Azione rapida", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f)); IconButton(onClick = { quick = false }, modifier = Modifier.testTag("close-quick")) { Icon(Icons.Outlined.Close, "Chiudi azioni") } }
-            val actions = if (records.none { !it.property.archived }) listOf("Nuovo immobile" to "property/new") else when (route) {
+            val actions = if (records.none { !it.property.archived }) listOf("Nuovo immobile" to "property/new", "Nuova attività" to "activity/new") else when (route) {
                 "properties" -> listOf("Nuovo immobile" to "property/new")
                 "economy" -> listOf("Nuova spesa" to "expense/new/OTHER", "Registra pulizia" to "expense/new/CLEANING", "Tassa e anticipi" to "tax-overview")
                 "calendar" -> listOf("Nuova prenotazione" to "booking/new", "Nuova attività" to "activity/new")

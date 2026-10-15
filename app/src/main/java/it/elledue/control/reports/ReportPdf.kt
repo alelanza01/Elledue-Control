@@ -153,7 +153,7 @@ class ReportPdf(private val context: Context) {
             }
             section("Tassa di soggiorno e anticipi")
             amount("Tassa di soggiorno riscossa", totals.collectedTax)
-            amount("Altri anticipi", totals.payments)
+            if(layout==ReportLayout.DETAILED || totals.payments!=0L) amount("Altri anticipi", totals.payments)
             if (totals.collectedTax != totals.compensated) paragraph("Nel saldo sono riconosciuti ${Amounts.euro(totals.compensated)} di tassa, a fronte di ${Amounts.euro(totals.collectedTax)} riscossi. Riscossione e compensazione sono registrazioni distinte; possono riferirsi a periodi differenti.", 8f)
             if (value.notes.isNotBlank()) { section("Note"); paragraph(value.notes) }
             ensure(if (layout == ReportLayout.SUMMARY) 180f else 210f)

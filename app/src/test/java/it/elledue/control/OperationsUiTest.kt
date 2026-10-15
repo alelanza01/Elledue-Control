@@ -94,4 +94,47 @@ class OperationsUiTest {
         compose.activityRule.scenario.recreate();waitTag("apply-cover");shot("appearance")
         assertEquals(3,runBlocking{app.settingsRepository.settings.first().homeCover})
     }
+    @Test fun fourPortalBadgesApplyConfiguredRatesAndActualOtaIsSaved() {
+        waitTag("home-scroll");compose.onNodeWithTag("nav-calendar").performClick();waitTag("new-booking");compose.onNodeWithTag("new-booking").performClick()
+        compose.onNodeWithTag("booking-first-name").performTextReplacement("Portale");compose.onNodeWithTag("booking-last-name").performTextReplacement("Test")
+        // Properties are sorted by name; explicitly select the configured property.
+        compose.onNodeWithTag("booking-property-selector").performClick();compose.onNodeWithTag("select-property-op-p").performClick()
+        compose.onNodeWithTag("portal-Booking.com").performScrollTo().performClick();compose.onNodeWithTag("booking-ota-percent").performScrollTo().assertTextContains("19,50")
+        compose.onNodeWithTag("portal-Airbnb").performScrollTo().performClick();compose.onNodeWithTag("booking-ota-percent").performScrollTo().assertTextContains("15,00")
+        compose.onNodeWithTag("portal-Vrbo").performScrollTo().performClick();compose.onNodeWithTag("booking-ota-percent").performScrollTo().assertTextContains("8,00")
+        compose.onNodeWithTag("portal-Prenotazione diretta").performScrollTo().performClick();compose.onNodeWithTag("portal-Booking.com").performScrollTo();shot("portal-selector")
+        compose.onNodeWithTag("booking-ota-percent").performScrollTo().assertTextContains("0,00")
+        compose.onNodeWithTag("booking-gross").performScrollTo().performTextReplacement("1000")
+        compose.onNodeWithTag("booking-actual-ota").performScrollTo().performTextReplacement("100")
+        compose.onNodeWithTag("booking-fee").performScrollTo().assertTextEquals(Amounts.euro(18000))
+        compose.onNodeWithTag("booking-check-in").performScrollTo().performTextReplacement(BookingDates.display(today.plusDays(10).toEpochDay()))
+        compose.onNodeWithTag("booking-check-out").performTextReplacement(BookingDates.display(today.plusDays(12).toEpochDay()))
+        compose.onNodeWithTag("save-booking").performClick();waitTag("booking-status")
+        val b=runBlocking{app.reservationRepository.reservations.first().first{it.guestFirstName=="Portale"}}
+        assertEquals("Prenotazione diretta",b.platform);assertEquals(0,b.appliedOtaBasisPoints);assertEquals(10000L,b.actualOtaCents);assertEquals(18000L,b.managementCents)
+    }
+    @Test fun analysisUsesRealFeesExpensesAndEmptyPeriodWithoutInventedPercentages() {
+        runBlocking {app.accountingRepository.initialize();app.accountingRepository.saveExpense(ExpenseDraft(id="op-cost",propertyId="op-p",date=BookingDates.display(today.toEpochDay()),month=YearMonth.from(today).toString(),categoryId="cleaning",quantity="3",unit="8"))}
+        waitTag("home-scroll");compose.onNodeWithTag("nav-economy").performClick();waitTag("open-analysis");compose.onNodeWithTag("open-analysis").performClick();waitTag("analysis-scroll")
+        compose.onNodeWithTag("analysis-scroll").performScrollToNode(hasText("Compensi maturati"));compose.onNodeWithText("Compensi maturati").assertIsDisplayed();shot("analysis")
+        compose.onNodeWithTag("analysis-scroll").performScrollToNode(hasText("Spese per categoria"));shot("expense-chart")
+        compose.onNodeWithTag("analysis-scroll").performScrollToNode(hasText("Costo operativo totale"));compose.onNodeWithText("Costo operativo totale").assertIsDisplayed()
+        compose.onNodeWithTag("analysis-scroll").performScrollToIndex(0);compose.onNodeWithContentDescription("Analisi mese precedente").performClick()
+        compose.onNodeWithTag("analysis-scroll").performScrollToNode(hasText("Nessuna spesa nel periodo selezionato."));compose.onNodeWithText("Nessuna spesa nel periodo selezionato.").assertIsDisplayed()
+    }
+    @Test @Config(qualifiers="w891dp-h411dp-xxhdpi",fontScale=1.3f)
+    fun copyCalendarRemainsScrollableAndCopyableInLandscapeWithLargeText() {
+        waitTag("home-scroll");compose.onNodeWithTag("nav-calendar").performClick();waitTag("open-copy-calendar");compose.onNodeWithTag("open-copy-calendar").performScrollTo().performClick();waitTag("copy-calendar-screen")
+        compose.onNodeWithTag("copy-calendar-op-p").performScrollTo().performClick();compose.onNodeWithTag("copy-feedback").performScrollTo().assertTextContains("Messaggio copiato",substring=true);shot("landscape-copy")
+    }
+
+    @Test fun centralPlusCreatesTitleOnlyGeneralTaskWithoutAnyActiveProperty() {
+        runBlocking {app.propertyRepository.archive("op-p",true);app.propertyRepository.archive("op-q",true)}
+        waitTag("home-scroll");compose.onNodeWithTag("quick-action").performClick();compose.onNodeWithText("Nuova attività").performClick();waitTag("activity-editor")
+        compose.onNodeWithTag("activity-title").performTextReplacement("Attività generale senza data")
+        compose.onNodeWithTag("save-activity").performScrollTo().performClick();waitTag("home-scroll")
+        val task=runBlocking{app.activityRepository.activities.first().single()}
+        assertNull(task.propertyId);assertNull(task.reservationId);assertNull(task.dueEpochMillis);assertFalse(task.completed)
+    }
+
 }
