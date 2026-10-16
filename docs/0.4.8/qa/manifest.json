@@ -1,0 +1,160 @@
+{
+  "versionName": "0.4.8",
+  "versionCode": 8,
+  "applicationId": "it.elledue.control",
+  "branch": "feature/0.4.8-stabilization",
+  "sourceCommit": "757c351fbe1d2de4b4d6ec8d32f25da9cde004c4",
+  "tests": {
+    "total": 159,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "lint": {
+    "errors": 0,
+    "warnings": 15
+  },
+  "apk": {
+    "fileName": "Elledue-Control-0.4.8-debug.apk",
+    "localPath": "/workspace/artifacts/Elledue-Control-0.4.8-debug.apk",
+    "bytes": 32796445,
+    "sha256": "59b06bbbf22a6167614b8b7b63b465c5212f6c9ef86477eaaefdb13ea69e593a",
+    "certificateSha256": "cc45fdd9dccf37a2d94fb35e142bfde73b25de3e46e3b8ce93d4d5b9a7b2065c",
+    "sameCertificateAsOriginal047": true
+  },
+  "distribution": {
+    "state": "BLOCKED_HTTP_401",
+    "releaseId": 414920995,
+    "tag": "v0.4.8-test",
+    "draft": true,
+    "draftUrl": "https://github.com/alelanza01/Elledue-Control/releases/tag/untagged-a4042084046d2f65d056",
+    "uploadedAssets": 0,
+    "downloadUrl": null,
+    "error": "HTTP 401 Bad credentials on uploads.github.com",
+    "chatFileAttachmentToolAvailable": false
+  },
+  "physicalDeviceValidated": false,
+  "milestoneDeliveryComplete": false,
+  "artifacts": [
+    {
+      "file": "Elledue-rendiconto-sintetico.pdf",
+      "bytes": 37297,
+      "sha256": "e6b6c23540d0474d0303b3590793bb3abd7856b3db7f360bf75a6716b6d689d3"
+    },
+    {
+      "file": "README.md",
+      "bytes": 1695,
+      "sha256": "771a16bab311bd5893840564e35186bbc8e805de0a0b9bc96024fde9dea1907f"
+    },
+    {
+      "file": "access-320dp-font130.png",
+      "bytes": 96383,
+      "sha256": "6dc9d4a4211c1bc43ad41397940f63fd1d10fe2d5eb35207e4475054985d770f"
+    },
+    {
+      "file": "analysis-expenses.png",
+      "bytes": 250172,
+      "sha256": "e5adc53a895e6a9792cd284c7c29dee723d2240823df4aff95550e3fcb110e4d"
+    },
+    {
+      "file": "analysis.png",
+      "bytes": 250172,
+      "sha256": "e5adc53a895e6a9792cd284c7c29dee723d2240823df4aff95550e3fcb110e4d"
+    },
+    {
+      "file": "apk-badging.txt",
+      "bytes": 5522,
+      "sha256": "d4e2e2b29955b06b6bd6fca61cd8fda28a6fc596d0ef7f6de3da5fce4414419a"
+    },
+    {
+      "file": "apk-signature.txt",
+      "bytes": 955,
+      "sha256": "87d55a3e837a59df6c45f1d2470661e4bb3aaf1cb04076e0b04528d8592c9705"
+    },
+    {
+      "file": "booking.png",
+      "bytes": 202563,
+      "sha256": "c06bce186d1b70ef018a5870c265685ba4d72d43066a8527e0ad0386ee098986"
+    },
+    {
+      "file": "calendar-320dp-font150.png",
+      "bytes": 234528,
+      "sha256": "f13c258ee7b7fadfb794fe73af2f76074c6a001cda55fa676f2e8a71dff0332e"
+    },
+    {
+      "file": "calendar-single-property.png",
+      "bytes": 241026,
+      "sha256": "787f49d6af6aadd9d7b8f3c72700c7514f3b9998b0e2d7e78332ed4c393ab48f"
+    },
+    {
+      "file": "calendar.png",
+      "bytes": 245002,
+      "sha256": "1a310a23b9bfbcd4f468302d89aa810febb581b978dcb5983ee131b9760dfb2f"
+    },
+    {
+      "file": "deletion-before-backup.png",
+      "bytes": 170583,
+      "sha256": "416145e9b808fb193b74607b5e99a11b90326dfba0ecb305db7d8582a457a0fa"
+    },
+    {
+      "file": "deletion-verified.png",
+      "bytes": 182964,
+      "sha256": "80a2afd3c84910d1016626d9360bca94b409877d0afb6ff56863ca61927ea926"
+    },
+    {
+      "file": "economy.png",
+      "bytes": 321416,
+      "sha256": "915772140adcea4be0c7a0332cd1054b26be3002afad30499e856f9eb9842a68"
+    },
+    {
+      "file": "home.png",
+      "bytes": 873493,
+      "sha256": "30b31fb5881c91a96d96e6dc22d3ccb1b7b87ce8242907785eac4e253b01d1cc"
+    },
+    {
+      "file": "lint-results.txt",
+      "bytes": 9110,
+      "sha256": "fce24d00aa334721e269c573a0bc1003cc70b98af30714af417ed2a5dd615e65"
+    },
+    {
+      "file": "notification-settings.png",
+      "bytes": 187569,
+      "sha256": "5922a72ce532a04a1c4087648c1c4133c630efbe733b23c2230f392041797cc1"
+    },
+    {
+      "file": "owned-property.png",
+      "bytes": 373970,
+      "sha256": "b3bf9968c4c1290c0857154ad9210c9998d9f429a7ae6a4421693df5c7b04fb0"
+    },
+    {
+      "file": "owned-result.png",
+      "bytes": 310653,
+      "sha256": "0887828917b59c43c64d11e03a01e082343152bc0a0d592cc9452694df2fc4e7"
+    },
+    {
+      "file": "pdf-preview.png",
+      "bytes": 355247,
+      "sha256": "1f3858dc1789fb8b08dc89e7be79a57f83b2f9d694c7420b2e4e696e7eee103c"
+    },
+    {
+      "file": "report-details.png",
+      "bytes": 212362,
+      "sha256": "1b75035c8bd41bfab4415084215b632776d0883f405fb60bcabc1b145b191050"
+    },
+    {
+      "file": "report-draft.png",
+      "bytes": 210523,
+      "sha256": "761d4431e22ec413b65b906d970b5ceed3bd60ef9f19246d4f6059e3abe87167"
+    },
+    {
+      "file": "test-results.json",
+      "bytes": 7098,
+      "sha256": "964f7ed7ddbef1265b9ff44cb1040ece19ad3e29e0ad4b604fc14fbd11190ed3"
+    },
+    {
+      "file": "validation.log",
+      "bytes": 3665,
+      "sha256": "27e127fd058948d06a7b56ef6d3b198a730c9a22dd69f3b040b01ddd3169ce02"
+    }
+  ]
+}

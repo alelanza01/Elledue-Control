@@ -1,0 +1,332 @@
+{
+  "command": "./gradlew :app:testDebugUnitTest :app:lintDebug :app:assembleDebug",
+  "sourceCommit": "757c351fbe1d2de4b4d6ec8d32f25da9cde004c4",
+  "counts": {
+    "tests": 159,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "suites": [
+    {
+      "name": "it.elledue.control.ReservationRepositoryTest",
+      "tests": 10,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": "0.343"
+    },
+    {
+      "name": "it.elledue.control.BookingDatesTest",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": "0.004"
+    },
+    {
+      "name": "it.elledue.control.BackupServiceTest",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": "1.898"
+    },
+    {
+      "name": "it.elledue.control.StabilityUiTest",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": "0.897"
+    },
+    {
+      "name": "it.elledue.control.ProductUiTest",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": "8.404"
+    },
+    {
+      "name": "it.elledue.control.ReportMigrationTest",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": "0.046"
+    },
+    {
+      "name": "it.elledue.control.ReservationUiTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": "2.051"
+    },
+    {
+      "name": "it.elledue.control.BookingFinanceTest",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": "0.022"
+    },
+    {
+      "name": "it.elledue.control.GuestTextTest",
+      "tests": 8,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": "0.02"
+    },
+    {
+      "name": "it.elledue.control.AccountingRepositoryTest",
+      "tests": 14,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": "3.332"
+    },
+    {
+      "name": "it.elledue.control.SettingsViewModelTest",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": "0.102"
+    },
+    {
+      "name": "it.elledue.control.ProductArchiveTest",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": "1.519"
+    },
+    {
+      "name": "it.elledue.control.PropertyDraftTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": "0.008"
+    },
+    {
+      "name": "it.elledue.control.AccountingUiTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": "10.527"
+    },
+    {
+      "name": "it.elledue.control.BrandAssetTest",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": "2.652"
+    },
+    {
+      "name": "it.elledue.control.VisibilityPdfTest",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": "0.181"
+    },
+    {
+      "name": "it.elledue.control.AmountsTest",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": "0.01"
+    },
+    {
+      "name": "it.elledue.control.BusinessModelTest",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": "0.454"
+    },
+    {
+      "name": "it.elledue.control.ReminderEngineTest",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": "0.239"
+    },
+    {
+      "name": "it.elledue.control.ReportRepositoryTest",
+      "tests": 13,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": "0.66"
+    },
+    {
+      "name": "it.elledue.control.ProductMigrationTest",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": "0.055"
+    },
+    {
+      "name": "it.elledue.control.OperationsMigrationTest",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": "0.156"
+    },
+    {
+      "name": "it.elledue.control.OperationsPdfTest",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": "0.38"
+    },
+    {
+      "name": "it.elledue.control.AppNavigationTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": "4.708"
+    },
+    {
+      "name": "it.elledue.control.DeviceVisualUiTest",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": "2.044"
+    },
+    {
+      "name": "it.elledue.control.ReminderPlannerTest",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": "0.083"
+    },
+    {
+      "name": "it.elledue.control.AccessUiTest",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": "15.476"
+    },
+    {
+      "name": "it.elledue.control.ReportUiTest",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": "2.423"
+    },
+    {
+      "name": "it.elledue.control.StabilityMigrationTest",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": "0.075"
+    },
+    {
+      "name": "it.elledue.control.AccountingMigrationTest",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": "5.741"
+    },
+    {
+      "name": "it.elledue.control.ConceptVisualTest",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": "11.471"
+    },
+    {
+      "name": "it.elledue.control.OperationsRepositoryTest",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": "0.667"
+    },
+    {
+      "name": "it.elledue.control.DatabaseMigrationTest",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": "0.11"
+    },
+    {
+      "name": "it.elledue.control.OwnershipUiTest",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": "0.584"
+    },
+    {
+      "name": "it.elledue.control.StabilityDataTest",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": "0.325"
+    },
+    {
+      "name": "it.elledue.control.OperationalAccountingTest",
+      "tests": 9,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": "0.016"
+    },
+    {
+      "name": "it.elledue.control.PropertyRepositoryTest",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": "0.149"
+    },
+    {
+      "name": "it.elledue.control.SettingsRepositoryTest",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": "0.127"
+    },
+    {
+      "name": "it.elledue.control.OperationsUiTest",
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": "8.086"
+    },
+    {
+      "name": "it.elledue.control.ReportPdfTest",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": "0.362"
+    }
+  ]
+}
