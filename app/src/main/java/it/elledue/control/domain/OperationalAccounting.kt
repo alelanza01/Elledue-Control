@@ -58,11 +58,11 @@ data class ExpenseDraft(
     }
 }
 
-data class TaxDraft(val taxable: String = "", val exempt: String = "", val nights: String = "", val actualExpected: String = "", val reason: String = "", val responsible: String = "UNDEFINED", val remittanceNotes: String = "", val revision: Int = 0) {
+data class TaxDraft(val taxable: String = "", val exempt: String = "", val nights: String = "", val actualExpected: String = "", val reason: String = "", val responsible: String = "UNDEFINED", val remittanceNotes: String = "", val revision: Int = 0, val useCurrentRules:Boolean=false) {
     fun record(booking: ReservationEntity, property: PropertyEntity, previous: TaxAssessmentEntity?): TaxAssessmentEntity {
         val subjects = taxable.toIntOrNull(); val exemptions = exempt.toIntOrNull(); val count = nights.toIntOrNull()
         require(subjects != null && exemptions != null && subjects >= 0 && exemptions >= 0 && subjects.toLong() + exemptions == booking.guestCount.toLong()) { "Soggetti più esenti devono corrispondere agli ospiti totali." }
-        val basis = previous?.takeIf { it.propertyId == booking.propertyId }
+        val basis = previous?.takeIf { !useCurrentRules && it.propertyId == booking.propertyId }
         val max = basis?.maxNights ?: if (basis == null) property.touristTaxMaxNights else null
         val rate = basis?.nightCents ?: property.touristTaxNightCents
         require(count != null && count >= 0 && count.toLong() <= booking.checkOutEpochDay - booking.checkInEpochDay && (max == null || count <= max)) { "Notti soggette oltre il soggiorno o il limite configurato." }

@@ -18,37 +18,52 @@ import it.elledue.control.domain.*
 import java.time.YearMonth
 
 @Composable
-fun EconomyHub(bookings: List<ReservationEntity>, properties: List<PropertyWithOwner>, accounting: AccountingData?, navigate: (String) -> Unit) {
-    val month = YearMonth.from(BookingDates.today())
-    val current = bookings.filter { it.status != "CANCELLED" && it.competenceMonth == month.toString() }
-    LazyColumn(Modifier.fillMaxSize().testTag("economy-scroll"), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        item { Text("Economia", style = MaterialTheme.typography.headlineLarge); Text("La gestione interna · $month", style = MaterialTheme.typography.bodySmall,color=ConceptMuted) }
-        item { Column(Modifier.fillMaxWidth().background(ConceptCard, MaterialTheme.shapes.medium).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text("Compensi Elledue maturati", color = ElledueGold,style=MaterialTheme.typography.labelMedium)
-            Text(Amounts.euro(OperationalMoney.total(current.map { it.managementCents })), color = Color.White, style = MaterialTheme.typography.headlineLarge)
-            Text("Lordo ai proprietari ${Amounts.euro(OperationalMoney.total(current.map { it.grossCents }))}", color = Color.White)
-            Text("Il compenso maturato non è un pagamento ricevuto.", color = Color(0xFFB4C3D6), style = MaterialTheme.typography.bodySmall)
-        } }
-        if (accounting != null) item {
-            val costs = accounting.expenses.filter { !it.voided && it.competenceMonth == month.toString() }
-            val payments = Ledger.active(accounting.movements).filter { it.competenceMonth == month.toString() && it.kind == "OWNER_PAYMENT" }
-            Text("Spese ${Amounts.euro(OperationalMoney.total(costs.map { it.actualCents }))} · anticipate ${Amounts.euro(OperationalMoney.total(costs.filter { it.advancedByElledue }.map { it.actualCents }))}", style = MaterialTheme.typography.bodyMedium)
-            Text("Anticipi / pagamenti riconosciuti ${Amounts.euro(OperationalMoney.total(payments.map { it.amountCents }))}", style = MaterialTheme.typography.bodySmall)
+fun EconomyHub(bookings: List<ReservationEntity>, properties: List<PropertyWithOwner>, accounting: AccountingData?, navigate: (String) -> Unit,businessType:String="MANAGED") {
+    var period by rememberSaveable{mutableStateOf(YearMonth.from(BookingDates.today()).toString())};val month=YearMonth.parse(period)
+    var tab by rememberSaveable{mutableIntStateOf(0)}
+    val totals=BusinessAnalytics.calculate(period,properties,bookings,accounting?.expenses.orEmpty(),accounting?.taxes.orEmpty(),accounting?.movements.orEmpty())
+    LazyColumn(Modifier.fillMaxSize().testTag("economy-scroll"),contentPadding=PaddingValues(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
+        item{ConceptHeading("Economia","Previsioni, movimenti e saldi distinti")}
+        item{Row(verticalAlignment=androidx.compose.ui.Alignment.CenterVertically){IconButton(onClick={period=month.minusMonths(1).toString()}){Icon(Icons.Outlined.ChevronLeft,"Economia mese precedente")};Text(period,Modifier.weight(1f),style=MaterialTheme.typography.titleLarge);IconButton(onClick={period=month.plusMonths(1).toString()}){Icon(Icons.Outlined.ChevronRight,"Economia mese successivo")}}}
+        item{Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(8.dp)){listOf("Panoramica","Movimenti","Rendiconti").forEachIndexed{i,label->ConceptPill(tab==i,{tab=i},label={Text(label)},modifier=Modifier.testTag("economy-tab-$i"))}}}
+        if(tab==0) {
+            if(businessType!="OWNED")item{Card(Modifier.fillMaxWidth(),colors=CardDefaults.cardColors(containerColor=ConceptCard)){Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){
+                Text("Immobili in gestione",style=MaterialTheme.typography.titleMedium,color=ElledueGold)
+                Text("Compenso di gestione Elledue",style=MaterialTheme.typography.labelMedium);Text(Amounts.euro(totals.fees),style=MaterialTheme.typography.headlineLarge)
+                AmountLine("Netto dei portali ai proprietari",totals.managedNet);AmountLine("Anticipi da rimborsare",totals.reimbursements)
+                AmountLine(if(totals.balance<0)"Credito da riconciliare" else "Saldo da riconciliare con proprietari",totals.balance)
+                Text("Compensi maturati diversi dagli incassi. Il saldo non è un ordine di bonifico né un rendiconto confermato.",style=MaterialTheme.typography.bodySmall,color=ConceptMuted)
+            }}}
+            if(businessType!="MANAGED")item{Card(Modifier.fillMaxWidth(),colors=CardDefaults.cardColors(containerColor=ConceptCard)){Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){
+                Text("Immobili propri / in comproprietà",style=MaterialTheme.typography.titleMedium,color=ArrivalColor)
+                AmountLine("Ricavi prenotazioni registrati",totals.ownGross);AmountLine("Netto dopo OTA",totals.ownNet);AmountLine("Costi operativi",totals.ownCosts)
+                Text("Risultato operativo complessivo",style=MaterialTheme.typography.labelMedium);Text(Amounts.euro(totals.ownResult),style=MaterialTheme.typography.headlineLarge)
+                Text("Nessuna commissione di gestione o ripartizione automatica fra soci. Non è un saldo con proprietari esterni.",style=MaterialTheme.typography.bodySmall,color=ConceptMuted)
+                if(totals.legacyOwnBookings>0)Text("${totals.legacyOwnBookings} soggiorni conservano il modello storico in gestione: risultato parziale finché non verifichi la classificazione.",color=ElledueGold)
+            }}}
+            item{Text("Registra una sola volta",style=MaterialTheme.typography.titleLarge)}
+            item{Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){ActionTile("Spesa",Icons.Outlined.ReceiptLong,Modifier.weight(1f)){navigate("expense/new/OTHER")};ActionTile("Pulizia",Icons.Outlined.CleaningServices,Modifier.weight(1f)){navigate("expense/new/CLEANING")};ActionTile("Lavanderia",Icons.Outlined.LocalLaundryService,Modifier.weight(1f)){navigate("expense/new/LAUNDRY")}}}
+            item{OutlinedButton(onClick={navigate("tax-overview")},modifier=Modifier.fillMaxWidth().testTag("economy-tax")){Text("Tassa · previsione, incasso, compensazione e riversamento")}}
+            item{Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){ActionTile("Analisi e confronti",Icons.Outlined.BarChart,Modifier.weight(1f).testTag("open-analysis")){navigate("analysis")};ActionTile("Operatività",Icons.Outlined.TaskAlt,Modifier.weight(1f)){navigate("activities")}}}
         }
-        item { Text("Gestione e controllo", style = MaterialTheme.typography.titleLarge) }
-        item { Row(horizontalArrangement=Arrangement.spacedBy(9.dp)) {
-            ActionTile("Analisi e confronti",Icons.Outlined.BarChart,Modifier.weight(1f).testTag("open-analysis")) { navigate("analysis") }
-            ActionTile("Operatività",Icons.Outlined.TaskAlt,Modifier.weight(1f)) { navigate("activities") }
-        } }
-        item { ActionTile("Contabilità operativa · Spese, tassa e anticipi",Icons.Outlined.AccountBalanceWallet,Modifier.fillMaxWidth().testTag("open-accounting")) { navigate("accounting") } }
-        item { OutlinedButton(onClick={navigate("messages")},modifier=Modifier.fillMaxWidth().testTag("open-messages")){Text("Messaggi ospiti · IT/EN")} }
-        item { HorizontalDivider(); Text("Documenti per i proprietari", style = MaterialTheme.typography.titleLarge) }
-        item { OutlinedButton(onClick = { navigate("reports") }, modifier = Modifier.fillMaxWidth().testTag("open-reports")) { Icon(Icons.Outlined.Description, null); Spacer(Modifier.width(10.dp)); Text("Rendiconti mensili") } }
+        if(tab==1){
+            item{Text("Registrazioni effettive · $period",style=MaterialTheme.typography.titleLarge)}
+            val costs=accounting?.expenses.orEmpty().filter{!it.voided && it.competenceMonth==period}
+            items(costs,key={"cost-${it.id}"}){e->TextButton(onClick={navigate("expense/${e.id}")}){Text("${e.category} · ${e.description} · ${Amounts.euro(e.actualCents)}")}}
+            val money=accounting?.movements.orEmpty().filter{it.competenceMonth==period}
+            items(money,key={"money-${it.id}"}){m->TextButton(onClick={navigate(m.reservationId?.let{"tax/$it"} ?: "accounting")}){Text("${movementLabel(m.kind)} · ${Amounts.euro(m.amountCents)}")}}
+            if(costs.isEmpty() && money.isEmpty())item{EmptyState("Nessun movimento registrato","Le previsioni delle prenotazioni non sono incassi. Registra soltanto somme effettive.")}
+        }
+        item{ActionTile("Dettaglio contabile e storico",Icons.Outlined.AccountBalanceWallet,Modifier.fillMaxWidth().testTag("open-accounting")){navigate("accounting")}}
+        item{OutlinedButton(onClick={navigate("messages")},modifier=Modifier.fillMaxWidth().testTag("open-messages")){Text("Messaggi ospiti · IT/EN")}}
+        item{HorizontalDivider();Text("Rendiconti per proprietari esterni",style=MaterialTheme.typography.titleLarge)}
+        item{OutlinedButton(onClick={navigate("reports")},modifier=Modifier.fillMaxWidth().testTag("open-reports"),enabled=properties.any{it.property.businessType!="OWNED"}){Text("Rendiconti mensili")};if(properties.all{it.property.businessType=="OWNED"})Text("Per gli immobili propri usa il risultato economico complessivo in Analisi.",style=MaterialTheme.typography.bodySmall)}
+        item{TextButton(onClick={navigate("archive")}){Text("Archivio storico")}}
     }
 }
 
 @Composable
-fun EconomyAnalysis(bookings: List<ReservationEntity>, properties: List<PropertyWithOwner>, accounting:AccountingData?=null, back: () -> Unit) {
+fun EconomyAnalysis(bookings: List<ReservationEntity>, properties: List<PropertyWithOwner>, accounting:AccountingData?=null,businessType:String="MANAGED", back: () -> Unit) {
     var period by rememberSaveable { mutableStateOf(YearMonth.from(BookingDates.today()).toString()) }
     val month = YearMonth.parse(period)
     var property by rememberSaveable { mutableStateOf("") }

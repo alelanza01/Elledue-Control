@@ -83,4 +83,16 @@ object DatabaseMigrations {
         }
     }
 
+    val MIGRATION_6_7 = object:Migration(6,7) {
+        override fun migrate(db:SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE properties ADD COLUMN businessType TEXT NOT NULL DEFAULT 'MANAGED'")
+            db.execSQL("ALTER TABLE reservations ADD COLUMN appliedBusinessType TEXT NOT NULL DEFAULT 'MANAGED'")
+            db.execSQL("ALTER TABLE tax_assessments ADD COLUMN consolidated INTEGER NOT NULL DEFAULT 1")
+            db.execSQL("ALTER TABLE activities ADD COLUMN kind TEXT NOT NULL DEFAULT 'GENERAL'")
+            db.execSQL("ALTER TABLE activities ADD COLUMN hasTime INTEGER NOT NULL DEFAULT 1")
+            db.execSQL("CREATE TABLE IF NOT EXISTS report_booking_options (reportId TEXT NOT NULL, reservationId TEXT NOT NULL, hideDetails INTEGER NOT NULL, excluded INTEGER NOT NULL, PRIMARY KEY(reportId,reservationId), FOREIGN KEY(reportId) REFERENCES reports(id) ON DELETE RESTRICT, FOREIGN KEY(reservationId) REFERENCES reservations(id) ON DELETE RESTRICT)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_report_booking_options_reservationId ON report_booking_options(reservationId)")
+        }
+    }
+
 }

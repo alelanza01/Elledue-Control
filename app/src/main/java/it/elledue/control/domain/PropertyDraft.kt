@@ -30,11 +30,14 @@ data class PropertyDraft(
     val taxExemptions: String = "",
     val accessItalian: String = "",
     val accessEnglish: String = "",
+    val businessType:String = "MANAGED",
+    val baseUpdatedAt:Long?=null,
 ) {
     fun toRecord(previous: PropertyEntity? = null): PropertyWithOwner {
         require(name.isNotBlank()) { "Inserisci il nome dell’immobile." }
         require(address.isNotBlank()) { "Inserisci l’indirizzo." }
-        require(ownerName.isNotBlank()) { "Inserisci il nome del proprietario." }
+        require(businessType in listOf("MANAGED","OWNED"))
+        require(businessType=="OWNED" || ownerName.isNotBlank()) { "Inserisci il nome del proprietario." }
         val bedCount = beds.toIntOrNull()
         val guests = maxGuests.toIntOrNull()
         require(bedCount != null && bedCount > 0) { "I posti letto devono essere un numero intero positivo." }
@@ -47,17 +50,17 @@ data class PropertyDraft(
         require(minAge != null && minAge in 0..120) { "L’età minima deve essere tra 0 e 120." }
         val maxNights = if (taxMaxNights.isBlank()) null else taxMaxNights.toIntOrNull()
         require(taxMaxNights.isBlank() || (maxNights != null && maxNights > 0)) { "Il limite di notti deve essere positivo, oppure vuoto." }
-        val owner = OwnerEntity(ownerId, ownerName.trim(), ownerPhone.trim(), ownerEmail.trim())
+        val owner = OwnerEntity(ownerId, ownerName.trim().ifBlank { "Proprietà diretta / soci da configurare" }, ownerPhone.trim(), ownerEmail.trim())
         val property = PropertyEntity(
             id = id, ownerId = ownerId, name = name.trim(), address = address.trim(),
             usefulContacts = usefulContacts.trim(), beds = bedCount, maxGuests = guests,
             checkInTime = checkInTime, checkOutTime = checkOutTime, operationalNotes = notes.trim(),
-            managementBasisPoints = Amounts.parseBasisPoints(managementPercent),
+            managementBasisPoints = if(businessType=="OWNED")0 else Amounts.parseBasisPoints(managementPercent),
             otaBasisPoints = Amounts.parseBasisPoints(otaPercent),
             cleaningHourlyCents = Amounts.parseCents(cleaningRate), laundrySetCents = Amounts.parseCents(laundryRate),
             touristTaxNightCents = Amounts.parseCents(taxRate), touristTaxMinAge = minAge,
             touristTaxMaxNights = maxNights, touristTaxExemptions = taxExemptions.trim(),
-            archived = previous?.archived ?: false,
+            archived = previous?.archived ?: false, businessType=businessType,
             coverImageBase64 = previous?.coverImageBase64,
             createdAt = previous?.createdAt ?: System.currentTimeMillis(),
         )
@@ -85,6 +88,7 @@ data class PropertyDraft(
                 taxRate = Amounts.editable(touristTaxNightCents), taxMinAge = touristTaxMinAge.toString(),
                 taxMaxNights = touristTaxMaxNights?.toString() ?: "", taxExemptions = touristTaxExemptions,
                 accessItalian = item.templates.firstOrNull { it.kind == "access" && it.language == "it" }?.body ?: "",
+                businessType=businessType,baseUpdatedAt=updatedAt,
                 accessEnglish = item.templates.firstOrNull { it.kind == "access" && it.language == "en" }?.body ?: "",
             )
         }

@@ -21,26 +21,41 @@ import it.elledue.control.domain.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BookingEditorScreen(initial: BookingDraft, properties: List<PropertyWithOwner>, isNew: Boolean, busy: Boolean, error: String?, pending: PendingOverlap?, onBack: () -> Unit, onSave: (BookingDraft) -> Unit, onConfirm: () -> Unit, onDismiss: () -> Unit) {
-    var draft by rememberSaveable(initial.id, stateSaver = BookingDraftSaver) { mutableStateOf(initial) }
+    val draftKey=if(isNew)"booking/new" else "booking/${initial.id}/edit"
+    var draft by rememberPersistentDraft(draftKey,initial)
+    var correction by rememberSaveable{mutableStateOf(false)}
+    var correctionText by rememberSaveable{mutableStateOf("")}
+    val scroll=rememberScrollState()
+    LaunchedEffect(error){if(error!=null)scroll.animateScrollTo(0)}
+    fun save(){
+        val financial=!isNew && listOf(draft.gross,draft.otaPercent,draft.actualOta,draft.managementPercent)!=listOf(initial.gross,initial.otaPercent,initial.actualOta,initial.managementPercent)
+        if(financial && draft.correctionReason.isBlank()){correction=true;return}
+        onSave(draft)
+    }
     var discard by rememberSaveable { mutableStateOf(false) }
     val back = { if (draft != initial) discard = true else onBack() }
     val enabled = !busy && pending == null
     val selected = properties.firstOrNull { it.property.id == draft.propertyId }
     BackHandler { if (enabled) back() }
     Scaffold(topBar = { TopAppBar(title = { Text(if (isNew) "Nuova prenotazione" else "Modifica prenotazione") }, navigationIcon = { IconButton(onClick = { back() }, enabled = enabled) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Indietro") } }, actions = {
-        TextButton(onClick = { onSave(draft) }, enabled = enabled, modifier = Modifier.testTag("save-booking")) { Text(if (busy) "Salvataggio…" else "Salva") }
+        TextButton(onClick = { save() }, enabled = enabled, modifier = Modifier.testTag("save-booking")) { Text(if (busy) "Salvataggio…" else "Salva") }
     }) }) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding).imePadding().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        Column(Modifier.fillMaxSize().padding(padding).imePadding().verticalScroll(scroll).padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             if (error != null) Text(error, color = MaterialTheme.colorScheme.error, modifier = Modifier.testTag("booking-error"))
+            DraftBanner(draftKey){draft=initial}
             Text("Soggiorno", style = MaterialTheme.typography.titleLarge)
             PropertySelector(properties.filter { !it.property.archived || it.property.id == initial.propertyId }, draft.propertyId, enabled) { id ->
                 val item = properties.first { it.property.id == id }
-                draft = if (isNew) draft.withPropertyDefaults(item) else draft.copy(propertyId = id)
+                draft = if (isNew) draft.withPropertyDefaults(item) else draft.copy(propertyId = id,businessType=item.property.businessType,managementPercent=if(item.property.businessType=="OWNED")"0" else draft.managementPercent)
             }
             if (!isNew) Text("Le percentuali salvate restano invariate. Puoi rettificarle esplicitamente qui.", style = MaterialTheme.typography.bodySmall)
             BookingField("Nome ospite *", draft.firstName, enabled, tag = "booking-first-name") { draft = draft.copy(firstName = it) }
             BookingField("Cognome ospite *", draft.lastName, enabled, tag = "booking-last-name") { draft = draft.copy(lastName = it) }
             BookingField("Ospiti totali", draft.guests, enabled, KeyboardType.Number, "booking-guests") { draft = draft.copy(guests = it) }
+            BookingField("Ospiti soggetti alla tassa · da verificare",draft.taxableGuestCount,enabled,KeyboardType.Number,"booking-taxable-guests"){draft=draft.copy(taxableGuestCount=it)}
+            val taxPreview=runCatching{val subjects=draft.taxableGuestCount.toInt();val total=draft.guests.toInt();require(subjects in 0..total);val n=(BookingDates.parse(draft.checkOut).toEpochDay()-BookingDates.parse(draft.checkIn).toEpochDay());require(n>0);val p=selected!!.property;java.math.BigDecimal.valueOf(p.touristTaxNightCents).multiply(java.math.BigDecimal.valueOf(subjects.toLong())).multiply(java.math.BigDecimal.valueOf(minOf(n,p.touristTaxMaxNights?.toLong() ?: n))).longValueExact()}.getOrNull()
+            Text(taxPreview?.let{"Tassa prevista ${Amounts.euro(it)} · nessun incasso automatico"} ?: "Previsione da completare: indica gli ospiti soggetti, senza inserire età individuali.",style=MaterialTheme.typography.bodySmall)
+            if(draft.businessType=="OWNED")Text("Immobile proprio: nessun compenso di gestione automatico.",color=ElledueGold)
             PortalSelector(draft.platform,enabled) { value ->
                 draft=draft.copy(platform=value,otaPercent=if(isNew && selected!=null) BookingDraft.otaDefault(selected,value) else draft.otaPercent)
             }
@@ -85,7 +100,8 @@ fun BookingEditorScreen(initial: BookingDraft, properties: List<PropertyWithOwne
             Spacer(Modifier.height(24.dp))
         }
     }
-    if (discard) AlertDialog(onDismissRequest = { discard = false }, title = { Text("Abbandonare le modifiche?") }, text = { Text("Le modifiche non salvate andranno perse.") }, confirmButton = { TextButton(onClick = onBack) { Text("Abbandona") } }, dismissButton = { TextButton(onClick = { discard = false }) { Text("Continua modifica") } })
+    if(correction) AlertDialog(onDismissRequest={correction=false},title={Text("Motiva la rettifica economica")},text={Column {Text("Gli importi precedenti resteranno nello storico. Il salvataggio richiede un motivo.");OutlinedTextField(correctionText,{correctionText=it},label={Text("Motivo")},modifier=Modifier.testTag("booking-correction-dialog"))}},confirmButton={TextButton(onClick={draft=draft.copy(correctionReason=correctionText);correction=false;onSave(draft)},enabled=correctionText.isNotBlank()){Text("Salva rettifica")}},dismissButton={TextButton(onClick={correction=false}){Text("Continua a modificare")}})
+    if (discard) AlertDialog(onDismissRequest = { discard = false }, title = { Text("Abbandonare le modifiche?") }, text = { Text("La bozza locale rimane disponibile in Home → Riprendi bozze.") }, confirmButton = { TextButton(onClick = onBack) { Text("Abbandona") } }, dismissButton = { TextButton(onClick = { discard = false }) { Text("Continua modifica") } })
     if (pending != null) AlertDialog(onDismissRequest = onDismiss, title = { Text("Sovrapposizione rilevata") }, text = {
         Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Le date confliggono con queste prenotazioni. Conferma soltanto dopo aver verificato l’incompatibilità:")

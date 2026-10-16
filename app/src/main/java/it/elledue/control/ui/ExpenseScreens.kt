@@ -20,10 +20,13 @@ import java.util.UUID
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ExpenseEditor(initial: ExpenseDraft, properties: List<PropertyWithOwner>, bookings: List<ReservationEntity>, categories: List<ExpenseCategoryEntity>, model: AccountingViewModel, onBack: () -> Unit) {
-    var draft by rememberSaveable(initial.id, stateSaver = ExpenseDraftSaver) { mutableStateOf(initial) }
+fun ExpenseEditor(initial: ExpenseDraft, properties: List<PropertyWithOwner>, bookings: List<ReservationEntity>, categories: List<ExpenseCategoryEntity>, model: AccountingViewModel, draftRoute:String?=null, onBack: () -> Unit) {
+    val draftKey=draftRoute ?: if(initial.revision==0)"expense/new/OTHER?booking=${initial.reservationId}" else "expense/${initial.id}/edit"
+    var draft by rememberPersistentDraft(draftKey,initial)
     var exit by rememberSaveable { mutableStateOf(false) }
     val busy by model.busy.collectAsStateWithLifecycle(); val error by model.error.collectAsStateWithLifecycle()
+    val editorScroll=rememberScrollState()
+    LaunchedEffect(error){if(error!=null)editorScroll.animateScrollTo(0)}
     val back = { if (!busy) { if (draft != initial) exit = true else onBack() } }
     BackHandler { back() }
     val category = categories.firstOrNull { it.id == draft.categoryId }
@@ -33,10 +36,12 @@ fun ExpenseEditor(initial: ExpenseDraft, properties: List<PropertyWithOwner>, bo
         return draft.copy(categoryId = id, quantity = if (c?.kind == "OTHER") "" else draft.quantity.ifBlank { "1" }, unit = when (c?.kind) { "CLEANING" -> Amounts.editable(p?.cleaningHourlyCents ?: 800); "LAUNDRY" -> Amounts.editable(p?.laundrySetCents ?: 500); else -> "" })
     }
     Scaffold(topBar = { TopAppBar(title = { Text(if (initial.revision == 0) "Nuova spesa" else "Rettifica spesa") }, navigationIcon = { IconButton(onClick = back) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Indietro spesa") } }, actions = { TextButton(onClick = { model.saveExpense(draft) }, enabled = !busy, modifier = Modifier.testTag("save-expense")) { Text("Salva") } }) }) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(20.dp).testTag("expense-editor"), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        Column(Modifier.fillMaxSize().padding(padding).verticalScroll(editorScroll).padding(20.dp).testTag("expense-editor"), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            DraftBanner(draftKey){draft=initial}
+            error?.let { Text(it,color=MaterialTheme.colorScheme.error) }
             PropertySelector(properties.filter { !it.property.archived || it.property.id == initial.propertyId }, draft.propertyId, enabled = !busy) { id ->
                 val p = properties.first { it.property.id == id }.property
-                draft = draft.copy(propertyId = id, reservationId = "", unit = if (initial.revision == 0) when (category?.kind) { "CLEANING" -> Amounts.editable(p.cleaningHourlyCents); "LAUNDRY" -> Amounts.editable(p.laundrySetCents); else -> draft.unit } else draft.unit)
+                draft = draft.copy(propertyId = id, reservationId = "", reimbursable=if(p.businessType=="OWNED")false else draft.reimbursable, advanced=if(p.businessType=="OWNED")false else draft.advanced, unit = if (initial.revision == 0) when (category?.kind) { "CLEANING" -> Amounts.editable(p.cleaningHourlyCents); "LAUNDRY" -> Amounts.editable(p.laundrySetCents); else -> draft.unit } else draft.unit)
             }
             ChoiceField("Categoria", draft.categoryId, categories.filter { !it.archived || it.id == initial.categoryId }.map { it.id to it.label }, !busy) { draft = selectCategory(it) }
             if (category?.kind != "OTHER") {
@@ -63,11 +68,10 @@ fun ExpenseEditor(initial: ExpenseDraft, properties: List<PropertyWithOwner>, bo
             AccountingField("Note", draft.notes, enabled = !busy) { draft = draft.copy(notes = it) }
             if (initial.revision > 0) AccountingField("Motivo della rettifica", draft.reason, "expense-reason", !busy) { draft = draft.copy(reason = it) }
             Text("Allegati/scontrini non ancora disponibili: non vengono richiesti permessi o copie non protette.", style = MaterialTheme.typography.bodySmall)
-            error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             if (busy) CircularProgressIndicator()
         }
     }
-    if (exit) AlertDialog(onDismissRequest = { exit = false }, title = { Text("Uscire senza salvare?") }, text = { Text("Le modifiche non salvate andranno perse.") }, confirmButton = { TextButton(onClick = { exit = false; onBack() }) { Text("Esci") } }, dismissButton = { TextButton(onClick = { exit = false }) { Text("Continua") } })
+    if (exit) AlertDialog(onDismissRequest = { exit = false }, title = { Text("Uscire senza salvare?") }, text = { Text("La bozza locale rimane disponibile in Home → Riprendi bozze.") }, confirmButton = { TextButton(onClick = { exit = false; onBack() }) { Text("Esci") } }, dismissButton = { TextButton(onClick = { exit = false }) { Text("Continua") } })
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

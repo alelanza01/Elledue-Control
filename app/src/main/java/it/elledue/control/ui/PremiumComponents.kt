@@ -91,8 +91,8 @@ fun PortfolioTile(item: PropertyWithOwner, open: () -> Unit) {
 fun ProfileScreen(settings: AppSettings?, model: SettingsViewModel, back: () -> Unit) {
     if (settings == null) { CircularProgressIndicator(); return }
     val status by model.saveState.collectAsStateWithLifecycle()
-    var first by rememberSaveable(settings.operatorFirstName) { mutableStateOf(settings.operatorFirstName) }
-    var last by rememberSaveable(settings.operatorLastName) { mutableStateOf(settings.operatorLastName) }
+    var first by rememberPersistentDraft("profile#first",settings.operatorFirstName)
+    var last by rememberPersistentDraft("profile#last",settings.operatorLastName)
     // Persist photos immediately; don't put large base64 values in the Android saved-instance bundle.
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).imePadding().padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         TextButton(onClick = back) { Text("Indietro") }
@@ -121,7 +121,7 @@ private fun HomeMetric(label: String, value: String, detail: String, icon: andro
 }
 
 @Composable
-fun CommandHome(properties: List<PropertyWithOwner>, bookings: List<ReservationEntity>, reports: List<ReportEntity>, accounting: AccountingData?, settings: AppSettings?, activities: List<ActivityEntity>, navigate: (String) -> Unit) {
+fun CommandHome(properties: List<PropertyWithOwner>, bookings: List<ReservationEntity>, reports: List<ReportEntity>, accounting: AccountingData?, settings: AppSettings?, activities: List<ActivityEntity>, navigate: (String) -> Unit,businessType:String="MANAGED") {
     val today = BookingDates.today().toEpochDay(); val month = java.time.YearMonth.from(BookingDates.today())
     val active = bookings.filter { it.status != "CANCELLED" }
     val arrivals = active.filter { it.checkInEpochDay == today }; val departures = active.filter { it.checkOutEpochDay == today }
@@ -131,8 +131,9 @@ fun CommandHome(properties: List<PropertyWithOwner>, bookings: List<ReservationE
     val occupied = metrics.sumOf { it.calendarOccupiedDays }; val available = metrics.sumOf { it.calendarDays }
     val ratio = if(available == 0) 0f else occupied.toFloat()/available
     val gross = OperationalMoney.total(active.filter { it.competenceMonth == month.toString() }.map { it.grossCents })
-    val fees = OperationalMoney.total(active.filter { it.competenceMonth == month.toString() }.map { it.managementCents })
+    val fees = OperationalMoney.total(active.filter { it.competenceMonth == month.toString() && it.appliedBusinessType!="OWNED" }.map { it.managementCents })
     androidx.compose.foundation.lazy.LazyColumn(Modifier.fillMaxSize().testTag("home-scroll"), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        item { TextButton(onClick={navigate("drafts")},modifier=Modifier.testTag("open-drafts")){Text("Riprendi bozze")} }
         item {
             Box(Modifier.fillMaxWidth().heightIn(min = 206.dp).clip(MaterialTheme.shapes.large).border(1.dp,ElledueGold.copy(.22f),MaterialTheme.shapes.large)) {
                 val custom=portfolio.firstOrNull { it.property.coverImageBase64 != null }?.property?.coverImageBase64
@@ -151,6 +152,7 @@ fun CommandHome(properties: List<PropertyWithOwner>, bookings: List<ReservationE
                 }
             }
         }
+        if(businessType=="ALL")item { Text("In gestione: ${Amounts.euro(OperationalMoney.total(active.filter{it.appliedBusinessType!="OWNED" && it.competenceMonth==month.toString()}.map{it.grossCents}))} · Ricavi propri: ${Amounts.euro(OperationalMoney.total(active.filter{it.appliedBusinessType=="OWNED" && it.competenceMonth==month.toString()}.map{it.grossCents}))}",style=MaterialTheme.typography.bodySmall) }
         item {
             Column(verticalArrangement=Arrangement.spacedBy(9.dp)) {
                 Row(horizontalArrangement=Arrangement.spacedBy(9.dp)) {
@@ -159,7 +161,7 @@ fun CommandHome(properties: List<PropertyWithOwner>, bookings: List<ReservationE
                 }
                 Row(horizontalArrangement=Arrangement.spacedBy(9.dp)) {
                     HomeMetric("Occupazione calendario",if(available==0) "—" else "${(ratio*100).toInt()}%",if(available==0) "Aggiungi il primo immobile" else "Giorni occupati nel mese",Icons.Outlined.DonutLarge,Modifier.weight(1f),ratio)
-                    HomeMetric("Lordo proprietari",Amounts.euro(gross),"Compensi ${Amounts.euro(fees)}",Icons.Outlined.BarChart,Modifier.weight(1f))
+                    HomeMetric(if(businessType=="OWNED")"Ricavi immobili propri" else if(businessType=="ALL")"Lordo prenotazioni separato" else "Lordo proprietari",Amounts.euro(gross),if(businessType=="OWNED")"Gestione diretta, senza fee" else "Compensi gestione ${Amounts.euro(fees)}",Icons.Outlined.BarChart,Modifier.weight(1f))
                 }
             }
         }

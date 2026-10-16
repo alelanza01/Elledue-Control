@@ -6,12 +6,13 @@ import it.elledue.control.domain.*
 data class ConflictToken(val id: String, val updatedAt: Long)
 class OverlapException(val conflicts: List<ReservationEntity>) : IllegalArgumentException("Le date si sovrappongono ad altre prenotazioni dell’immobile.")
 
-class ReservationRepository(private val database: AppDatabase) {
+class ReservationRepository(private val database: AppDatabase,private val drafts:DraftStore?=null) {
     private val dao = database.reservationDao()
     val reservations = dao.observeAll()
     suspend fun get(id: String) = dao.get(id)
-    suspend fun save(draft: BookingDraft, approved: Set<ConflictToken> = emptySet()) = database.withTransaction {
+    suspend fun save(draft: BookingDraft, approved: Set<ConflictToken> = emptySet()):Unit = database.withTransaction {
         val previous = dao.get(draft.id)
+        require(draft.baseUpdatedAt==null || previous?.updatedAt==draft.baseUpdatedAt){"La prenotazione è cambiata dopo l’apertura della bozza. Scarta la bozza per ricaricare i dati correnti; nessun dato è stato sovrascritto."}
         val property = requireNotNull(database.propertyDao().get(draft.propertyId)) { "Seleziona un immobile presente nel database." }
         require(!property.property.archived || previous?.propertyId == draft.propertyId) { "Non puoi aggiungere prenotazioni a un immobile archiviato." }
         require(previous?.accountingAllocationId == null) { "Questa prenotazione è già attribuita a un rendiconto: occorre una rettifica." }
@@ -30,9 +31,11 @@ class ReservationRepository(private val database: AppDatabase) {
         if (currentTokens.isNotEmpty() && currentTokens != approved) throw OverlapException(conflicts)
         val saved = candidate.copy(overlapAcknowledged = conflicts.isNotEmpty())
         dao.save(saved)
+        if(previous==null || saved.taxableGuests!=previous.taxableGuests || saved.guestCount!=previous.guestCount || saved.checkInEpochDay!=previous.checkInEpochDay || saved.checkOutEpochDay!=previous.checkOutEpochDay || saved.propertyId!=previous.propertyId) TaxForecast.update(database,saved,property.property)
         if(previous!=null && previous.propertyId!=saved.propertyId) database.activityDao().moveWithBooking(saved.id,saved.propertyId)
         if (financialChange) database.accountingDao().insertFinancialChange(BookingFinancialChangeEntity(java.util.UUID.randomUUID().toString(), saved.id,
             AccountingRepository.snapshot(previous!!), AccountingRepository.snapshot(saved), draft.correctionReason.trim(), saved.updatedAt))
+        drafts?.clear("booking/new");drafts?.clear("booking/${saved.id}/edit")
     }
     suspend fun cancel(id: String) = database.withTransaction {
         val previous = requireNotNull(dao.get(id)) { "Prenotazione non trovata." }

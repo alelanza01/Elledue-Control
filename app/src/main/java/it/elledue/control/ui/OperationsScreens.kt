@@ -32,7 +32,7 @@ fun copyGuestText(context:Context, text:String):Boolean = runCatching {
 val homeCovers=listOf(R.drawable.home_cover_1,R.drawable.home_cover_2,R.drawable.home_cover_3)
 @Composable fun AppearanceScreen(settings:AppSettings?, model:SettingsViewModel, back:()->Unit) {
     val state by model.saveState.collectAsState()
-    var selection by rememberSaveable(settings?.homeCover) { mutableIntStateOf(settings?.homeCover ?: 0) }
+    var selection by rememberPersistentDraft("appearance#selection",settings?.homeCover ?: 0)
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),verticalArrangement=Arrangement.spacedBy(14.dp)) {
         TextButton(onClick=back){Text("Indietro")};ConceptHeading("Aspetto","Copertina artistica della Home")
         Text("La scelta non modifica le fotografie degli immobili. Il tema Elledue rimane scuro per garantire il contrasto.")
@@ -51,13 +51,15 @@ val homeCovers=listOf(R.drawable.home_cover_1,R.drawable.home_cover_2,R.drawable
 }
 
 @Composable fun ActivityEditor(repository:ActivityRepository, initial:ActivityEntity?, properties:List<PropertyWithOwner>, bookings:List<ReservationEntity>, back:()->Unit) {
-    val id=rememberSaveable {initial?.id ?: UUID.randomUUID().toString()}
-    var title by rememberSaveable(id){mutableStateOf(initial?.title ?: "")};var notes by rememberSaveable(id){mutableStateOf(initial?.notes ?: "")}
+    val draftKey=if(initial==null)"activity/new" else "activity/${initial.id}"
+    val id by rememberPersistentDraft("$draftKey#id",initial?.id ?: UUID.randomUUID().toString())
+    var title by rememberPersistentDraft("$draftKey#title",initial?.title ?: "");var notes by rememberPersistentDraft("$draftKey#notes",initial?.notes ?: "")
     val due=initial?.dueEpochMillis?.let {Instant.ofEpochMilli(it).atZone(ZoneId.of(initial.zoneId))}
-    var date by rememberSaveable(id){mutableStateOf(due?.toLocalDate()?.format(BookingDates.inputFormat) ?: "")}
-    var time by rememberSaveable(id){mutableStateOf(due?.toLocalTime()?.toString()?.take(5)?.takeUnless {it=="00:00"} ?: "")}
-    var property by rememberSaveable(id){mutableStateOf(initial?.propertyId ?: "")};var booking by rememberSaveable(id){mutableStateOf(initial?.reservationId ?: "")}
-    var completed by rememberSaveable(id){mutableStateOf(initial?.completed ?: false)}
+    var date by rememberPersistentDraft("$draftKey#date",due?.toLocalDate()?.format(BookingDates.inputFormat) ?: "")
+    var time by rememberPersistentDraft("$draftKey#time",due?.takeIf{initial?.hasTime!=false}?.toLocalTime()?.toString()?.take(5) ?: "")
+    var property by rememberPersistentDraft("$draftKey#property",initial?.propertyId ?: "");var booking by rememberPersistentDraft("$draftKey#booking",initial?.reservationId ?: "")
+    var completed by rememberPersistentDraft("$draftKey#completed",initial?.completed ?: false)
+    var kind by rememberPersistentDraft("$draftKey#kind",initial?.kind ?: "GENERAL")
     var busy by remember {mutableStateOf(false)};var error by remember {mutableStateOf<String?>(null)};var deleting by remember {mutableStateOf(false)}
     val scope=rememberCoroutineScope()
     fun save() {if(busy)return;busy=true;scope.launch {try {
@@ -68,12 +70,14 @@ val homeCovers=listOf(R.drawable.home_cover_1,R.drawable.home_cover_2,R.drawable
             require(zone.rules.getValidOffsets(local).isNotEmpty()) {"Orario inesistente per il passaggio all’ora legale."}
             local.atZone(zone).toInstant().toEpochMilli()
         }
-        repository.save(ActivityEntity(id,property.ifBlank {null},title,stamp,initial?.zoneId ?: "Europe/Rome",completed,booking.ifBlank {null},notes));back()
+        repository.save(ActivityEntity(id,property.ifBlank {null},title,stamp,initial?.zoneId ?: "Europe/Rome",completed,booking.ifBlank {null},notes,kind=kind,hasTime=time.isNotBlank()));back()
     } catch(e:CancellationException){throw e} catch(e:Exception){error=e.message ?: "Salvataggio non riuscito"} finally {busy=false} } }
     Column(Modifier.fillMaxSize().imePadding().verticalScroll(rememberScrollState()).padding(20.dp).testTag("activity-editor"),verticalArrangement=Arrangement.spacedBy(12.dp)) {
+        DraftBanner(draftKey){back()}
         TextButton(onClick=back,enabled=!busy){Text("Indietro")};Text(if(initial==null)"Nuova attività" else "Dettaglio e modifica attività",style=MaterialTheme.typography.headlineLarge)
         OutlinedTextField(title,{title=it},label={Text("Titolo *")},modifier=Modifier.fillMaxWidth().testTag("activity-title"),enabled=!busy)
         OutlinedTextField(notes,{notes=it},label={Text("Descrizione / note")},modifier=Modifier.fillMaxWidth().testTag("activity-notes"),enabled=!busy)
+        ChoiceField("Tipologia attività",kind,listOf("GENERAL" to "Attività generale","CLEANING" to "Pulizia programmata","MAINTENANCE" to "Manutenzione"),!busy){kind=it}
         BookingDateField("Data facoltativa",date,!busy,"activity-date",Modifier.fillMaxWidth()){date=it}
         OutlinedTextField(time,{time=it},label={Text("Ora HH:mm · facoltativa")},modifier=Modifier.fillMaxWidth().testTag("activity-time"),enabled=!busy)
         Text("Senza data: attività non programmata. Con data e senza ora: attività della giornata. Fuso Europe/Rome.",style=MaterialTheme.typography.bodySmall)

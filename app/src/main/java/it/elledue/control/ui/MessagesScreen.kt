@@ -16,7 +16,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import java.util.UUID
 
-@Composable fun MessagesScreen(repository:MessageRepository, properties:List<PropertyWithOwner>,bookings:List<ReservationEntity>,bookingId:String?,accounting:AccountingData?,back:()->Unit) {
+@Composable fun MessagesScreen(repository:MessageRepository, properties:List<PropertyWithOwner>,bookings:List<ReservationEntity>,bookingId:String?,accounting:AccountingData?,draftId:String?=null,back:()->Unit) {
     val saved by repository.messages.collectAsState(initial=emptyList());val categories by repository.categories.collectAsState(initial=emptyList())
     val scope=rememberCoroutineScope();val context=LocalContext.current
     var error by remember {mutableStateOf<String?>(null)};var busy by remember {mutableStateOf(false)}
@@ -25,17 +25,21 @@ import java.util.UUID
     val all=saved+legacy.filter {l->saved.none {it.id==l.id}}
     var selectedBooking by rememberSaveable {mutableStateOf(bookingId ?: "")};val booking=bookings.firstOrNull {it.id==selectedBooking}
     var filter by rememberSaveable {mutableStateOf(booking?.propertyId ?: "")};var archived by rememberSaveable {mutableStateOf(false)}
-    var editId by rememberSaveable {mutableStateOf<String?>(null)};var previewId by rememberSaveable {mutableStateOf<String?>(null)};var language by rememberSaveable {mutableStateOf("IT")}
+    var editId by rememberSaveable {mutableStateOf<String?>(draftId)};var previewId by rememberSaveable {mutableStateOf<String?>(null)};var language by rememberSaveable {mutableStateOf("IT")}
     var deleteId by remember {mutableStateOf<String?>(null)};var categoryEdit by rememberSaveable {mutableStateOf(false)}
     fun action(block:suspend ()->Unit){if(busy)return;busy=true;error=null;scope.launch{try{block()}catch(e:CancellationException){throw e}catch(e:Exception){error=e.message ?: "Operazione non riuscita"}finally{busy=false}}}
-    Column(Modifier.fillMaxSize().imePadding().verticalScroll(rememberScrollState()).padding(20.dp).testTag("messages-screen"),verticalArrangement=Arrangement.spacedBy(12.dp)) {
+    val messageScroll=rememberScrollState()
+    LaunchedEffect(error){if(error!=null)messageScroll.animateScrollTo(0)}
+    Column(Modifier.fillMaxSize().imePadding().verticalScroll(messageScroll).padding(20.dp).testTag("messages-screen"),verticalArrangement=Arrangement.spacedBy(12.dp)) {
         TextButton(onClick={if(editId!=null)editId=null else if(previewId!=null)previewId=null else back()}){Text("Indietro")}
         ConceptHeading("Messaggi ospiti","Italiano / English · copia manuale")
         error?.let {Text(it,color=MaterialTheme.colorScheme.error)}
         if(editId!=null) {
+            val draftKey="messages?draft=$editId"
+            DraftBanner(draftKey){editId=null}
             val item=all.firstOrNull {it.id==editId}
-            var title by rememberSaveable(editId){mutableStateOf(item?.title ?: "")};var italian by rememberSaveable(editId){mutableStateOf(item?.italian ?: "")};var english by rememberSaveable(editId){mutableStateOf(item?.english ?: "")}
-            var property by rememberSaveable(editId){mutableStateOf(item?.propertyId ?: filter)};var category by rememberSaveable(editId){mutableStateOf(item?.categoryId ?: "pre")}
+            var title by rememberPersistentDraft("$draftKey#title",item?.title ?: "");var italian by rememberPersistentDraft("$draftKey#italian",item?.italian ?: "");var english by rememberPersistentDraft("$draftKey#english",item?.english ?: "")
+            var property by rememberPersistentDraft("$draftKey#property",item?.propertyId ?: filter);var category by rememberPersistentDraft("$draftKey#category",item?.categoryId ?: "pre")
             OutlinedTextField(title,{title=it},label={Text("Titolo *")},modifier=Modifier.fillMaxWidth().testTag("message-title"))
             ConceptPropertySelector(properties,property,allOption=true){property=it};Text("Tutti gli immobili = modello globale",style=MaterialTheme.typography.bodySmall)
             var dropdown by remember {mutableStateOf(false)}

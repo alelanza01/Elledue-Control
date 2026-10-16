@@ -167,17 +167,19 @@ fun movementLabel(kind: String) = when (kind) { "COLLECTION" -> "Riscossione con
 
 @Composable
 fun MovementPanel(kind: String, propertyId: String, reservationId: String?, original: MoneyMovementEntity?, month: String, model: AccountingViewModel, dismiss: () -> Unit) {
-    val id = rememberSaveable { UUID.randomUUID().toString() }
-    var amount by rememberSaveable { mutableStateOf(if (kind == "REVERSAL") original?.amountCents?.let(Amounts::editable) ?: "" else "") }
-    var date by rememberSaveable { mutableStateOf(BookingDates.display(BookingDates.today().toEpochDay())) }
-    var competence by rememberSaveable { mutableStateOf(month) }
-    var notes by rememberSaveable { mutableStateOf("") }
+    val draftKey="movement/new?property=$propertyId&booking=${reservationId ?: ""}&kind=$kind&source=${original?.id ?: ""}"
+    val id by rememberPersistentDraft("$draftKey#id",UUID.randomUUID().toString())
+    var amount by rememberPersistentDraft("$draftKey#amount",if (kind == "REVERSAL") original?.amountCents?.let(Amounts::editable) ?: "" else "")
+    var date by rememberPersistentDraft("$draftKey#date",BookingDates.display(BookingDates.today().toEpochDay()))
+    var competence by rememberPersistentDraft("$draftKey#competence",month)
+    var notes by rememberPersistentDraft("$draftKey#notes","")
     var localError by remember { mutableStateOf<String?>(null) }
     val busy by model.busy.collectAsStateWithLifecycle(); val error by model.error.collectAsStateWithLifecycle()
     val bringIntoView = remember { BringIntoViewRequester() }
     LaunchedEffect(id) { withFrameNanos { }; bringIntoView.bringIntoView() }
     OutlinedCard(Modifier.fillMaxWidth().bringIntoViewRequester(bringIntoView).testTag("movement-panel")) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            DraftBanner(draftKey){dismiss()}
             Text(movementLabel(kind), style = MaterialTheme.typography.titleMedium)
             Text(if (kind == "COLLECTION") "Conferma soltanto una somma materialmente incassata." else if (kind == "COMPENSATION") "Riconosci un anticipo al proprietario; questa operazione non registra un nuovo incasso." else if (kind == "REMITTANCE") "Registra un riversamento verificato, separato dalla compensazione." else "Il movimento rimarrà nello storico.", style = MaterialTheme.typography.bodySmall)
             AccountingField("Importo €", amount, "movement-amount", enabled = !busy && kind != "REVERSAL") { amount = it }

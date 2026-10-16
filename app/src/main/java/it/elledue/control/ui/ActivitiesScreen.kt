@@ -54,7 +54,7 @@ fun ActivitiesScreen(repository: ActivityRepository, activities: List<ActivityEn
         items(shown,key={it.id}) { task ->
             val due=task.dueEpochMillis?.let { Instant.ofEpochMilli(it).atZone(ZoneId.of(task.zoneId)) }
             Row(Modifier.clickable { open("activity/${task.id}") }.testTag("activity-${task.id}"),verticalAlignment=androidx.compose.ui.Alignment.CenterVertically) {
-                Box(Modifier.weight(1f)) { ConceptTimelineRow(due?.toLocalTime()?.toString()?.take(5) ?: "—",task.title,(properties.firstOrNull { it.property.id==task.propertyId }?.property?.name ?: "Gestione generale")+if(due==null) " · Da pianificare" else " · ${BookingDates.display(due.toLocalDate().toEpochDay())}",if(task.title.contains("manut",true)) Icons.Outlined.Build else Icons.Outlined.ChatBubbleOutline,if(task.title.contains("manut",true)) TaskColor else StayColor) }
+                Box(Modifier.weight(1f)) { ConceptTimelineRow(if(due==null)"—" else if(!task.hasTime)"Giornata" else due.toLocalTime().toString().take(5),task.title,(properties.firstOrNull { it.property.id==task.propertyId }?.property?.name ?: "Gestione generale")+if(due==null) " · Da pianificare" else " · ${BookingDates.display(due.toLocalDate().toEpochDay())}",if(task.title.contains("manut",true)) Icons.Outlined.Build else Icons.Outlined.ChatBubbleOutline,if(task.title.contains("manut",true)) TaskColor else StayColor) }
                 Checkbox(task.completed,{completed->scope.launch {try {repository.save(task.copy(completed=completed))}catch(_:Exception){error="Stato non aggiornato."}}})
             }
         }

@@ -27,6 +27,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import it.elledue.control.data.*
 import it.elledue.control.domain.*
 import java.math.BigDecimal
@@ -85,7 +86,7 @@ fun ReservationsScreen(records: List<ReservationEntity>, properties: List<Proper
             } }
             item { TextButton(onClick = { monthText = YearMonth.from(BookingDates.today()).toString(); selectedDay = today }, modifier = Modifier.testTag("calendar-today").heightIn(min=32.dp)) { Text("Oggi · ${BookingDates.display(today)}",style=MaterialTheme.typography.labelSmall) } }
             if (!listMode) {
-                item { MonthGrid(month, selectedDay, today, inMonth.filter { it.status != BookingStatus.CANCELLED.name }, propertyFilter.isNotBlank(), activities.filter {propertyFilter.isBlank() || it.propertyId==propertyFilter}) { selectedDay = it } }
+                item { MonthGrid(month, selectedDay, today, inMonth.filter { it.status != BookingStatus.CANCELLED.name }, propertyFilter.isNotBlank(), activities.filter {propertyFilter.isBlank() || it.propertyId==propertyFilter},properties.associate{it.property.id to it.property.name}) { selectedDay = it } }
                 item {
                     Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                         properties.filter { property -> inMonth.any { it.propertyId == property.property.id } }.forEach { property ->
@@ -119,7 +120,7 @@ fun ReservationsScreen(records: List<ReservationEntity>, properties: List<Proper
 }
 
 @Composable
-private fun MonthGrid(month: YearMonth, selected: Long, today: Long, records: List<ReservationEntity>, singleProperty: Boolean, activities:List<ActivityEntity>, select: (Long) -> Unit) {
+private fun MonthGrid(month: YearMonth, selected: Long, today: Long, records: List<ReservationEntity>, singleProperty: Boolean, activities:List<ActivityEntity>, labels:Map<String,String>, select: (Long) -> Unit) {
     Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer), modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Row { listOf("L", "M", "M", "G", "V", "S", "D").forEach { Text(it, modifier = Modifier.weight(1f).padding(8.dp), style = MaterialTheme.typography.labelMedium) } }
@@ -129,21 +130,31 @@ private fun MonthGrid(month: YearMonth, selected: Long, today: Long, records: Li
                 Row {
                     repeat(7) { weekday ->
                         val day = week * 7 + weekday - offset + 1
-                        if (day !in 1..month.lengthOfMonth()) Spacer(Modifier.weight(1f).height(if(androidx.compose.ui.platform.LocalDensity.current.fontScale > 1.2f) 64.dp else 48.dp)) else {
+                        if (day !in 1..month.lengthOfMonth()) Spacer(Modifier.weight(1f).height(if(androidx.compose.ui.platform.LocalDensity.current.fontScale > 1.2f) 84.dp else 66.dp)) else {
                             val epoch = month.atDay(day).toEpochDay()
                             val bookings = records.filter { epoch >= it.checkInEpochDay && epoch <= it.checkOutEpochDay }
                             val arrivals = bookings.count { it.checkInEpochDay == epoch }
                             val departures = bookings.count { it.checkOutEpochDay == epoch }
                             val occupied = bookings.filter { epoch < it.checkOutEpochDay }
-                            Column(Modifier.weight(1f).height(if(androidx.compose.ui.platform.LocalDensity.current.fontScale>1.2f) 64.dp else 48.dp).clickable { select(epoch) }.testTag("calendar-day-$epoch").semantics { contentDescription = "${BookingDates.display(epoch)}, $arrivals arrivi, $departures partenze, ${occupied.size} soggiorni" }.padding(2.dp),horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.spacedBy(2.dp)) {
+                            Column(Modifier.weight(1f).height(if(androidx.compose.ui.platform.LocalDensity.current.fontScale>1.2f) 84.dp else 66.dp).clickable { select(epoch) }.testTag("calendar-day-$epoch").semantics { contentDescription = "${BookingDates.display(epoch)}, $arrivals arrivi, $departures partenze, ${occupied.size} soggiorni" }.padding(2.dp),horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.spacedBy(2.dp)) {
                                 Box(Modifier.size(23.dp).background(if(epoch==selected) ElledueGold else Color.Transparent,CircleShape),contentAlignment=Alignment.Center) {
                                     Text(day.toString(),style=MaterialTheme.typography.labelMedium,color=if(epoch==selected) ElledueNight else if(epoch==today) ElledueGold else ConceptMuted,fontWeight=if(epoch==selected||epoch==today) FontWeight.Bold else FontWeight.Normal)
                                 }
-                                if(singleProperty) {
-                                    if(bookings.isNotEmpty()) Box(Modifier.fillMaxWidth().height(5.dp).background(when { arrivals>0 -> ArrivalColor;departures>0 -> DepartureColor;else->StayColor },CircleShape))
-                                } else occupied.map { it.propertyId }.distinct().take(2).forEach { Box(Modifier.fillMaxWidth().height(4.dp).background(propertyColor(it),CircleShape)) }
-                                if(activities.any {t-> t.dueEpochMillis?.let{Instant.ofEpochMilli(it).atZone(ZoneId.of(t.zoneId)).toLocalDate().toEpochDay()}==epoch}) Box(Modifier.size(4.dp).background(TaskColor,CircleShape))
-                                if(arrivals>0 || departures>0) Text(listOfNotNull(if(arrivals>0) "A$arrivals" else null,if(departures>0) "P$departures" else null).joinToString(" "),style=MaterialTheme.typography.labelSmall,color=if(departures>0) DepartureColor else ArrivalColor)
+                                val large=androidx.compose.ui.platform.LocalDensity.current.fontScale>1.2f
+                                val displayed=bookings.sortedWith(compareBy<ReservationEntity>{it.checkInEpochDay!=epoch}.thenBy{it.checkOutEpochDay!=epoch}.thenBy{it.id}).take(if(large)2 else 3)
+                                displayed.forEach{booking->
+                                    val arriving=booking.checkInEpochDay==epoch;val leaving=booking.checkOutEpochDay==epoch
+                                    val color=if(singleProperty)when{arriving->ArrivalColor;leaving->DepartureColor;else->StayColor} else propertyColor(booking.propertyId)
+                                    val name=labels[booking.propertyId] ?: "Immobile"
+                                    Row(Modifier.fillMaxWidth().height(11.dp).background(color.copy(alpha=if(leaving).52f else .84f),androidx.compose.foundation.shape.RoundedCornerShape(topStart=if(arriving||weekday==0)4.dp else 0.dp,bottomStart=if(arriving||weekday==0)4.dp else 0.dp,topEnd=if(leaving||weekday==6)4.dp else 0.dp,bottomEnd=if(leaving||weekday==6)4.dp else 0.dp)).semantics{contentDescription=(if(arriving)"Check-in" else if(leaving)"Check-out" else "Soggiorno")+" · $name"}.padding(horizontal=2.dp),verticalAlignment=Alignment.CenterVertically){
+                                        if(arriving||leaving) Text(if(arriving)"↘" else "↗",color=Color.White,fontSize=8.sp,lineHeight=9.sp)
+                                        if(!large)Text(name.split(' ').filter{it.isNotBlank()}.take(2).joinToString(""){it.take(1)}.uppercase(),color=Color.White,fontSize=8.sp,lineHeight=9.sp,maxLines=1,modifier=Modifier.weight(1f))
+                                    }
+                                }
+                                val dailyTasks=activities.filter{t->t.dueEpochMillis?.let{Instant.ofEpochMilli(it).atZone(ZoneId.of(t.zoneId)).toLocalDate().toEpochDay()}==epoch}
+                                if(dailyTasks.isNotEmpty())Box(Modifier.fillMaxWidth().height(9.dp).background(if(dailyTasks.all{it.completed})ArrivalColor.copy(.45f) else TaskColor,androidx.compose.foundation.shape.RoundedCornerShape(3.dp)).semantics{contentDescription="${dailyTasks.size} attività, ${dailyTasks.count{it.completed}} completate"})
+                                if(bookings.size>displayed.size)Text("+${bookings.size-displayed.size}",style=MaterialTheme.typography.labelSmall,color=ConceptMuted)
+
 
                             }
                         }
@@ -156,7 +167,7 @@ private fun MonthGrid(month: YearMonth, selected: Long, today: Long, records: Li
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun BookingDetailScreen(item: ReservationEntity, propertyName: String, busy: Boolean, error: String?, onBack: () -> Unit, onEdit: () -> Unit, onCancel: () -> Unit, onTax: () -> Unit = {}, onExpense: (String) -> Unit = {}, onActivities: () -> Unit = {}, onMessages: () -> Unit = {}, financialChanges: List<it.elledue.control.data.BookingFinancialChangeEntity> = emptyList()) {
+fun BookingDetailScreen(item: ReservationEntity, propertyName: String, busy: Boolean, error: String?, onBack: () -> Unit, onEdit: () -> Unit, onCancel: () -> Unit, onDelete:()->Unit = {}, onTax: () -> Unit = {}, onExpense: (String) -> Unit = {}, onActivities: () -> Unit = {}, onMessages: () -> Unit = {}, financialChanges: List<it.elledue.control.data.BookingFinancialChangeEntity> = emptyList()) {
     var confirm by rememberSaveable { mutableStateOf(false) }
     Scaffold(topBar = { TopAppBar(title = { Text("Scheda prenotazione") }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Indietro") } }, actions = { TextButton(onClick = onEdit, enabled = !busy) { Text("Modifica") } }) }) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
@@ -191,6 +202,7 @@ fun BookingDetailScreen(item: ReservationEntity, propertyName: String, busy: Boo
             if (item.overlapAcknowledged && item.status != BookingStatus.CANCELLED.name) Text("Sovrapposizione autorizzata al salvataggio.", color = MaterialTheme.colorScheme.error)
             if (item.notes.isNotBlank()) { Text("Note", style = MaterialTheme.typography.titleMedium); Text(item.notes) }
             if (error != null) Text(error, color = MaterialTheme.colorScheme.error)
+            OutlinedButton(onClick=onDelete,enabled=!busy,modifier=Modifier.fillMaxWidth().testTag("delete-booking")){Text("Elimina definitivamente prenotazione")}
             if (item.status != BookingStatus.CANCELLED.name) OutlinedButton(onClick = { confirm = true }, enabled = !busy, modifier = Modifier.fillMaxWidth().testTag("cancel-booking")) { Text("Annulla prenotazione") }
         }
     }

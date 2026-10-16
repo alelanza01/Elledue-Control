@@ -25,15 +25,19 @@ data class BookingDraft(
     val notes: String = "",
     val status: String = BookingStatus.CONFIRMED.name,
     val correctionReason: String = "",
+    val businessType:String = "MANAGED",
+    val taxableGuestCount:String = "",
+    val baseUpdatedAt:Long?=null,
 ) {
     fun totals(): BookingTotals = BookingFinance.calculate(
         Amounts.parseCents(gross), Amounts.parseBasisPoints(if(otaPercent.isBlank() && actualOta.isNotBlank()) "0" else otaPercent),
-        actualOta.takeIf { it.isNotBlank() }?.let(Amounts::parseCents), Amounts.parseBasisPoints(managementPercent),
+        actualOta.takeIf { it.isNotBlank() }?.let(Amounts::parseCents), if(businessType=="OWNED")0 else Amounts.parseBasisPoints(managementPercent),
     )
     fun withPropertyDefaults(item: PropertyWithOwner): BookingDraft = copy(
         propertyId = item.property.id, expectedArrival = item.property.checkInTime,
         expectedDeparture = item.property.checkOutTime,
-        managementPercent = Amounts.editable(item.property.managementBasisPoints.toLong()),
+        managementPercent = if(item.property.businessType=="OWNED")"0" else Amounts.editable(item.property.managementBasisPoints.toLong()),
+        businessType=item.property.businessType,
         otaPercent = otaDefault(item, platform),
     )
     fun toRecord(previous: ReservationEntity?, overlapAcknowledged: Boolean): ReservationEntity {
@@ -46,18 +50,22 @@ data class BookingDraft(
         val end = BookingDates.parse(checkOut).toEpochDay()
         require(end > start) { "Il check-out deve essere successivo al check-in." }
         val parsedStatus = try { BookingStatus.valueOf(status) } catch (_: Exception) { throw IllegalArgumentException("Stato non valido.") }
+        require(businessType in listOf("MANAGED","OWNED"))
+        val subjects=taxableGuestCount.takeIf{it.isNotBlank()}?.let{it.toIntOrNull() ?: throw IllegalArgumentException("Ospiti soggetti: inserisci un numero intero.")}
+        require(subjects==null || subjects in 0..count) {"Gli ospiti soggetti non possono superare il totale."}
         val totals = totals()
         return ReservationEntity(
             id, propertyId, firstName.trim(), lastName.trim(), count, start, end, platform.trim(),
             Amounts.parseCents(gross), Amounts.parseBasisPoints(if(otaPercent.isBlank() && actualOta.isNotBlank()) "0" else otaPercent),
-            actualOta.takeIf { it.isNotBlank() }?.let(Amounts::parseCents), Amounts.parseBasisPoints(managementPercent), parsedStatus.name,
+            actualOta.takeIf { it.isNotBlank() }?.let(Amounts::parseCents), if(businessType=="OWNED")0 else Amounts.parseBasisPoints(managementPercent), parsedStatus.name,
             BookingDates.time(expectedArrival)!!, BookingDates.time(actualArrival, true),
             BookingDates.time(expectedDeparture)!!, BookingDates.time(actualDeparture, true),
             totals.otaCents, totals.netCents, totals.managementCents, notes.trim(), overlapAcknowledged,
             previous?.createdAt ?: System.currentTimeMillis(), maxOf(System.currentTimeMillis(), (previous?.updatedAt ?: 0) + 1),
-            previous?.taxableGuests, previous?.exemptGuests, previous?.expectedTaxCents,
+            subjects, subjects?.let{count-it}, previous?.expectedTaxCents,
             previous?.collectedTaxCents ?: 0, previous?.accountingAllocationId,
             java.time.YearMonth.from(java.time.LocalDate.ofEpochDay(start)).toString(),
+            businessType,
         )
     }
     companion object {
@@ -73,7 +81,7 @@ data class BookingDraft(
                 BookingDates.display(checkInEpochDay), BookingDates.display(checkOutEpochDay),
                 expectedArrivalTime, actualArrivalTime ?: "", expectedDepartureTime, actualDepartureTime ?: "",
                 Amounts.editable(grossCents), Amounts.editable(appliedOtaBasisPoints.toLong()),
-                actualOtaCents?.let(Amounts::editable) ?: "", Amounts.editable(appliedManagementBasisPoints.toLong()), notes, status)
+                actualOtaCents?.let(Amounts::editable) ?: "", Amounts.editable(appliedManagementBasisPoints.toLong()), notes, status, businessType=appliedBusinessType, taxableGuestCount=taxableGuests?.toString() ?: "",baseUpdatedAt=updatedAt)
         }
     }
 }

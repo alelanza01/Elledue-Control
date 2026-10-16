@@ -11,15 +11,17 @@ interface ActivityDao {
     @Query("UPDATE activities SET propertyId=:propertyId WHERE reservationId=:bookingId") suspend fun moveWithBooking(bookingId:String,propertyId:String)
     @Upsert suspend fun save(item: ActivityEntity)
 }
-class ActivityRepository(private val db: AppDatabase) {
+class ActivityRepository(private val db: AppDatabase,private val drafts:DraftStore?=null) {
     suspend fun delete(id:String) = db.activityDao().delete(id)
     val activities = db.activityDao().observe()
-    suspend fun save(item: ActivityEntity) = db.withTransaction {
+    suspend fun save(item: ActivityEntity):Unit = db.withTransaction {
         require(item.title.isNotBlank() && item.title.length <= 300) { "Inserisci un titolo valido." }
         require(item.notes.length <= 20000)
+        require(item.kind in listOf("GENERAL","CLEANING","MAINTENANCE"))
         java.time.ZoneId.of(item.zoneId)
         item.propertyId?.let { requireNotNull(db.propertyDao().get(it)) }
         item.reservationId?.let { require(db.reservationDao().get(it)?.propertyId == item.propertyId) }
         db.activityDao().save(item.copy(title = item.title.trim()))
+        drafts?.clear("activity/new");drafts?.clear("activity/${item.id}")
     }
 }

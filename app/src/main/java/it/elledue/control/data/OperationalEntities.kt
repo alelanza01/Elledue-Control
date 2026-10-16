@@ -41,6 +41,7 @@ data class ReservationEntity(
     @ColumnInfo(defaultValue = "0") val collectedTaxCents: Long = 0,
     val accountingAllocationId: String? = null,
     @ColumnInfo(defaultValue = "''") val competenceMonth: String = "",
+    @ColumnInfo(defaultValue = "'MANAGED'") val appliedBusinessType:String = "MANAGED",
 )
 
 @Entity(tableName = "expenses", foreignKeys = [
@@ -85,6 +86,9 @@ data class ActivityEntity(
     val completed: Boolean = false,
     val reservationId: String? = null,
     @ColumnInfo(defaultValue = "''") val notes: String = "",
+    @ColumnInfo(defaultValue = "'GENERAL'") val kind:String = "GENERAL",
+    @ColumnInfo(defaultValue = "1") val hasTime:Boolean = true,
+
 )
 
 @Entity(tableName = "reports", foreignKeys = [

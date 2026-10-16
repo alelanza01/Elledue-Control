@@ -5,7 +5,7 @@ import it.elledue.control.domain.*
 import org.json.JSONObject
 import java.util.UUID
 
-class AccountingRepository(private val db: AppDatabase) {
+class AccountingRepository(private val db: AppDatabase,private val drafts:DraftStore?=null) {
     private val dao = db.accountingDao()
     val financialChanges = dao.observeFinancialChanges()
     val expenses = dao.observeExpenses(); val categories = dao.observeCategories()
@@ -35,6 +35,7 @@ class AccountingRepository(private val db: AppDatabase) {
         if (old != null && dao.expenseHistory(old.id).isEmpty()) dao.insertExpenseRevision(ExpenseRevisionEntity(UUID.randomUUID().toString(), old.id, old.revision, snapshot(old), "Valore precedente alla rettifica", old.updatedAt))
         dao.saveExpense(item)
         dao.insertExpenseRevision(ExpenseRevisionEntity(UUID.randomUUID().toString(), item.id, item.revision, snapshot(item), draft.reason.ifBlank { "Inserimento" }, System.currentTimeMillis()))
+        drafts?.routes()?.filter{it=="expense/${item.id}/edit" || it.startsWith("expense/new/") && drafts.load(it,ExpenseDraft::class.java)?.id==item.id}?.forEach(drafts::clear)
         item.id
     }
     suspend fun voidExpense(id: String, reason: String) = db.withTransaction {
@@ -50,7 +51,7 @@ class AccountingRepository(private val db: AppDatabase) {
     }
     suspend fun expenseHistory(id: String) = dao.expenseHistory(id)
     suspend fun taxHistory(id: String) = dao.taxHistory(id)
-    suspend fun saveTax(id: String, draft: TaxDraft) = db.withTransaction {
+    suspend fun saveTax(id: String, draft: TaxDraft):Unit = db.withTransaction {
         val booking = requireNotNull(db.reservationDao().get(id)) { "Prenotazione non trovata." }
         ReportGuard.allow(db, "BOOKING", id)
         val old = dao.assessment(id)
@@ -62,6 +63,7 @@ class AccountingRepository(private val db: AppDatabase) {
         dao.saveAssessment(item)
         dao.insertTaxRevision(TaxAssessmentRevisionEntity(UUID.randomUUID().toString(), id, item.revision, snapshot(item), System.currentTimeMillis()))
         db.reservationDao().save(booking.copy(taxableGuests = item.taxableGuests, exemptGuests = item.exemptGuests, expectedTaxCents = item.expectedCents, updatedAt = maxOf(System.currentTimeMillis(), booking.updatedAt + 1)))
+        drafts?.clear("tax/$id")
     }
     suspend fun post(item: MoneyMovementEntity): String = db.withTransaction {
         dao.movement(item.id)?.let { existing ->
@@ -109,6 +111,7 @@ class AccountingRepository(private val db: AppDatabase) {
             val collected = Ledger.total((all + item).filter { it.reservationId == id }, "COLLECTION")
             db.reservationDao().save(booking.copy(collectedTaxCents = collected, updatedAt = maxOf(System.currentTimeMillis(), booking.updatedAt + 1)))
         }
+        drafts?.routes()?.filter{it.startsWith("movement/new?") && drafts.load("$it#id",String::class.java)==item.id}?.forEach(drafts::clear)
         item.id
     }
     companion object {

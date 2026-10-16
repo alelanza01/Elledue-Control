@@ -33,12 +33,12 @@ interface SettingsDao {
 }
 
 @Database(
-    entities = [GuestMessageEntity::class, MessageCategoryEntity::class, AppSettings::class, OwnerEntity::class, PropertyEntity::class,
+    entities = [ReportBookingOption::class, GuestMessageEntity::class, MessageCategoryEntity::class, AppSettings::class, OwnerEntity::class, PropertyEntity::class,
         PlatformCommissionEntity::class, MessageTemplateEntity::class, ReservationEntity::class,
         ExpenseEntity::class, ActivityEntity::class, ReportEntity::class,
         ExpenseCategoryEntity::class, ExpenseRevisionEntity::class, TaxAssessmentEntity::class,
         TaxAssessmentRevisionEntity::class, MoneyMovementEntity::class, BookingFinancialChangeEntity::class, ReportAllocationEntity::class],
-    version = 6, exportSchema = true,
+    version = 7, exportSchema = true,
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun messageDao(): MessageDao

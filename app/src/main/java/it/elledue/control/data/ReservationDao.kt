@@ -5,6 +5,8 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ReservationDao {
+    @Query("SELECT b.* FROM reservations b JOIN properties p ON p.id=b.propertyId WHERE p.archived=0 ORDER BY b.checkInEpochDay DESC,b.id") fun observeOperational():Flow<List<ReservationEntity>>
+
     @Query("SELECT * FROM reservations ORDER BY checkInEpochDay DESC, guestLastName COLLATE NOCASE")
     fun observeAll(): Flow<List<ReservationEntity>>
     @Query("SELECT * FROM reservations WHERE id = :id")

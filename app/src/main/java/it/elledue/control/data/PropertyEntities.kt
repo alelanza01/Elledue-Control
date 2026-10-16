@@ -44,6 +44,7 @@ data class PropertyEntity(
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis(),
     val coverImageBase64: String? = null,
+    @androidx.room.ColumnInfo(defaultValue = "'MANAGED'") val businessType:String = "MANAGED",
 )
 
 @Entity(

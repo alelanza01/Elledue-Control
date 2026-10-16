@@ -78,7 +78,7 @@ fun PropertyDetailScreen(item: PropertyWithOwner, busy: Boolean, error: String?,
         DropdownMenu(menu, { menu = false }) {
             DropdownMenuItem(text = { Text("Modifica") }, onClick = { menu = false; onEdit() })
             DropdownMenuItem(text = { Text(if (p.archived) "Riattiva" else "Archivia") }, onClick = { menu = false; if (p.archived) onArchive(false) else confirmArchive = true })
-            DropdownMenuItem(text = { Text("Elimina se privo di storico") }, onClick = { menu = false; delete = true })
+            DropdownMenuItem(text = { Text("Elimina definitivamente immobile") }, onClick = { menu = false; onDelete() })
         }
     } }) }) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
@@ -88,6 +88,7 @@ fun PropertyDetailScreen(item: PropertyWithOwner, busy: Boolean, error: String?,
             if (p.archived) SuggestionChip(onClick = {}, label = { Text("Archiviato · storico conservato") })
             DetailSection("Proprietario", listOf("Nome" to item.owner.name, "Telefono" to item.owner.phone, "Email" to item.owner.email))
             DetailSection("Operatività", listOf("Posti letto" to p.beds.toString(), "Ospiti massimi" to p.maxGuests.toString(), "Check-in" to p.checkInTime, "Check-out" to p.checkOutTime, "Recapiti utili" to p.usefulContacts, "Note" to p.operationalNotes))
+            Text(if(p.businessType=="OWNED")"Immobile proprio / in comproprietà" else "Immobile in gestione",style=MaterialTheme.typography.titleMedium,color=ElledueGold)
             DetailSection("Commissioni e servizi", listOf("Gestione Elledue" to "${Amounts.editable(p.managementBasisPoints.toLong())}% sul netto dopo OTA", "OTA predefinita" to "${Amounts.editable(p.otaBasisPoints.toLong())}%", "Pulizie / ora" to Amounts.euro(p.cleaningHourlyCents), "Lavanderia / set" to Amounts.euro(p.laundrySetCents)) + item.platformCommissions.map { it.platform to "${Amounts.editable(it.basisPoints.toLong())}%" })
             DetailSection("Tassa di soggiorno", listOf("Persona / notte" to Amounts.euro(p.touristTaxNightCents), "Età minima" to "${p.touristTaxMinAge} anni", "Limite notti" to (p.touristTaxMaxNights?.toString() ?: "Nessun limite configurato"), "Esenzioni" to p.touristTaxExemptions))
             if (item.templates.isNotEmpty()) DetailSection("Istruzioni di accesso", item.templates.map { (if (it.language == "it") "Italiano" else "English") to it.body })
@@ -124,7 +125,10 @@ private fun DetailSection(title: String, rows: List<Pair<String, String>>) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PropertyEditorScreen(initial: PropertyDraft, isNew: Boolean, busy: Boolean, error: String?, onBack: () -> Unit, onSave: (PropertyDraft) -> Unit) {
-    var draft by rememberSaveable(initial.id, stateSaver = PropertyDraftSaver) { mutableStateOf(initial) }
+    val draftKey=if(isNew)"property/new" else "property/${initial.id}/edit"
+    var draft by rememberPersistentDraft(draftKey,initial)
+    val editorScroll=rememberScrollState()
+    LaunchedEffect(error){if(error!=null)editorScroll.animateScrollTo(0)}
     var discard by rememberSaveable { mutableStateOf(false) }
     val back = { if (draft != initial) discard = true else onBack() }
     BackHandler { if (!busy) back() }
@@ -133,7 +137,8 @@ fun PropertyEditorScreen(initial: PropertyDraft, isNew: Boolean, busy: Boolean, 
             TextButton(onClick = { onSave(draft) }, enabled = !busy, modifier = Modifier.testTag("save-property")) { Text(if (busy) "Salvataggio…" else "Salva") }
         })
     }) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding).imePadding().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        Column(Modifier.fillMaxSize().padding(padding).imePadding().verticalScroll(editorScroll).padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            DraftBanner(draftKey){draft=initial}
             if (error != null) Text(error, color = MaterialTheme.colorScheme.error, modifier = Modifier.testTag("property-error"))
             Text("Identità dell’immobile", style = MaterialTheme.typography.titleLarge)
             EditorField("Nome immobile *", draft.name, busy = busy, tag = "property-name") { draft = draft.copy(name = it) }
@@ -150,6 +155,8 @@ fun PropertyEditorScreen(initial: PropertyDraft, isNew: Boolean, busy: Boolean, 
                 EditorField("Note operative", draft.notes, busy, multiline = true) { draft = draft.copy(notes = it) }
             }
             EditorGroup("Commissioni e servizi") {
+                ChoiceField("Tipologia immobile",draft.businessType,listOf("MANAGED" to "Immobile in gestione","OWNED" to "Immobile proprio / in comproprietà"),!busy){draft=draft.copy(businessType=it,managementPercent=if(it=="OWNED")"0" else draft.managementPercent)}
+                Text("La tipologia vale per le nuove prenotazioni. Parametri e documenti storici restano conservati; non vengono inventate quote dei soci.",style=MaterialTheme.typography.bodySmall)
                 Text("La commissione Elledue si applica al netto dopo le commissioni OTA.", style = MaterialTheme.typography.bodyMedium)
                 EditorField("Commissione Elledue (%)", draft.managementPercent, busy, KeyboardType.Decimal) { draft = draft.copy(managementPercent = it) }
                 EditorField("Commissione OTA predefinita (%)", draft.otaPercent, busy, KeyboardType.Decimal) { draft = draft.copy(otaPercent = it) }

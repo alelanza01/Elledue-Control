@@ -23,7 +23,7 @@ data class GuestMessageEntity(@PrimaryKey val id:String, val propertyId:String?,
     @Query("DELETE FROM guest_messages WHERE id=:id") suspend fun delete(id:String)
     @Query("DELETE FROM message_categories WHERE id=:id") suspend fun deleteCategory(id:String)
 }
-class MessageRepository(private val db:AppDatabase) {
+class MessageRepository(private val db:AppDatabase,private val drafts:DraftStore?=null) {
     val messages=db.messageDao().observe(); val categories=db.messageDao().categories()
     suspend fun initialize()=db.withTransaction {
         val settings=db.settingsDao().get() ?: AppSettings()
@@ -33,13 +33,14 @@ class MessageRepository(private val db:AppDatabase) {
         }
         db.settingsDao().save(settings.copy(messageCategoriesInitialized=true))
     }
-    suspend fun save(item:GuestMessageEntity)=db.withTransaction {
+    suspend fun save(item:GuestMessageEntity):Unit=db.withTransaction {
         require(item.title.isNotBlank() && item.title.length<=300) { "Inserisci un titolo valido." }
         require(item.italian.isNotBlank() || item.english.isNotBlank()) { "Inserisci almeno un testo." }
         require(item.italian.length<=20000 && item.english.length<=20000)
         item.propertyId?.let { requireNotNull(db.propertyDao().get(it)) }
         requireNotNull(db.messageDao().category(item.categoryId)) { "Seleziona una categoria." }
         db.messageDao().save(item.copy(title=item.title.trim()))
+        drafts?.clear("messages?draft=${item.id}")
     }
     suspend fun category(item:MessageCategoryEntity) { require(item.label.isNotBlank() && item.label.length<=100); db.messageDao().category(item.copy(label=item.label.trim())) }
     suspend fun delete(item:GuestMessageEntity)=db.withTransaction {

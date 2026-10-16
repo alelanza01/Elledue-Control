@@ -12,7 +12,7 @@ class ReportRepository(private val db: AppDatabase, private val context: Context
     private val dao = db.reportDao()
     val reports = dao.observe()
     suspend fun generate(property: String, month: String): String = db.withTransaction {
-        Competence.month(month); requireNotNull(db.propertyDao().get(property)) { "Seleziona un immobile." }
+        Competence.month(month); val selected=requireNotNull(db.propertyDao().get(property)) { "Seleziona un immobile." }; require(selected.property.businessType!="OWNED") {"Gli immobili propri non hanno un rendiconto per proprietario esterno."}
         val versions = dao.period(property, month)
         versions.firstOrNull { it.status == "DRAFT" }?.let { refreshLocked(it); return@withTransaction it.id }
         require(versions.none { it.status == "CONFIRMED" }) { "Periodo già confermato: apri una nuova versione rettificativa." }
@@ -26,18 +26,21 @@ class ReportRepository(private val db: AppDatabase, private val context: Context
         require(versions.filter { it.status == "CONFIRMED" }.maxOf { it.version } == original.version) { "Apri la rettifica della versione più recente." }
         versions.firstOrNull { it.status == "DRAFT" }?.let { return@withTransaction it.id }
         val report = ReportEntity(UUID.randomUUID().toString(), original.propertyId, original.yearMonth, versions.maxOf { it.version } + 1, "DRAFT", null, null, original.id, reason.trim(), original.notes)
-        dao.save(report); refreshLocked(report); report.id
+        dao.save(report); dao.options(original.id).forEach{dao.option(it.copy(reportId=report.id))}; refreshLocked(report); report.id
     }
     suspend fun refresh(id: String, notes: String? = null): ReportSnapshot = db.withTransaction {
         val report = requireNotNull(dao.get(id)); require(report.status == "DRAFT") { "La versione confermata è immutabile." }
         refreshLocked(if (notes != null) report.copy(notes = notes.trim()) else report)
     }
-    private suspend fun refreshLocked(report: ReportEntity): ReportSnapshot {
+    private suspend fun refreshLocked(report: ReportEntity,overrideOptions:List<ReportBookingOption>?=null,persist:Boolean=true): ReportSnapshot {
         val property = requireNotNull(db.propertyDao().get(report.propertyId))
+        val options=overrideOptions ?: dao.options(report.id)
+        val excluded=options.filter{it.excluded}.map{it.reservationId}.toSet()
+        val hidden=options.filter{it.hideDetails && !it.excluded}.map{it.reservationId}
         val allBookings = dao.bookings()
-        val bookings = allBookings.filter { it.propertyId == report.propertyId && Competence.booking(it.checkInEpochDay) == report.yearMonth }.sortedWith(compareBy({ it.checkInEpochDay }, { it.id }))
-        val costs = dao.expenses().filter { it.propertyId == report.propertyId && it.competenceMonth == report.yearMonth && !it.voided }.sortedWith(compareBy({ it.dateEpochDay }, { it.id }))
-        val allMoney = db.accountingDao().movements().filter { it.propertyId == report.propertyId }
+        val bookings = allBookings.filter { it.propertyId == report.propertyId && Competence.booking(it.checkInEpochDay) == report.yearMonth && it.id !in excluded }.sortedWith(compareBy({ it.checkInEpochDay }, { it.id }))
+        val costs = dao.expenses().filter { it.propertyId == report.propertyId && it.competenceMonth == report.yearMonth && !it.voided && it.reservationId !in excluded }.sortedWith(compareBy({ it.dateEpochDay }, { it.id }))
+        val allMoney = db.accountingDao().movements().filter { it.propertyId == report.propertyId && it.reservationId !in excluded }
         val related = allMoney.filter { it.reservationId in bookings.map { b -> b.id } || it.competenceMonth == report.yearMonth }
         // Include source/reversal dependencies so active recognition is evaluated correctly, across months.
         val ids = related.map { it.id }.toMutableSet()
@@ -48,8 +51,25 @@ class ReportRepository(private val db: AppDatabase, private val context: Context
         val snapshot = ReportSnapshot(id = report.id, month = report.yearMonth, version = report.version, previousId = report.previousId, revisionReason = report.revisionReason,
             issuedAt = report.createdAt, property = property.property, owner = property.owner, organization = organization, logoBase64 = logo, notes = report.notes,
             bookings = bookings, expenses = costs, taxes = dao.taxes().filter { t -> bookings.any { it.id == t.reservationId } }, movements = allMoney.filter { it.id in ids }.sortedBy { it.id },
-            linkedBookings = allBookings.filter { b -> b.propertyId == report.propertyId && bookings.none { it.id == b.id } && (costs.any { it.reservationId == b.id } || allMoney.any { it.id in ids && it.reservationId == b.id }) }.sortedBy { it.id })
-        dao.save(report.copy(snapshotJson = ReportCodec.encode(snapshot))); return snapshot
+            linkedBookings = allBookings.filter { b -> b.propertyId == report.propertyId && bookings.none { it.id == b.id } && (costs.any { it.reservationId == b.id } || allMoney.any { it.id in ids && it.reservationId == b.id }) }.sortedBy { it.id }, hiddenBookingIds=hidden, excludedBookings=allBookings.filter{it.id in excluded},bookingOptions=options)
+        if(persist)dao.save(report.copy(snapshotJson = ReportCodec.encode(snapshot))); return snapshot
+    }
+    suspend fun previewBookingOption(reportId:String,bookingId:String,hideDetails:Boolean,excluded:Boolean):ReportSnapshot=db.withTransaction {
+        val report=requireNotNull(dao.get(reportId));require(report.status=="DRAFT")
+        val options=dao.options(reportId).filter{it.reservationId!=bookingId}+ReportBookingOption(reportId,bookingId,hideDetails,excluded)
+        refreshLocked(report,options,false)
+    }
+    suspend fun setBookingOption(reportId:String,bookingId:String,hideDetails:Boolean,excluded:Boolean,previewHash:String?=null)=db.withTransaction {
+        val report=requireNotNull(dao.get(reportId));require(report.status=="DRAFT"){"Apri prima una versione rettificativa: la versione confermata resta immutabile."}
+        val booking=requireNotNull(db.reservationDao().get(bookingId))
+        require(booking.propertyId==report.propertyId)
+        require(booking.competenceMonth==report.yearMonth || dao.expenses().any{it.reservationId==bookingId && it.competenceMonth==report.yearMonth} || db.accountingDao().movements().any{it.reservationId==bookingId && it.competenceMonth==report.yearMonth})
+        if(previewHash!=null)require(ReportCodec.hash(ReportCodec.encode(previewBookingOption(reportId,bookingId,hideDetails,excluded)))==previewHash){"I dati sono cambiati: verifica nuovamente l’anteprima."}
+        dao.option(ReportBookingOption(reportId,bookingId,hideDetails,excluded));refreshLocked(report)
+    }
+    suspend fun refreshDrafts() {
+        val ids=mutableListOf<String>();db.openHelper.readableDatabase.query("SELECT id FROM reports WHERE status='DRAFT'").use{c->while(c.moveToNext())ids.add(c.getString(0))}
+        ids.forEach{id->runCatching{refresh(id)}}
     }
     suspend fun confirm(id: String, previewHash: String, acknowledgeWarnings: Boolean): ReportSnapshot = db.withTransaction {
         val report = requireNotNull(dao.get(id)); require(report.status == "DRAFT") { "Rendiconto già confermato." }
