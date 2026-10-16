@@ -24,6 +24,16 @@ fun EconomyHub(bookings: List<ReservationEntity>, properties: List<PropertyWithO
     val totals=BusinessAnalytics.calculate(period,properties,bookings,accounting?.expenses.orEmpty(),accounting?.taxes.orEmpty(),accounting?.movements.orEmpty())
     LazyColumn(Modifier.fillMaxSize().testTag("economy-scroll"),contentPadding=PaddingValues(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
         item{ConceptHeading("Economia","Previsioni, movimenti e saldi distinti")}
+        item{Column(verticalArrangement=Arrangement.spacedBy(6.dp)){
+            Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){
+                OutlinedButton(onClick={navigate("reports")},enabled=properties.any{it.property.businessType!="OWNED"},modifier=Modifier.weight(1f).testTag("open-reports")){Text("Rendiconti")}
+                OutlinedButton(onClick={navigate("analysis")},modifier=Modifier.weight(1f).testTag("open-analysis")){Text("Analisi")}
+            }
+            Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){
+                OutlinedButton(onClick={navigate("accounting")},modifier=Modifier.weight(1f).testTag("open-accounting")){Text("Contabilità")}
+                OutlinedButton(onClick={navigate("messages")},modifier=Modifier.weight(1f).testTag("open-messages")){Text("Messaggi")}
+            }
+        }}
         item{Row(verticalAlignment=androidx.compose.ui.Alignment.CenterVertically){IconButton(onClick={period=month.minusMonths(1).toString()}){Icon(Icons.Outlined.ChevronLeft,"Economia mese precedente")};Text(period,Modifier.weight(1f),style=MaterialTheme.typography.titleLarge);IconButton(onClick={period=month.plusMonths(1).toString()}){Icon(Icons.Outlined.ChevronRight,"Economia mese successivo")}}}
         item{Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(8.dp)){listOf("Panoramica","Movimenti","Rendiconti").forEachIndexed{i,label->ConceptPill(tab==i,{tab=i},label={Text(label)},modifier=Modifier.testTag("economy-tab-$i"))}}}
         if(tab==0) {
@@ -44,7 +54,7 @@ fun EconomyHub(bookings: List<ReservationEntity>, properties: List<PropertyWithO
             item{Text("Registra una sola volta",style=MaterialTheme.typography.titleLarge)}
             item{Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){ActionTile("Spesa",Icons.Outlined.ReceiptLong,Modifier.weight(1f)){navigate("expense/new/OTHER")};ActionTile("Pulizia",Icons.Outlined.CleaningServices,Modifier.weight(1f)){navigate("expense/new/CLEANING")};ActionTile("Lavanderia",Icons.Outlined.LocalLaundryService,Modifier.weight(1f)){navigate("expense/new/LAUNDRY")}}}
             item{OutlinedButton(onClick={navigate("tax-overview")},modifier=Modifier.fillMaxWidth().testTag("economy-tax")){Text("Tassa · previsione, incasso, compensazione e riversamento")}}
-            item{Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){ActionTile("Analisi e confronti",Icons.Outlined.BarChart,Modifier.weight(1f).testTag("open-analysis")){navigate("analysis")};ActionTile("Operatività",Icons.Outlined.TaskAlt,Modifier.weight(1f)){navigate("activities")}}}
+            item{Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){ActionTile("Analisi e confronti",Icons.Outlined.BarChart,Modifier.weight(1f)){navigate("analysis")};ActionTile("Operatività",Icons.Outlined.TaskAlt,Modifier.weight(1f)){navigate("activities")}}}
         }
         if(tab==1){
             item{Text("Registrazioni effettive · $period",style=MaterialTheme.typography.titleLarge)}
@@ -54,10 +64,8 @@ fun EconomyHub(bookings: List<ReservationEntity>, properties: List<PropertyWithO
             items(money,key={"money-${it.id}"}){m->TextButton(onClick={navigate(m.reservationId?.let{"tax/$it"} ?: "accounting")}){Text("${movementLabel(m.kind)} · ${Amounts.euro(m.amountCents)}")}}
             if(costs.isEmpty() && money.isEmpty())item{EmptyState("Nessun movimento registrato","Le previsioni delle prenotazioni non sono incassi. Registra soltanto somme effettive.")}
         }
-        item{ActionTile("Dettaglio contabile e storico",Icons.Outlined.AccountBalanceWallet,Modifier.fillMaxWidth().testTag("open-accounting")){navigate("accounting")}}
-        item{OutlinedButton(onClick={navigate("messages")},modifier=Modifier.fillMaxWidth().testTag("open-messages")){Text("Messaggi ospiti · IT/EN")}}
         item{HorizontalDivider();Text("Rendiconti per proprietari esterni",style=MaterialTheme.typography.titleLarge)}
-        item{OutlinedButton(onClick={navigate("reports")},modifier=Modifier.fillMaxWidth().testTag("open-reports"),enabled=properties.any{it.property.businessType!="OWNED"}){Text("Rendiconti mensili")};if(properties.all{it.property.businessType=="OWNED"})Text("Per gli immobili propri usa il risultato economico complessivo in Analisi.",style=MaterialTheme.typography.bodySmall)}
+        item{OutlinedButton(onClick={navigate("reports")},modifier=Modifier.fillMaxWidth(),enabled=properties.any{it.property.businessType!="OWNED"}){Text("Rendiconti mensili")};if(properties.all{it.property.businessType=="OWNED"})Text("Per gli immobili propri usa il risultato economico complessivo in Analisi.",style=MaterialTheme.typography.bodySmall)}
         item{TextButton(onClick={navigate("archive")}){Text("Archivio storico")}}
     }
 }
@@ -74,17 +82,20 @@ fun EconomyAnalysis(bookings: List<ReservationEntity>, properties: List<Property
         item { Row { IconButton(onClick = { period = month.minusMonths(1).toString() }) { Icon(Icons.Outlined.ChevronLeft, "Analisi mese precedente") }; Text(period, Modifier.weight(1f).padding(12.dp), style = MaterialTheme.typography.titleLarge); IconButton(onClick = { period = month.plusMonths(1).toString() }) { Icon(Icons.Outlined.ChevronRight, "Analisi mese successivo") } } }
         item { ConceptPropertySelector(properties,property,allOption=true){property=it} }
         item {
-            val current=bookings.filter {it.status!="CANCELLED" && it.competenceMonth==period && (property.isBlank() || it.propertyId==property)}
-            val previous=bookings.filter {it.status!="CANCELLED" && it.competenceMonth==month.minusMonths(1).toString() && (property.isBlank() || it.propertyId==property)}
-            val fees=OperationalMoney.total(current.map{it.managementCents});val old=OperationalMoney.total(previous.map{it.managementCents})
-            Card(Modifier.fillMaxWidth(),colors=CardDefaults.cardColors(containerColor=ConceptCard),border=BorderStroke(1.dp,ConceptBorder)){Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){
-                Text("Compensi maturati",style=MaterialTheme.typography.labelMedium,color=ElledueGold)
-                Text(Amounts.euro(fees),style=MaterialTheme.typography.headlineLarge)
-                AmountLine("Lordo proprietari",OperationalMoney.total(current.map{it.grossCents}))
-                AmountLine("Netto dopo OTA",OperationalMoney.total(current.map{it.netCents}))
-                Text("Scostamento compensi: ${Amounts.euro(fees-old)} · "+if(old==0L) "base precedente assente" else java.math.BigDecimal.valueOf(fees-old).multiply(java.math.BigDecimal(100)).divide(java.math.BigDecimal.valueOf(old),1,java.math.RoundingMode.HALF_UP).toPlainString()+"%",style=MaterialTheme.typography.bodySmall)
-                Text("${current.size} prenotazioni · precedente ${previous.size}. Compensi diversi dagli incassi Elledue.",style=MaterialTheme.typography.bodySmall)
-            }}
+            val selected=properties.filter{property.isBlank() || it.property.id==property}
+            val selectedIds=selected.map{it.property.id}.toSet()
+            val totals=BusinessAnalytics.calculate(period,selected,bookings,accounting?.expenses.orEmpty(),accounting?.taxes.orEmpty(),accounting?.movements.orEmpty())
+            val old=BusinessAnalytics.calculate(month.minusMonths(1).toString(),selected,bookings,accounting?.expenses.orEmpty(),accounting?.taxes.orEmpty(),accounting?.movements.orEmpty())
+            Column(verticalArrangement=Arrangement.spacedBy(12.dp)) {
+                if(selected.any{it.property.businessType!="OWNED"})Card(Modifier.fillMaxWidth(),colors=CardDefaults.cardColors(containerColor=ConceptCard),border=BorderStroke(1.dp,ConceptBorder)){Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){
+                    Text("Immobili in gestione",style=MaterialTheme.typography.titleMedium,color=ElledueGold)
+                    Text("Compenso di gestione Elledue",style=MaterialTheme.typography.labelMedium);Text(Amounts.euro(totals.fees),style=MaterialTheme.typography.headlineLarge)
+                    AmountLine("Lordo prenotazioni ai proprietari",totals.managedGross);AmountLine("Netto dopo OTA ai proprietari",totals.managedNet)
+                    Text("Variazione compenso: ${Amounts.euro(totals.fees-old.fees)} · "+if(old.fees==0L) "base precedente assente" else java.math.BigDecimal.valueOf(totals.fees-old.fees).multiply(java.math.BigDecimal(100)).divide(java.math.BigDecimal.valueOf(old.fees),1,java.math.RoundingMode.HALF_UP).toPlainString()+"%",style=MaterialTheme.typography.bodySmall)
+                    Text("Compensi maturati distinti dagli incassi Elledue.",style=MaterialTheme.typography.bodySmall)
+                }}
+                if(selected.any{it.property.businessType=="OWNED"})OwnBusinessCard(totals)
+            }
         }
         item {
             val costs=accounting?.expenses.orEmpty().filter{!it.voided && it.competenceMonth==period && (property.isBlank() || it.propertyId==property)}
@@ -107,7 +118,9 @@ fun EconomyAnalysis(bookings: List<ReservationEntity>, properties: List<Property
             val previous = PortfolioAnalytics.calculate(month.minusMonths(1), p.property.id, bookings)
             Column(Modifier.fillMaxWidth().padding(vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(p.property.name, style = MaterialTheme.typography.titleLarge)
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text("Lordo ${Amounts.euro(m.gross)}"); Text("Elledue ${Amounts.euro(m.fees)}", color = MaterialTheme.colorScheme.primary) }
+                Text(if(p.property.businessType=="OWNED")"Immobile proprio / in comproprietà" else "Immobile in gestione",color=ElledueGold,style=MaterialTheme.typography.labelMedium)
+                Text("Lordo prenotazioni ${Amounts.euro(m.gross)}")
+                if(p.property.businessType!="OWNED") Text("Compenso di gestione Elledue ${Amounts.euro(m.fees)}",color=MaterialTheme.colorScheme.primary)
                 // Only the visual ratio uses floats; all accounting calculations use exact cents.
                 LinearProgressIndicator(progress = { (m.gross.toDouble() / maxGross).toFloat() }, modifier = Modifier.fillMaxWidth().height(6.dp), color = propertyColor(p.property.id))
                 Text("${m.bookings} ${if (m.bookings == 1) "prenotazione" else "prenotazioni"} · ${m.nights} notti · media ${m.averageStay.toPlainString().replace('.', ',')} notti")
@@ -127,4 +140,14 @@ fun EconomyAnalysis(bookings: List<ReservationEntity>, properties: List<Property
         }
         if (properties.isEmpty()) item { EmptyState("Nessun dato da confrontare", "Aggiungi immobili e prenotazioni per vedere i dati effettivi.") }
     }
+}
+
+@Composable fun OwnBusinessCard(totals:BusinessTotals) {
+    Card(Modifier.fillMaxWidth(),colors=CardDefaults.cardColors(containerColor=ConceptCard),border=BorderStroke(1.dp,ArrivalColor.copy(alpha=.3f))){Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){
+        Text("Immobili propri / in comproprietà",style=MaterialTheme.typography.titleMedium,color=ArrivalColor)
+        AmountLine("Ricavi prenotazioni registrati",totals.ownGross);AmountLine("Netto dopo OTA",totals.ownNet);AmountLine("Costi operativi",totals.ownCosts)
+        Text("Risultato operativo complessivo",style=MaterialTheme.typography.labelMedium);Text(Amounts.euro(totals.ownResult),style=MaterialTheme.typography.headlineLarge)
+        Text("Nessun compenso di gestione o saldo con proprietari esterni. Quote dei soci non configurate: nessuna ripartizione automatica.",style=MaterialTheme.typography.bodySmall)
+        if(totals.legacyOwnBookings>0)Text("${totals.legacyOwnBookings} soggiorni conservano il modello storico in gestione: verifica la classificazione, senza ricalcoli automatici.",color=ElledueGold)
+    }}
 }

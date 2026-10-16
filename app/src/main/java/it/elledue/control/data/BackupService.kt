@@ -70,7 +70,7 @@ class BackupService(private val db: AppDatabase, private val context: Context) {
         val raw=envelope.getString("draftsPayload");require(ReportCodec.hash(raw)==envelope.getString("draftsSha256")){"Checksum delle bozze non valido."}
         val values=JSONObject(raw);require(values.length()<=20000)
         return values.keys().asSequence().associateWith{key->
-            require(key.length<=500 && listOf("booking/","property/","activity/","expense/","tax/","messages?","movement/","settings","profile","appearance","categories").any{key.startsWith(it)}){"Chiave bozza non riconosciuta."}
+            require(key.length<=500 && listOf("booking/","property/","activity/","expense/","tax/","messages?","movement/","settings","profile","appearance","categories","notifications","report/","activities?").any{key.startsWith(it)}){"Chiave bozza non riconosciuta."}
             values.getString(key).also{require(it.length<=500000);com.google.gson.JsonParser.parseString(it)}
         }
     }
@@ -130,7 +130,7 @@ class BackupService(private val db: AppDatabase, private val context: Context) {
         staged.openHelper.readableDatabase.query("SELECT a.title, a.propertyId, b.propertyId FROM activities a LEFT JOIN reservations b ON a.reservationId = b.id WHERE a.reservationId IS NOT NULL").use { c ->
             while (c.moveToNext()) require(c.getString(0).isNotBlank() && c.getString(1) == c.getString(2)) { "Attività con collegamento incoerente." }
         }
-        staged.openHelper.readableDatabase.query("SELECT title,notes,zoneId,kind FROM activities").use { c -> while(c.moveToNext()) { require(c.getString(0).isNotBlank() && c.getString(0).length<=300 && c.getString(1).length<=20000); java.time.ZoneId.of(c.getString(2));require(c.getString(3) in listOf("GENERAL","CLEANING","MAINTENANCE")) } }
+        staged.openHelper.readableDatabase.query("SELECT title,notes,zoneId,kind FROM activities").use { c -> while(c.moveToNext()) { require(c.getString(0).isNotBlank() && c.getString(0).length<=300 && c.getString(1).length<=20000); java.time.ZoneId.of(c.getString(2));require(c.getString(3) in listOf("GENERAL","CLEANING","MAINTENANCE","REGISTRATION")) } }
         staged.openHelper.readableDatabase.query("SELECT label FROM message_categories").use{c->while(c.moveToNext())require(c.getString(0).isNotBlank() && c.getString(0).length<=100)}
         staged.settingsDao().get()?.let { require(it.homeCover in 0..3) }
         staged.messageDao().all().forEach { require(it.title.isNotBlank() && it.title.length<=300 && (it.italian.isNotBlank() || it.english.isNotBlank()) && it.italian.length<=20000 && it.english.length<=20000) }

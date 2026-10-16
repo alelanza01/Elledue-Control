@@ -32,8 +32,27 @@ class DraftStore(context:Context) {
     fun routes():List<String> = preferences.all.keys.map{it.substringBefore('#')}.distinct().sorted()
     fun contains(key:String)=preferences.contains(key)
     fun has(route:String)=routes().contains(route)
+    internal fun removeReferences(ref:DeletionReferences) {
+        routes().filter {route->
+            val id=route.substringAfter('/', "").substringBefore('/')
+            when {
+                route.startsWith("property/")->id in ref.properties
+                route.startsWith("booking/")->id in ref.bookings || load(route,it.elledue.control.domain.BookingDraft::class.java)?.propertyId in ref.properties
+                route.startsWith("tax/")->id in ref.bookings
+                route.startsWith("expense/")->id in ref.expenses || load(route,it.elledue.control.domain.ExpenseDraft::class.java)?.let{it.propertyId in ref.properties || it.reservationId in ref.bookings}==true
+                route.startsWith("activity/")->id in ref.activities || load("$route#property",String::class.java) in ref.properties || load("$route#booking",String::class.java) in ref.bookings
+                route.startsWith("messages?")->load("$route#property",String::class.java) in ref.properties
+                route.startsWith("activities?")->load("$route#property",String::class.java) in ref.properties || android.net.Uri.parse("elledue://local/$route").getQueryParameter("booking") in ref.bookings
+                route.startsWith("movement/")->android.net.Uri.parse("elledue://local/$route").let{it.getQueryParameter("property") in ref.properties || it.getQueryParameter("booking") in ref.bookings}
+                route.startsWith("report/")->id in ref.reports
+                else->false
+            }
+        }.forEach(::clear)
+    }
     companion object {
         private val stores=java.util.WeakHashMap<Context,DraftStore>()
         fun get(context:Context):DraftStore=synchronized(stores){val app=context.applicationContext;stores.getOrPut(app){DraftStore(app)}}
     }
 }
+
+internal data class DeletionReferences(val properties:Set<String>,val bookings:Set<String>,val expenses:Set<String>,val activities:Set<String>,val reports:Set<String>)

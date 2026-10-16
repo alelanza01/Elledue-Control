@@ -218,7 +218,7 @@ fun BookingEconomyScreen(records: List<ReservationEntity>) {
         Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
             Text("Economia delle prenotazioni", style = MaterialTheme.typography.headlineMedium)
             Text("Tutte le prenotazioni non annullate, senza attribuzione ai rendiconti mensili.", style = MaterialTheme.typography.bodyMedium)
-            listOf("Lordo accreditato ai proprietari" to active.map { it.grossCents }, "Commissioni OTA" to active.map { it.otaCents }, "Netto dopo OTA" to active.map { it.netCents }, "Compenso Elledue maturato" to active.map { it.managementCents }).forEach { (label, values) ->
+            listOf("Lordo accreditato ai proprietari" to active.map { it.grossCents }, "Commissioni OTA" to active.map { it.otaCents }, "Netto dopo OTA" to active.map { it.netCents }, "Compenso di gestione Elledue" to active.map { it.managementCents }).forEach { (label, values) ->
                 Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer), modifier = Modifier.fillMaxWidth()) { Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) { Text(label, style = MaterialTheme.typography.labelLarge); Text(total(values), style = MaterialTheme.typography.headlineMedium) } }
             }
             Text("Il compenso maturato non è un incasso. Spese, compensazioni, pagamenti e rendiconti saranno aggiunti nelle milestone successive.", style = MaterialTheme.typography.bodySmall)

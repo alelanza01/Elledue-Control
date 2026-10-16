@@ -1,9 +1,11 @@
-# 0.4.8 — stato in lavorazione
+# 0.4.8 — checkpoint sorgenti
 
-Base verificata ea7e654, branch feature/0.4.8-stabilization. Nessun lavoro locale preesistente da sovrascrivere; main c156458 e branch artefatti0.4.7 distinti. Application ID preservato; versione0.4.8/code8. Non distribuire pubblicamente, non fare merge.
+Base verificata `ea7e654`, branch `feature/0.4.8-stabilization`. Nessuna sostituzione del progetto o delle modifiche preesistenti; main `c156458` e artefatti 0.4.7 separati. Application ID invariato; versione 0.4.8 / code 8. Nessun merge o APK pubblico.
 
-CheckpointA in corso: bozze persistenti private per modulo/record, errori di salvataggio visibili, rettifica economica esplicita, eliminazione dipendenze completa e atomica con backup SAF verificato e controllo dati cambiati.
+Checkpoint A/B/C implementati: bozze private persistenti isolate per record, controllo revisione al salvataggio, rettifica economica guidata ed errori visibili, eliminazione completa delle dipendenze in transazione con backup SAF riletto prima della cancellazione, tipologia immobili e riepiloghi separati, archivio escluso dalle query operative, previsione fiscale provvisoria, opzioni PDF indipendenti, calendario a barre, notifiche Android e accesso protetto.
 
-Evidenza iniziale sul salvataggio: il repository già aggiorna per ID con Room Upsert in transazione. Le rettifiche economiche senza motivo e le capienze insufficienti sono rifiutate; l’errore veniva mostrato solo in cima a un modulo scorrevole, spesso fuori viewport. I record rendicontati richiedono una rettifica. La0.4.8 non aggira questi controlli: presenta motivo/conseguenze e rende visibili gli errori. Il caso completo deve ancora essere validato con test a cinque campi e riapertura reale del database.
+Verificati in gruppi mirati: modifica di più di cinque campi e riapertura del database su file; recupero di bozza dopo chiusura di tutte le Activity e nuovo avvio, salvataggio e riapertura della scheda; conservazione di bozze di altri record; rollback di eliminazione, indisponibilità del backup e dipendenze; modelli economici; allarmi, permessi, notifiche e intent; credenziale Android annullata/riuscita e schermata bloccata; PDF effettivi con riga nascosta e totali conservati; regressioni delle viste native.
 
-Modello7 additivo predisposto per tipologia immobili/prenotazioni, previsione fiscale provvisoria e opzioni rendiconti. Classificazione precedenteMANAGED, nessun ricalcolo storico automatico; immobili propri nuovi senza fee inventate. CheckpointB/C e QA non ancora completati: questo documento non costituisce una consegna.
+La diagnosi del salvataggio non afferma di avere riprodotto il telefono dell'utente: il precedente repository aggiornava già per UUID, ma motivo di rettifica, capienza e vincolo sui rendiconti potevano respingere il modulo con un errore fuori viewport. La 0.4.8 rende espliciti questi casi. Durante il recupero delle bozze è stato inoltre corretto il ritorno alla scheda aggiornata dopo il salvataggio, anche quando l'editor proveniva dall'elenco bozze.
+
+Verifica finale dell'intera suite, lint, APK e firma in corso. Questa nota è un checkpoint, non la dichiarazione di collaudo finale su telefono fisico. Vedere ARCHITECTURE.md e, a verifica conclusa, QA.md.

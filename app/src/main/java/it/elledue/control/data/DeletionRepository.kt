@@ -44,7 +44,13 @@ class DeletionRepository(private val db:AppDatabase,private val context:Context,
         backup.prepare(bytes)
         DeletionReceipt(plan.fingerprint,uri)
     }
-    suspend fun delete(plan:DeletionPlan,receipt:DeletionReceipt,confirmation:String,includeDocuments:Boolean)=db.withTransaction {
+    suspend fun delete(plan:DeletionPlan,receipt:DeletionReceipt,confirmation:String,includeDocuments:Boolean) {
+        val persisted=withContext(Dispatchers.IO){runCatching{requireNotNull(context.contentResolver.openInputStream(receipt.uri)).use{input->
+            val out=java.io.ByteArrayOutputStream();val buffer=ByteArray(8192)
+            while(true){val n=input.read(buffer);if(n<0)break;require(out.size()+n<=BackupService.MAX_BYTES);out.write(buffer,0,n)};out.toByteArray()
+        }}.getOrElse{throw IllegalArgumentException("Il backup preventivo non è più accessibile: salva e verifica un nuovo backup.")}}
+        require(persisted.contentEquals(plan.backup)){"Il backup preventivo non è più accessibile o è cambiato: salva e verifica un nuovo backup."}
+        val references=db.withTransaction {
         require(confirmation=="ELIMINA ${plan.label}"){"Digita esattamente la conferma richiesta."}
         require(receipt.fingerprint==plan.fingerprint){"Prima salva e verifica il backup di questa anteprima."}
         require(plan.reportIds.isEmpty() || includeDocuments){"Conferma esplicitamente l’eliminazione dei rendiconti e di tutte le loro versioni."}
@@ -75,5 +81,9 @@ class DeletionRepository(private val db:AppDatabase,private val context:Context,
         }
         sql.query("PRAGMA foreign_key_check").use{require(!it.moveToFirst()){"Dipendenze incoerenti: nessuna cancellazione applicata."}}
         beforeCommit() // fault injection verifies rollback of the full transaction.
+        val taskIds=org.json.JSONObject(org.json.JSONObject(plan.backup.toString(Charsets.UTF_8)).getString("payload")).getJSONArray("activities").let{rows->(0 until rows.length()).map{rows.getJSONObject(it)}.filter{if(plan.kind=="property")it.optString("propertyId")==propertyId else it.optString("reservationId")==plan.id}.map{it.getString("id")}.toSet()}
+        DeletionReferences(if(plan.kind=="property")setOf(propertyId) else emptySet(),bookings.toSet(),expenses.toSet(),taskIds,plan.reportIds)
+        }
+        DraftStore.get(context).removeReferences(references)
     }
 }

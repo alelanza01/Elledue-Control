@@ -116,7 +116,7 @@ class OperationsUiTest {
     @Test fun analysisUsesRealFeesExpensesAndEmptyPeriodWithoutInventedPercentages() {
         runBlocking {app.accountingRepository.initialize();app.accountingRepository.saveExpense(ExpenseDraft(id="op-cost",propertyId="op-p",date=BookingDates.display(today.toEpochDay()),month=YearMonth.from(today).toString(),categoryId="cleaning",quantity="3",unit="8"))}
         waitTag("home-scroll");compose.onNodeWithTag("nav-economy").performClick();waitTag("open-analysis");compose.onNodeWithTag("open-analysis").performClick();waitTag("analysis-scroll")
-        compose.onNodeWithTag("analysis-scroll").performScrollToNode(hasText("Compensi maturati"));compose.onNodeWithText("Compensi maturati").assertIsDisplayed();shot("analysis")
+        compose.onNodeWithTag("analysis-scroll").performScrollToNode(hasText("Compenso di gestione Elledue"));compose.onNodeWithText("Compenso di gestione Elledue").assertIsDisplayed();shot("analysis")
         compose.onNodeWithTag("analysis-scroll").performScrollToNode(hasText("Spese per categoria"));shot("expense-chart")
         compose.onNodeWithTag("analysis-scroll").performScrollToNode(hasText("Costo operativo totale"));compose.onNodeWithText("Costo operativo totale").assertIsDisplayed()
         compose.onNodeWithTag("analysis-scroll").performScrollToIndex(0);compose.onNodeWithContentDescription("Analisi mese precedente").performClick()

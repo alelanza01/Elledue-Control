@@ -28,9 +28,13 @@ class ReportRepository(private val db: AppDatabase, private val context: Context
         val report = ReportEntity(UUID.randomUUID().toString(), original.propertyId, original.yearMonth, versions.maxOf { it.version } + 1, "DRAFT", null, null, original.id, reason.trim(), original.notes)
         dao.save(report); dao.options(original.id).forEach{dao.option(it.copy(reportId=report.id))}; refreshLocked(report); report.id
     }
-    suspend fun refresh(id: String, notes: String? = null): ReportSnapshot = db.withTransaction {
+    suspend fun refresh(id: String, notes: String? = null): ReportSnapshot {
+        val snapshot=db.withTransaction {
         val report = requireNotNull(dao.get(id)); require(report.status == "DRAFT") { "La versione confermata è immutabile." }
         refreshLocked(if (notes != null) report.copy(notes = notes.trim()) else report)
+        }
+        if(notes!=null)DraftStore.get(context).clear("report/$id#notes")
+        return snapshot
     }
     private suspend fun refreshLocked(report: ReportEntity,overrideOptions:List<ReportBookingOption>?=null,persist:Boolean=true): ReportSnapshot {
         val property = requireNotNull(db.propertyDao().get(report.propertyId))

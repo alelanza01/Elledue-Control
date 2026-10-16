@@ -33,13 +33,15 @@ class MessageRepository(private val db:AppDatabase,private val drafts:DraftStore
         }
         db.settingsDao().save(settings.copy(messageCategoriesInitialized=true))
     }
-    suspend fun save(item:GuestMessageEntity):Unit=db.withTransaction {
-        require(item.title.isNotBlank() && item.title.length<=300) { "Inserisci un titolo valido." }
-        require(item.italian.isNotBlank() || item.english.isNotBlank()) { "Inserisci almeno un testo." }
-        require(item.italian.length<=20000 && item.english.length<=20000)
-        item.propertyId?.let { requireNotNull(db.propertyDao().get(it)) }
-        requireNotNull(db.messageDao().category(item.categoryId)) { "Seleziona una categoria." }
-        db.messageDao().save(item.copy(title=item.title.trim()))
+    suspend fun save(item:GuestMessageEntity):Unit {
+        db.withTransaction {
+            require(item.title.isNotBlank() && item.title.length<=300) { "Inserisci un titolo valido." }
+            require(item.italian.isNotBlank() || item.english.isNotBlank()) { "Inserisci almeno un testo." }
+            require(item.italian.length<=20000 && item.english.length<=20000)
+            item.propertyId?.let { requireNotNull(db.propertyDao().get(it)) }
+            requireNotNull(db.messageDao().category(item.categoryId)) { "Seleziona una categoria." }
+            db.messageDao().save(item.copy(title=item.title.trim()))
+        }
         drafts?.clear("messages?draft=${item.id}")
     }
     suspend fun category(item:MessageCategoryEntity) { require(item.label.isNotBlank() && item.label.length<=100); db.messageDao().category(item.copy(label=item.label.trim())) }

@@ -13,11 +13,12 @@ import it.elledue.control.reports.ReportSnapshot
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @Composable fun ReportBookingControls(snapshot:ReportSnapshot,booking:ReservationEntity,model:ReportViewModel) {
-    var dialog by remember{mutableStateOf(false)}
+    var dialog by remember{mutableStateOf(false)};var applying by remember{mutableStateOf(false)}
     val rule=snapshot.bookingOptions.orEmpty().firstOrNull{it.reservationId==booking.id}
     var hidden by remember(snapshot.id,rule){mutableStateOf(rule?.hideDetails ?: (booking.id in snapshot.hiddenBookingIds.orEmpty()))}
     var excluded by remember(snapshot.id,rule){mutableStateOf(rule?.excluded ?: snapshot.excludedBookings.orEmpty().any{it.id==booking.id})}
     val preview by model.optionPreview.collectAsStateWithLifecycle();val busy by model.busy.collectAsStateWithLifecycle();val error by model.error.collectAsStateWithLifecycle()
+    LaunchedEffect(busy,preview,error){if(applying && !busy){if(error==null && preview==null)dialog=false;applying=false}}
     if(snapshot.draft)TextButton(onClick={model.clearPreview();dialog=true},modifier=Modifier.testTag("report-options-${booking.id}")){Text("Visibilità PDF / inclusione nei calcoli")}
     else Text("Snapshot confermato: apri una versione rettificativa per cambiare l’inclusione.",style=MaterialTheme.typography.bodySmall)
     if(dialog)AlertDialog(onDismissRequest={if(!busy){dialog=false;model.clearPreview()}},title={Text("Prenotazione nel rendiconto")},text={Column(Modifier.verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(10.dp)){
@@ -28,5 +29,5 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
         OutlinedButton(onClick={model.previewOption(snapshot.id,booking.id,hidden,excluded)},enabled=!busy,modifier=Modifier.testTag("preview-report-option")){Text("Verifica effetto sui totali")}
         preview?.takeIf{it.id==snapshot.id}?.let{p->AmountLine("Saldo prima",snapshot.summary().balance);AmountLine("Saldo dopo",p.summary().balance);AmountLine("Compenso di gestione Elledue",p.summary().fees);AmountLine("Rimborsi dopo",p.summary().reimbursable)}
         error?.let{Text(it,color=MaterialTheme.colorScheme.error)}
-    }},confirmButton={TextButton(onClick={preview?.let{model.applyOption(snapshot.id,booking.id,hidden,excluded,it);dialog=false}},enabled=!busy && preview!=null,modifier=Modifier.testTag("apply-report-option")){Text("Applica alla bozza")}},dismissButton={TextButton(onClick={dialog=false;model.clearPreview()},enabled=!busy){Text("Continua senza applicare")}})
+    }},confirmButton={TextButton(onClick={preview?.let{applying=true;model.applyOption(snapshot.id,booking.id,hidden,excluded,it)}},enabled=!busy && preview!=null,modifier=Modifier.testTag("apply-report-option")){Text("Applica alla bozza")}},dismissButton={TextButton(onClick={dialog=false;model.clearPreview()},enabled=!busy){Text("Continua senza applicare")}})
 }

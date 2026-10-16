@@ -60,7 +60,7 @@ fun ExpenseEditor(initial: ExpenseDraft, properties: List<PropertyWithOwner>, bo
             AccountingField("Competenza AAAA-MM", draft.month, "expense-month", !busy) { draft = draft.copy(month = it) }
             ChoiceField("Prenotazione collegata", draft.reservationId, listOf("" to "Nessuna") + bookings.filter { it.propertyId == draft.propertyId }.map { it.id to "${it.guestFirstName} ${it.guestLastName} · ${BookingDates.display(it.checkInEpochDay)}" }, !busy) { draft = draft.copy(reservationId = it) }
             Row { Checkbox(draft.advanced, { draft = draft.copy(advanced = it) }, enabled = !busy); Text("Anticipata da Elledue", modifier = Modifier.padding(top = 12.dp)) }
-            Row { Checkbox(draft.reimbursable, { draft = draft.copy(reimbursable = it) }, enabled = !busy); Text("Rimborsabile dal proprietario", modifier = Modifier.padding(top = 12.dp)) }
+            Row { Checkbox(draft.reimbursable, { draft = draft.copy(reimbursable = it) }, enabled = !busy && (initial.revision>0 || properties.firstOrNull{it.property.id==draft.propertyId}?.property?.businessType!="OWNED")); Text("Rimborsabile dal proprietario", modifier = Modifier.padding(top = 12.dp)) }
             if (category?.kind == "OTHER") {
                 AccountingField("Quantità (facoltativa)", draft.quantity, "expense-quantity", !busy) { draft = draft.copy(quantity = it) }
                 AccountingField("Tariffa unitaria € (facoltativa)", draft.unit, "expense-unit", !busy) { draft = draft.copy(unit = it) }
@@ -109,16 +109,18 @@ fun ExpenseDetail(item: ExpenseEntity, propertyName: String, model: AccountingVi
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CategoryScreen(categories: List<ExpenseCategoryEntity>, model: AccountingViewModel, onBack: () -> Unit) {
-    var editId by rememberSaveable { mutableStateOf<String?>(null) }; var label by rememberSaveable { mutableStateOf("") }; var kind by rememberSaveable { mutableStateOf("OTHER") }
+    val contextForDrafts=androidx.compose.ui.platform.LocalContext.current
+    var editId by rememberPersistentDraft("categories#id", ""); var label by rememberPersistentDraft("categories#label", ""); var kind by rememberPersistentDraft("categories#kind", "OTHER")
     val error by model.error.collectAsStateWithLifecycle(); val busy by model.busy.collectAsStateWithLifecycle(); val saved by model.saved.collectAsStateWithLifecycle()
     Scaffold(topBar = { TopAppBar(title = { Text("Categorie spese") }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Indietro categorie") } }) }) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Button(onClick = { model.clear(); editId = UUID.randomUUID().toString(); label = ""; kind = "OTHER" }, modifier = Modifier.testTag("new-category")) { Text("Nuova categoria") }
-            if (editId != null) OutlinedCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            if (editId.isNotEmpty()) OutlinedCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                DraftBanner("categories"){editId="";label="";kind="OTHER"}
                 Text("Categoria", style = MaterialTheme.typography.titleMedium)
                 AccountingField("Nome categoria", label, "category-name", !busy) { label = it }
                 ChoiceField("Tipologia", kind, listOf("OTHER" to "Altra spesa", "CLEANING" to "Pulizia", "LAUNDRY" to "Lavanderia"), !busy && categories.none { it.id == editId }) { kind = it }
-                Row { TextButton(onClick = { model.saveCategory(editId!!, label, kind, categories.firstOrNull { it.id == editId }?.archived ?: false) }, enabled = !busy) { Text("Salva categoria") }; TextButton(onClick = { editId = null }, enabled = !busy) { Text("Annulla") } }
+                Row { TextButton(onClick = { model.saveCategory(editId, label, kind, categories.firstOrNull { it.id == editId }?.archived ?: false) }, enabled = !busy) { Text("Salva categoria") }; TextButton(onClick = { editId = "" }, enabled = !busy) { Text("Annulla") } }
                 error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             } }
             categories.forEach { item -> OutlinedCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(14.dp)) {
@@ -129,5 +131,5 @@ fun CategoryScreen(categories: List<ExpenseCategoryEntity>, model: AccountingVie
             error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
         }
     }
-    LaunchedEffect(saved) { if (saved == "category") { editId = null; model.clear() } }
+    LaunchedEffect(saved) { if (saved == "category") { editId = ""; it.elledue.control.data.DraftStore.get(contextForDrafts).clear("categories"); model.clear() } }
 }

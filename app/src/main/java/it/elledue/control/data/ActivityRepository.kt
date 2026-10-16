@@ -12,16 +12,19 @@ interface ActivityDao {
     @Upsert suspend fun save(item: ActivityEntity)
 }
 class ActivityRepository(private val db: AppDatabase,private val drafts:DraftStore?=null) {
-    suspend fun delete(id:String) = db.activityDao().delete(id)
+    suspend fun delete(id:String) { db.activityDao().delete(id);drafts?.clear("activity/$id") }
     val activities = db.activityDao().observe()
-    suspend fun save(item: ActivityEntity):Unit = db.withTransaction {
-        require(item.title.isNotBlank() && item.title.length <= 300) { "Inserisci un titolo valido." }
-        require(item.notes.length <= 20000)
-        require(item.kind in listOf("GENERAL","CLEANING","MAINTENANCE"))
-        java.time.ZoneId.of(item.zoneId)
-        item.propertyId?.let { requireNotNull(db.propertyDao().get(it)) }
-        item.reservationId?.let { require(db.reservationDao().get(it)?.propertyId == item.propertyId) }
-        db.activityDao().save(item.copy(title = item.title.trim()))
-        drafts?.clear("activity/new");drafts?.clear("activity/${item.id}")
+    suspend fun save(item: ActivityEntity):Unit {
+        db.withTransaction {
+            require(item.title.isNotBlank() && item.title.length <= 300) { "Inserisci un titolo valido." }
+            require(item.notes.length <= 20000)
+            require(item.kind in listOf("GENERAL","CLEANING","MAINTENANCE","REGISTRATION"))
+            java.time.ZoneId.of(item.zoneId)
+            item.propertyId?.let { requireNotNull(db.propertyDao().get(it)) }
+            item.reservationId?.let { require(db.reservationDao().get(it)?.propertyId == item.propertyId) }
+            db.activityDao().save(item.copy(title = item.title.trim()))
+        }
+        if(drafts?.load("activity/new#id",String::class.java)==item.id)drafts.clear("activity/new")
+        drafts?.clear("activity/${item.id}")
     }
 }

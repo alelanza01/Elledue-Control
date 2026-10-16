@@ -19,9 +19,12 @@ import java.time.*
 
 @Composable
 fun ActivitiesScreen(repository: ActivityRepository, activities: List<ActivityEntity>, properties: List<PropertyWithOwner>, bookings: List<ReservationEntity>, bookingId: String?, expenses: List<ExpenseEntity> = emptyList(), open: (String)->Unit = {}, back: () -> Unit) {
+    val context=androidx.compose.ui.platform.LocalContext.current
     val booking = bookings.firstOrNull { it.id == bookingId }; val today=BookingDates.today()
     var filter by rememberSaveable { mutableIntStateOf(0) }; var edit by rememberSaveable { mutableStateOf(bookingId!=null) }
-    var title by rememberSaveable { mutableStateOf("") }; var property by rememberSaveable(bookingId) { mutableStateOf(booking?.propertyId ?: "") }
+    val quickDraft="activities?booking=${bookingId ?: ""}"
+    var title by rememberPersistentDraft("$quickDraft#title", ""); var property by rememberPersistentDraft("$quickDraft#property",booking?.propertyId ?: "")
+    var quickId by rememberPersistentDraft("$quickDraft#id",java.util.UUID.randomUUID().toString())
     var busy by remember { mutableStateOf(false) }; var error by remember { mutableStateOf<String?>(null) }; val scope = rememberCoroutineScope()
     val day=if(filter==2) today.plusDays(1) else today
     val selectedBookings=bookings.filter { it.status!="CANCELLED" && (bookingId==null || it.id==bookingId) }
@@ -32,7 +35,7 @@ fun ActivitiesScreen(repository: ActivityRepository, activities: List<ActivityEn
         if(edit) {
             item { ConceptPropertySelector(properties, property, allOption = booking == null, enabled = booking == null && !busy) { property = it } }
             item { OutlinedTextField(title, { title = it }, label = { Text("Nuova attività") }, modifier = Modifier.fillMaxWidth().testTag("activity-title")) }
-            item { Button(onClick = { busy = true; scope.launch { try { repository.save(ActivityEntity(java.util.UUID.randomUUID().toString(), property.takeIf { it.isNotBlank() }, title, null, reservationId = booking?.id)); title = ""; error = null } catch (_: Exception) { error = "Attività non salvata. Controlla titolo e collegamento." } finally { busy = false } } }, enabled = !busy && title.isNotBlank(), modifier = Modifier.testTag("save-activity")) { Text("Aggiungi attività") } }
+            item { Button(onClick = { busy = true; scope.launch { try { repository.save(ActivityEntity(quickId, property.takeIf { it.isNotBlank() }, title, null, reservationId = booking?.id)); title = ""; quickId=java.util.UUID.randomUUID().toString();it.elledue.control.data.DraftStore.get(context).clear(quickDraft); error = null } catch (_: Exception) { error = "Attività non salvata. Controlla titolo e collegamento." } finally { busy = false } } }, enabled = !busy && title.isNotBlank(), modifier = Modifier.testTag("save-activity")) { Text("Aggiungi attività") } }
         }
         error?.let { item { Text(it, color = MaterialTheme.colorScheme.error) } }
         if(filter!=3) {

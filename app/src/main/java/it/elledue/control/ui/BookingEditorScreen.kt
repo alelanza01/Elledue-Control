@@ -24,10 +24,14 @@ fun BookingEditorScreen(initial: BookingDraft, properties: List<PropertyWithOwne
     val draftKey=if(isNew)"booking/new" else "booking/${initial.id}/edit"
     var draft by rememberPersistentDraft(draftKey,initial)
     var correction by rememberSaveable{mutableStateOf(false)}
-    var correctionText by rememberSaveable{mutableStateOf("")}
+    var correctionText by rememberPersistentDraft("$draftKey#correction", "")
+    val focus=androidx.compose.ui.platform.LocalFocusManager.current
+    val keyboardController=androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
     val scroll=rememberScrollState()
     LaunchedEffect(error){if(error!=null)scroll.animateScrollTo(0)}
+    LaunchedEffect(correction){if(correction)scroll.scrollTo(0)}
     fun save(){
+        focus.clearFocus();keyboardController?.hide()
         val financial=!isNew && listOf(draft.gross,draft.otaPercent,draft.actualOta,draft.managementPercent)!=listOf(initial.gross,initial.otaPercent,initial.actualOta,initial.managementPercent)
         if(financial && draft.correctionReason.isBlank()){correction=true;return}
         onSave(draft)
@@ -42,6 +46,13 @@ fun BookingEditorScreen(initial: BookingDraft, properties: List<PropertyWithOwne
     }) }) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).imePadding().verticalScroll(scroll).padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             if (error != null) Text(error, color = MaterialTheme.colorScheme.error, modifier = Modifier.testTag("booking-error"))
+            if(correction)OutlinedCard(Modifier.fillMaxWidth()) {Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){
+                Text("Motiva la rettifica economica",style=MaterialTheme.typography.titleMedium,color=ElledueGold)
+                Text("Gli importi precedenti resteranno nello storico. Il salvataggio richiede un motivo.")
+                OutlinedTextField(correctionText,{correctionText=it},label={Text("Motivo")},singleLine=true,modifier=Modifier.fillMaxWidth().testTag("booking-correction-dialog"))
+                Button(onClick={draft=draft.copy(correctionReason=correctionText);correction=false;onSave(draft)},enabled=correctionText.isNotBlank() && enabled){Text("Salva rettifica")}
+                TextButton(onClick={correction=false}){Text("Continua a modificare")}
+            }}
             DraftBanner(draftKey){draft=initial}
             Text("Soggiorno", style = MaterialTheme.typography.titleLarge)
             PropertySelector(properties.filter { !it.property.archived || it.property.id == initial.propertyId }, draft.propertyId, enabled) { id ->
@@ -82,7 +93,7 @@ fun BookingEditorScreen(initial: BookingDraft, properties: List<PropertyWithOwne
             BookingField("Lordo (€) *", draft.gross, enabled, KeyboardType.Decimal, "booking-gross") { draft = draft.copy(gross = it) }
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 BookingField("OTA (%)", draft.otaPercent, enabled, KeyboardType.Decimal, "booking-ota-percent", Modifier.weight(1f)) { draft = draft.copy(otaPercent = it) }
-                BookingField("Elledue (%)", draft.managementPercent, enabled, KeyboardType.Decimal, "booking-management-percent", Modifier.weight(1f)) { draft = draft.copy(managementPercent = it) }
+                BookingField("Elledue (%)", draft.managementPercent, enabled && draft.businessType!="OWNED", KeyboardType.Decimal, "booking-management-percent", Modifier.weight(1f)) { draft = draft.copy(managementPercent = it) }
             }
             BookingField("OTA effettiva (€) · facoltativa", draft.actualOta, enabled, KeyboardType.Decimal, "booking-actual-ota") { draft = draft.copy(actualOta = it) }
             Text("Se compilata, anche con zero, la commissione OTA effettiva prevale sulla percentuale.", style = MaterialTheme.typography.bodySmall)
@@ -100,7 +111,7 @@ fun BookingEditorScreen(initial: BookingDraft, properties: List<PropertyWithOwne
             Spacer(Modifier.height(24.dp))
         }
     }
-    if(correction) AlertDialog(onDismissRequest={correction=false},title={Text("Motiva la rettifica economica")},text={Column {Text("Gli importi precedenti resteranno nello storico. Il salvataggio richiede un motivo.");OutlinedTextField(correctionText,{correctionText=it},label={Text("Motivo")},modifier=Modifier.testTag("booking-correction-dialog"))}},confirmButton={TextButton(onClick={draft=draft.copy(correctionReason=correctionText);correction=false;onSave(draft)},enabled=correctionText.isNotBlank()){Text("Salva rettifica")}},dismissButton={TextButton(onClick={correction=false}){Text("Continua a modificare")}})
+
     if (discard) AlertDialog(onDismissRequest = { discard = false }, title = { Text("Abbandonare le modifiche?") }, text = { Text("La bozza locale rimane disponibile in Home → Riprendi bozze.") }, confirmButton = { TextButton(onClick = onBack) { Text("Abbandona") } }, dismissButton = { TextButton(onClick = { discard = false }) { Text("Continua modifica") } })
     if (pending != null) AlertDialog(onDismissRequest = onDismiss, title = { Text("Sovrapposizione rilevata") }, text = {
         Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -149,7 +160,7 @@ fun FinanceCard(gross: Long, totals: BookingTotals, title: String = "Riepilogo e
             Text(title, style = MaterialTheme.typography.titleMedium)
             listOf("Lordo al proprietario" to gross, (if (actualOta) "OTA effettiva" else "OTA stimata") to totals.otaCents, "Netto dopo OTA" to totals.netCents).forEach { (label, cents) -> Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text(label); Text(Amounts.euro(cents)) } }
             HorizontalDivider()
-            Text("Compenso Elledue maturato", style = MaterialTheme.typography.labelLarge)
+            Text("Compenso di gestione Elledue", style = MaterialTheme.typography.labelLarge)
             Text(Amounts.euro(totals.managementCents), style = MaterialTheme.typography.headlineMedium, modifier = Modifier.testTag("booking-fee"))
         }
     }

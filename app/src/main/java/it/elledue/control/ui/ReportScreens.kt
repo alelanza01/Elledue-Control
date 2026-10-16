@@ -72,9 +72,9 @@ fun ReportDetail(report: ReportEntity, snapshot: ReportSnapshot, model: ReportVi
     val exportPdf = rememberPdfExporter(snapshot, layout)
     var preview by remember { mutableStateOf(false) }
     var tab by rememberSaveable(report.id) { mutableIntStateOf(0) }
-    var notes by rememberSaveable(report.id) { mutableStateOf(report.notes) }
+    var notes by rememberPersistentDraft("report/${report.id}#notes",report.notes)
     var acknowledged by rememberSaveable(report.id, report.snapshotJson) { mutableStateOf(false) }
-    var confirm by rememberSaveable { mutableStateOf(false) }; var revise by rememberSaveable { mutableStateOf(false) }; var reason by rememberSaveable { mutableStateOf("") }
+    var confirm by rememberSaveable { mutableStateOf(false) }; var revise by rememberSaveable { mutableStateOf(false) }; var reason by rememberPersistentDraft("report/${report.id}#reason", "")
     val busy by model.busy.collectAsStateWithLifecycle(); val error by model.error.collectAsStateWithLifecycle()
     val total = snapshot.summary(); val issues = snapshot.issues(); val draft = report.status == "DRAFT"
     Scaffold(topBar = { TopAppBar(title = { Text("${report.yearMonth} · v${report.version}") }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Indietro documento") } }) }) { padding ->

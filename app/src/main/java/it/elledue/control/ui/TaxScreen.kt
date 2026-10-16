@@ -68,7 +68,7 @@ fun TaxScreen(booking: ReservationEntity, property: PropertyEntity, data: Accoun
                 OutlinedCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Riscossione del ${BookingDates.display(source.dateEpochDay)} · ${Amounts.euro(source.amountCents)}", style = MaterialTheme.typography.titleSmall)
                     Text("Disponibile per compensazione ${Amounts.euro(compAvailable)}", style = MaterialTheme.typography.bodySmall)
-                    TextButton(onClick = { model.clear(); sourceId = source.id; movementKind = "COMPENSATION" }, enabled = canPost && compAvailable > 0, modifier = Modifier.testTag("compensate-${source.id}")) { Text("Compensa con proprietario") }
+                    TextButton(onClick = { model.clear(); sourceId = source.id; movementKind = "COMPENSATION" }, enabled = canPost && compAvailable > 0 && booking.appliedBusinessType!="OWNED", modifier = Modifier.testTag("compensate-${source.id}")) { Text("Compensa con proprietario") }
                     TextButton(onClick = { model.clear(); sourceId = source.id; movementKind = "REMITTANCE" }, enabled = canPost && remitAvailable > 0 && assessment?.remittanceResponsible != "UNDEFINED") { Text("Registra riversamento") }
                 } }
             }

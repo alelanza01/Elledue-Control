@@ -41,13 +41,15 @@ private val sections = listOf(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewModel, bookingsModel: ReservationViewModel, accountingModel: AccountingViewModel, reportsModel: ReportViewModel, backupService: it.elledue.control.data.BackupService) {
+fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewModel, bookingsModel: ReservationViewModel, accountingModel: AccountingViewModel, reportsModel: ReportViewModel, backupService: it.elledue.control.data.BackupService, activity:it.elledue.control.MainActivity?=null) {
     val snackbar=remember{SnackbarHostState()}
     val notice by bookingsModel.notice.collectAsStateWithLifecycle()
     LaunchedEffect(notice){notice?.let{snackbar.showSnackbar(it);bookingsModel.clearNotice()}}
     val app = androidx.compose.ui.platform.LocalContext.current.applicationContext as it.elledue.control.ElledueApplication
     val activities by app.activityRepository.activities.collectAsStateWithLifecycle(initialValue = emptyList())
     val navigation = rememberNavController()
+    val requestedRoute by (activity?.notificationRoute ?: remember{ kotlinx.coroutines.flow.MutableStateFlow<String?>(null) }).collectAsState()
+    LaunchedEffect(requestedRoute){requestedRoute?.let{navigation.navigate(it){launchSingleTop=true};activity?.notificationRoute?.value=null}}
     val entry by navigation.currentBackStackEntryAsState()
     val route = entry?.destination?.route
     val state by propertiesModel.state.collectAsStateWithLifecycle()
@@ -176,14 +178,14 @@ fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewMo
             composable("booking/{id}/edit") { destination ->
                 BookingDataSurface(bookingState, state, { bookingsModel.retry(); propertiesModel.retry() }) {
                     val item = bookings.firstOrNull { it.id == destination.arguments?.getString("id") }
-                    LaunchedEffect(savedBookingId) { if (savedBookingId != null) { bookingsModel.consumeSaved(); navigation.popBackStack() } }
+                    LaunchedEffect(savedBookingId) { savedBookingId?.let{id->bookingsModel.consumeSaved();navigation.popBackStack();navigation.navigate("booking/$id"){launchSingleTop=true}} }
                     if (item == null) EmptyState("Prenotazione non trovata", "Torna al calendario.")
                     else BookingEditorScreen(BookingDraft.from(item), records, false, bookingBusy, bookingError, pendingOverlap,
                         onBack = { bookingsModel.dismissOverlap(); navigation.popBackStack() }, onSave = { bookingsModel.save(it) }, onConfirm = bookingsModel::confirmOverlap, onDismiss = bookingsModel::dismissOverlap)
                 }
             }
             composable("economy") {
-                EconomyHub(normalBookings, normalRecords, normalAccounting, jump,businessType)
+                if(operational==null)LoadingScreen() else EconomyHub(normalBookings, normalRecords, normalAccounting, jump,businessType)
             }
             composable("analysis") { EconomyAnalysis(normalBookings, normalRecords, normalAccounting,businessType) { navigation.popBackStack() } }
             composable("tax-overview") {
@@ -294,7 +296,8 @@ fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewMo
             composable("messages?booking={booking}&draft={draft}",arguments=listOf("booking","draft").map{name->androidx.navigation.navArgument(name){nullable=true;defaultValue=null}}) {d -> BookingDataSurface(bookingState,state,{bookingsModel.retry();propertiesModel.retry()}) { MessagesScreen(app.messageRepository,normalRecords,normalBookings,d.arguments?.getString("booking"),accountingData,d.arguments?.getString("draft")){navigation.popBackStack()} } }
             composable("appearance") { AppearanceScreen(settings,settingsModel){navigation.popBackStack()} }
             composable("profile") { ProfileScreen(settings, settingsModel) { navigation.popBackStack() } }
-            composable("notifications") { UpcomingScreen("Centro notifiche", "Nessuna notifica di sistema attiva", "Le notifiche Android saranno sviluppate nella Milestone 5. Consulta l’agenda Home per gli eventi registrati.", { jump("dashboard") }) }
+            composable("notifications") { NotificationSettings { navigation.popBackStack() } }
+            composable("access") { if(activity!=null)AccessSettings(activity){navigation.popBackStack()} }
             composable("settings") {
                 Scaffold(topBar = { TopAppBar(title = { Text("Impostazioni") }) }) { padding ->
                     Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -314,12 +317,15 @@ fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewMo
                             }
                         }
                         HorizontalDivider()
+                        OutlinedButton(onClick={jump("notifications")},modifier=Modifier.fillMaxWidth()){Text("Notifiche Android") }
+                        OutlinedButton(onClick={jump("access")},modifier=Modifier.fillMaxWidth()){Text("Accesso protetto") }
+                        OutlinedButton(onClick={jump("drafts")},modifier=Modifier.fillMaxWidth()){Text("Bozze da recuperare") }
                         OutlinedButton(onClick={jump("appearance")},modifier=Modifier.fillMaxWidth()){Text("Aspetto · copertina Home")}
                         OutlinedButton(onClick={jump("messages")},modifier=Modifier.fillMaxWidth()){Text("Messaggi ospiti IT/EN")}
                         OutlinedButton(onClick={jump("archive")},modifier=Modifier.fillMaxWidth()){Text("Archivio storico")}
                         Text("Elledue Control · 0.4.8", style = MaterialTheme.typography.labelLarge)
                         Text("Dati locali. Esporta un backup verificato prima di cambiare dispositivo o firma Android.", style = MaterialTheme.typography.bodyMedium)
-                        BackupControls(backupService)
+                        BackupControls(backupService){navigation.navigate("dashboard"){popUpTo(navigation.graph.id){inclusive=true};launchSingleTop=true}}
                     }
                 }
             }

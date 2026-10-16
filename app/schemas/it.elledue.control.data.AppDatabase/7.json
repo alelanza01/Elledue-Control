@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 7,
-    "identityHash": "3c4c4bd0dc8bfa8d877f9ddc71362502",
+    "identityHash": "9d41392fb2bc2ac774fa765baba29a5d",
     "entities": [
       {
         "tableName": "report_booking_options",
@@ -990,7 +990,7 @@
       },
       {
         "tableName": "activities",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `propertyId` TEXT, `title` TEXT NOT NULL, `dueEpochMillis` INTEGER, `zoneId` TEXT NOT NULL, `completed` INTEGER NOT NULL, `reservationId` TEXT, `notes` TEXT NOT NULL DEFAULT '', PRIMARY KEY(`id`), FOREIGN KEY(`propertyId`) REFERENCES `properties`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT , FOREIGN KEY(`reservationId`) REFERENCES `reservations`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `propertyId` TEXT, `title` TEXT NOT NULL, `dueEpochMillis` INTEGER, `zoneId` TEXT NOT NULL, `completed` INTEGER NOT NULL, `reservationId` TEXT, `notes` TEXT NOT NULL DEFAULT '', `kind` TEXT NOT NULL DEFAULT 'GENERAL', `hasTime` INTEGER NOT NULL DEFAULT 1, PRIMARY KEY(`id`), FOREIGN KEY(`propertyId`) REFERENCES `properties`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT , FOREIGN KEY(`reservationId`) REFERENCES `reservations`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
         "fields": [
           {
             "fieldPath": "id",
@@ -1037,6 +1037,20 @@
             "affinity": "TEXT",
             "notNull": true,
             "defaultValue": "''"
+          },
+          {
+            "fieldPath": "kind",
+            "columnName": "kind",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "'GENERAL'"
+          },
+          {
+            "fieldPath": "hasTime",
+            "columnName": "hasTime",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "1"
           }
         ],
         "primaryKey": {
@@ -1792,7 +1806,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '3c4c4bd0dc8bfa8d877f9ddc71362502')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '9d41392fb2bc2ac774fa765baba29a5d')"
     ]
   }
 }

@@ -37,10 +37,6 @@ import kotlinx.coroutines.*
             OutlinedTextField(text,{text=it},label={Text("Digita ELIMINA ${p.label}")},enabled=!busy,modifier=Modifier.fillMaxWidth().testTag("deletion-confirmation"))
             Button(onClick={if(!busy){busy=true;scope.launch{try {
                 repository.delete(p,requireNotNull(receipt),text,docs)
-                val tables=org.json.JSONObject(org.json.JSONObject(p.backup.toString(Charsets.UTF_8)).getString("payload"))
-                val removedIds=mutableSetOf(p.id)
-                if(kind=="property")listOf("reservations","expenses","activities","guest_messages").forEach{table->val rows=tables.getJSONArray(table);for(i in 0 until rows.length()){val row=rows.getJSONObject(i);if(row.optString("propertyId")==p.id)removedIds.add(row.getString("id"))}}
-                DraftStore.get(context).routes().filter{route->removedIds.any{route.contains(it)}}.forEach(DraftStore.get(context)::clear)
                 done()
             }catch(e:CancellationException){throw e}catch(e:Exception){error=e.message ?: "Eliminazione non riuscita. Dati conservati."}finally{busy=false}}}},enabled=!busy && receipt!=null && text=="ELIMINA ${p.label}" && (p.reportIds.isEmpty()||docs),colors=ButtonDefaults.buttonColors(containerColor=MaterialTheme.colorScheme.error),modifier=Modifier.testTag("delete-permanently")){Text("2 · Elimina definitivamente")}
         }

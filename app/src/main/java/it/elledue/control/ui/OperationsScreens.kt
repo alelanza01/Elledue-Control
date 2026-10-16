@@ -77,7 +77,7 @@ val homeCovers=listOf(R.drawable.home_cover_1,R.drawable.home_cover_2,R.drawable
         TextButton(onClick=back,enabled=!busy){Text("Indietro")};Text(if(initial==null)"Nuova attività" else "Dettaglio e modifica attività",style=MaterialTheme.typography.headlineLarge)
         OutlinedTextField(title,{title=it},label={Text("Titolo *")},modifier=Modifier.fillMaxWidth().testTag("activity-title"),enabled=!busy)
         OutlinedTextField(notes,{notes=it},label={Text("Descrizione / note")},modifier=Modifier.fillMaxWidth().testTag("activity-notes"),enabled=!busy)
-        ChoiceField("Tipologia attività",kind,listOf("GENERAL" to "Attività generale","CLEANING" to "Pulizia programmata","MAINTENANCE" to "Manutenzione"),!busy){kind=it}
+        ChoiceField("Tipologia attività",kind,listOf("GENERAL" to "Attività generale","CLEANING" to "Pulizia programmata","MAINTENANCE" to "Manutenzione","REGISTRATION" to "Registrazione ospiti"),!busy){kind=it}
         BookingDateField("Data facoltativa",date,!busy,"activity-date",Modifier.fillMaxWidth()){date=it}
         OutlinedTextField(time,{time=it},label={Text("Ora HH:mm · facoltativa")},modifier=Modifier.fillMaxWidth().testTag("activity-time"),enabled=!busy)
         Text("Senza data: attività non programmata. Con data e senza ora: attività della giornata. Fuso Europe/Rome.",style=MaterialTheme.typography.bodySmall)

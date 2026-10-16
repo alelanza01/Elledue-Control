@@ -131,6 +131,7 @@ fun CommandHome(properties: List<PropertyWithOwner>, bookings: List<ReservationE
     val occupied = metrics.sumOf { it.calendarOccupiedDays }; val available = metrics.sumOf { it.calendarDays }
     val ratio = if(available == 0) 0f else occupied.toFloat()/available
     val gross = OperationalMoney.total(active.filter { it.competenceMonth == month.toString() }.map { it.grossCents })
+    val business=BusinessAnalytics.calculate(month.toString(),portfolio,bookings,accounting?.expenses.orEmpty(),accounting?.taxes.orEmpty(),accounting?.movements.orEmpty())
     val fees = OperationalMoney.total(active.filter { it.competenceMonth == month.toString() && it.appliedBusinessType!="OWNED" }.map { it.managementCents })
     androidx.compose.foundation.lazy.LazyColumn(Modifier.fillMaxSize().testTag("home-scroll"), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item { TextButton(onClick={navigate("drafts")},modifier=Modifier.testTag("open-drafts")){Text("Riprendi bozze")} }
@@ -161,10 +162,11 @@ fun CommandHome(properties: List<PropertyWithOwner>, bookings: List<ReservationE
                 }
                 Row(horizontalArrangement=Arrangement.spacedBy(9.dp)) {
                     HomeMetric("Occupazione calendario",if(available==0) "—" else "${(ratio*100).toInt()}%",if(available==0) "Aggiungi il primo immobile" else "Giorni occupati nel mese",Icons.Outlined.DonutLarge,Modifier.weight(1f),ratio)
-                    HomeMetric(if(businessType=="OWNED")"Ricavi immobili propri" else if(businessType=="ALL")"Lordo prenotazioni separato" else "Lordo proprietari",Amounts.euro(gross),if(businessType=="OWNED")"Gestione diretta, senza fee" else "Compensi gestione ${Amounts.euro(fees)}",Icons.Outlined.BarChart,Modifier.weight(1f))
+                    HomeMetric(if(businessType=="OWNED")"Ricavi immobili propri" else "Lordo proprietari gestiti",Amounts.euro(if(businessType=="OWNED")business.ownGross else business.managedGross),if(businessType=="OWNED")"Risultato operativo ${Amounts.euro(business.ownResult)}" else "Compenso di gestione Elledue ${Amounts.euro(business.fees)}",Icons.Outlined.BarChart,Modifier.weight(1f))
                 }
             }
         }
+        if(businessType=="ALL")item { OwnBusinessCard(business) }
         item {
             Text("Azioni rapide",style=MaterialTheme.typography.titleMedium,modifier=Modifier.padding(bottom=8.dp))
             Row(horizontalArrangement=Arrangement.spacedBy(7.dp)) {

@@ -56,7 +56,8 @@ class StabilityDataTest {
         assertTrue(context.getSharedPreferences("local-form-drafts-v1",Context.MODE_PRIVATE).contains("booking/new"))
         reject{repo.save(original.copy(lastName=""))};assertTrue(store.has("booking/new"));assertTrue(db.reportDao().bookings().isEmpty())
         repo.save(original);assertFalse(store.has("booking/new"));assertTrue(store.has("property/new"))
-        val stale=BookingDraft.from(repo.get("b")!!);repo.save(stale.copy(notes="Aggiornata"));reject{repo.save(stale.copy(notes="Vecchia bozza"))};assertEquals("Aggiornata",repo.get("b")!!.notes)
+        store.save("booking/new",original.copy(id="unrelated-draft"))
+        val stale=BookingDraft.from(repo.get("b")!!);repo.save(stale.copy(notes="Aggiornata"));assertEquals("unrelated-draft",store.load("booking/new",BookingDraft::class.java)!!.id);reject{repo.save(stale.copy(notes="Vecchia bozza"))};assertEquals("Aggiornata",repo.get("b")!!.notes)
         store.routes().forEach(store::clear)
     }
     @Test fun deleteBookingRemovesItsDependenciesAndInvalidatesWholeReportChainButKeepsIndependentCosts()=runBlocking<Unit> {
@@ -87,4 +88,16 @@ class StabilityDataTest {
         val service=DeletionRepository(db,context);val p=service.prepare("property","p");val receipt=service.saveVerifiedBackup(p,Uri.fromFile(File(context.cacheDir,"before-change.json")))
         reject{service.delete(p,receipt,"Casa",true)};PropertyRepository(db).archive("p",true);reject{service.delete(p,receipt,"ELIMINA Casa",true)};assertNotNull(db.propertyDao().get("p"))
     }
+    @Test fun deletionRequiresTheSafetyBackupStillToExistAndDraftCleanupMatchesIdsPrecisely()=runBlocking<Unit>{
+        val props=PropertyRepository(db);props.save(PropertyDraft(id="p",ownerId="o",name="Casa",address="Test",ownerName="Test"))
+        val booking=BookingDraft(id="b",propertyId="p",firstName="Nome",lastName="Test",gross="1000");ReservationRepository(db).save(booking)
+        val store=DraftStore.get(context);store.save("booking/b/edit",booking);store.save("booking/unrelated-b/edit",booking.copy(id="unrelated-b"))
+        store.save("property/new",PropertyDraft(name="Bozza indipendente"));store.save("expense/new/OTHER?booking=b",ExpenseDraft(propertyId="p",reservationId="b"))
+        val service=DeletionRepository(db,context);val plan=service.prepare("booking","b");val file=File(context.cacheDir,"still-readable.json")
+        val receipt=service.saveVerifiedBackup(plan,Uri.fromFile(file));file.delete()
+        reject{service.delete(plan,receipt,"ELIMINA ${plan.label}",true)};assertNotNull(db.reservationDao().get("b"))
+        val verified=service.saveVerifiedBackup(plan,Uri.fromFile(file));service.delete(plan,verified,"ELIMINA ${plan.label}",true)
+        assertFalse(store.has("booking/b/edit"));assertFalse(store.has("expense/new/OTHER?booking=b"));assertTrue(store.has("booking/unrelated-b/edit"));assertTrue(store.has("property/new"))
+    }
+
 }

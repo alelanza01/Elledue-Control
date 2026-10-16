@@ -8,19 +8,22 @@ class PropertyRepository(private val database: AppDatabase,private val drafts:Dr
     val properties = dao.observeAll()
     suspend fun get(id: String) = dao.get(id)
 
-    suspend fun save(draft: PropertyDraft):Unit = database.withTransaction {
-        val previous = dao.get(draft.id)
-        require(draft.baseUpdatedAt==null || previous?.property?.updatedAt==draft.baseUpdatedAt){"L’immobile è cambiato dopo l’apertura della bozza. Ricarica i dati correnti prima di salvare."}
-        val validated = draft.toRecord(previous?.property)
-        // Editing access instructions must preserve other future guest templates.
-        val retainedTemplates = previous?.templates.orEmpty().filterNot {
-            it.kind == "access" && it.language in listOf("it", "en")
+    suspend fun save(draft: PropertyDraft):Unit {
+        database.withTransaction {
+            val previous = dao.get(draft.id)
+            require(draft.baseUpdatedAt==null || previous?.property?.updatedAt==draft.baseUpdatedAt){"L’immobile è cambiato dopo l’apertura della bozza. Ricarica i dati correnti prima di salvare."}
+            val validated = draft.toRecord(previous?.property)
+            // Editing access instructions must preserve other future guest templates.
+            val retainedTemplates = previous?.templates.orEmpty().filterNot {
+                it.kind == "access" && it.language in listOf("it", "en")
+            }
+            dao.save(validated.copy(templates = validated.templates + retainedTemplates))
+            if(previous!=null && (previous.property.touristTaxNightCents!=validated.property.touristTaxNightCents || previous.property.touristTaxMaxNights!=validated.property.touristTaxMaxNights || previous.property.touristTaxMinAge!=validated.property.touristTaxMinAge || previous.property.touristTaxExemptions!=validated.property.touristTaxExemptions)) {
+                database.reportDao().bookings().filter{it.propertyId==draft.id && it.status!="CANCELLED"}.forEach{TaxForecast.update(database,it,validated.property)}
+            }
         }
-        dao.save(validated.copy(templates = validated.templates + retainedTemplates))
-        if(previous!=null && (previous.property.touristTaxNightCents!=validated.property.touristTaxNightCents || previous.property.touristTaxMaxNights!=validated.property.touristTaxMaxNights || previous.property.touristTaxMinAge!=validated.property.touristTaxMinAge || previous.property.touristTaxExemptions!=validated.property.touristTaxExemptions)) {
-            database.reportDao().bookings().filter{it.propertyId==draft.id && it.status!="CANCELLED"}.forEach{TaxForecast.update(database,it,validated.property)}
-        }
-        drafts?.clear("property/new");drafts?.clear("property/${draft.id}/edit")
+        if(drafts?.load("property/new",PropertyDraft::class.java)?.id==draft.id)drafts.clear("property/new")
+        drafts?.clear("property/${draft.id}/edit")
     }
 
     suspend fun archive(id: String, archived: Boolean) = database.withTransaction {
