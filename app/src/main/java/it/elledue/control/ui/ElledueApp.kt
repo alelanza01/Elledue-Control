@@ -72,7 +72,7 @@ fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewMo
     val bookings = (bookingState as? BookingLoadState.Ready)?.items.orEmpty()
     val records = (state as? PropertyLoadState.Ready)?.items.orEmpty()
     var businessType by rememberSaveable{mutableStateOf("MANAGED")}
-    val operational by remember(businessType){app.operations.scope(businessType)}.collectAsStateWithLifecycle(initialValue=null)
+    val operational by key(businessType){remember(businessType){app.operations.scope(businessType)}.collectAsStateWithLifecycle(initialValue=null)}
     val normalRecords=operational?.properties.orEmpty();val normalBookings=operational?.bookings.orEmpty()
     val normalIds=normalRecords.map{it.property.id}.toSet()
     val normalAccounting=it.elledue.control.data.OperationalRepository.accounting(accountingData,normalIds)
@@ -146,7 +146,7 @@ fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewMo
                     state is PropertyLoadState.Failed -> LoadError(propertiesModel::retry)
                     record == null -> EmptyState("Immobile non trovato", "Torna all’elenco.", "Immobili", goProperties)
                     else -> PropertyEditorScreen(PropertyDraft.from(record), false, busy, error, onBack = { navigation.popBackStack() }) { value ->
-                        propertiesModel.save(value) { navigation.popBackStack() }
+                        propertiesModel.save(value) { savedId->val resumed=navigation.previousBackStackEntry?.destination?.route=="drafts";navigation.popBackStack();if(resumed)navigation.navigate("property/$savedId"){launchSingleTop=true} }
                     }
                 }
             }
@@ -178,7 +178,11 @@ fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewMo
             composable("booking/{id}/edit") { destination ->
                 BookingDataSurface(bookingState, state, { bookingsModel.retry(); propertiesModel.retry() }) {
                     val item = bookings.firstOrNull { it.id == destination.arguments?.getString("id") }
-                    LaunchedEffect(savedBookingId) { savedBookingId?.let{id->bookingsModel.consumeSaved();navigation.popBackStack();navigation.navigate("booking/$id"){launchSingleTop=true}} }
+                    LaunchedEffect(savedBookingId) { savedBookingId?.let{id->
+                        val resumed=navigation.previousBackStackEntry?.destination?.route=="drafts"
+                        bookingsModel.consumeSaved();navigation.popBackStack()
+                        if(resumed)navigation.navigate("booking/$id"){launchSingleTop=true}
+                    } }
                     if (item == null) EmptyState("Prenotazione non trovata", "Torna al calendario.")
                     else BookingEditorScreen(BookingDraft.from(item), records, false, bookingBusy, bookingError, pendingOverlap,
                         onBack = { bookingsModel.dismissOverlap(); navigation.popBackStack() }, onSave = { bookingsModel.save(it) }, onConfirm = bookingsModel::confirmOverlap, onDismiss = bookingsModel::dismissOverlap)
@@ -224,7 +228,7 @@ fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewMo
             composable("expense/{id}/edit") { destination ->
                 AccountingSurface(accountingState, accountingModel::retry) {
                     val item = accountingData!!.expenses.firstOrNull { it.id == destination.arguments?.getString("id") }
-                    LaunchedEffect(accountingSaved) { if (accountingSaved == item?.id && item != null) { accountingModel.clear(); navigation.popBackStack() } }
+                    LaunchedEffect(accountingSaved) { if (accountingSaved == item?.id && item != null) { val resumed=navigation.previousBackStackEntry?.destination?.route=="drafts";accountingModel.clear(); navigation.popBackStack();if(resumed)navigation.navigate("expense/${item.id}"){launchSingleTop=true} } }
                     if (item == null) EmptyState("Spesa non trovata", "Torna alla contabilità.")
                     else ExpenseEditor(it.elledue.control.domain.ExpenseDraft.from(item), records, bookings, accountingData.categories, accountingModel) { navigation.popBackStack() }
                 }

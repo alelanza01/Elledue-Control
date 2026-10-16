@@ -2,6 +2,12 @@
 
 Applicazione Android nativa per Elledue Management, gestione di immobili per affitti brevi. Il repository è stato creato da zero in Kotlin e Jetpack Compose.
 
+## 0.4.8 — stabilizzazione operativa (branch dedicato)
+
+Salvataggi verificati e bozze locali recuperabili, eliminazione completa con backup preventivo, calendario a barre, immobili propri e gestione separati, previsioni tassa, opzioni indipendenti nei rendiconti, notifiche Android e accesso protetto facoltativo. Room 7 con migrazione additiva; package ID e firma di aggiornamento conservati. Nessun merge su main o pubblicazione della Release.
+
+Documentazione: [architettura](docs/0.4.8/ARCHITECTURE.md), [requisiti](docs/0.4.8/REQUIREMENTS.md), [bug e cause](docs/0.4.8/BUGS.md), [QA e stato consegna](docs/0.4.8/QA.md), [aggiornamento senza disinstallazione](docs/0.4.8/UPDATE.md), [screenshot nativi](docs/0.4.8/qa/README.md). Il report QA distingue controlli automatici, prove sul telefono e disponibilità effettiva del download.
+
 ## 0.4.7 — rifinitura operativa (branch dedicato)
 
 Copertine Home selezionabili, attività complete, copia calendario per appartamento, portali e OTA esplicite, messaggi ospiti IT/EN, analisi e PDF sintetico raffinati. Design0.4.6 mantenuto. Room6 con migrazione additiva e import backup4/5/6; ID Android invariato. Nessun merge o APK pubblico della0.4.7.

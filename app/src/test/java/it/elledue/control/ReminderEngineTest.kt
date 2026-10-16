@@ -30,6 +30,10 @@ class ReminderEngineTest {
         val job=app.reminderStore.scheduled().getValue("arrival:b")
         val alarms=Shadows.shadowOf(app.getSystemService(AlarmManager::class.java))
         assertTrue(alarms.scheduledAlarms.isNotEmpty())
+        // Reboot clears AlarmManager state while the persisted schedule remains.
+        val manager=app.getSystemService(AlarmManager::class.java)
+        alarms.scheduledAlarms.toList().forEach{manager.cancel(requireNotNull(it.operation))}
+        assertTrue(alarms.scheduledAlarms.isEmpty());app.reminders.reconcile(force=true);assertTrue(alarms.scheduledAlarms.isNotEmpty())
         app.reminders.deliver(job.key,job.version,Instant.ofEpochMilli(job.at))
         val notifications=Shadows.shadowOf(app.getSystemService(NotificationManager::class.java))
         val shown=notifications.allNotifications.single()

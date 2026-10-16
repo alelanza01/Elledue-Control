@@ -15,7 +15,7 @@ import it.elledue.control.data.DraftStore
     val store=DraftStore.get(LocalContext.current)
     return remember(key) {
         val state=mutableStateOf(store.load(key,T::class.java) ?: initial)
-        if(!store.contains(key))store.save(key,state.value)
+        if(key.endsWith("#id") && state.value.toString().isNotBlank() && !store.contains(key))store.save(key,state.value)
         object:MutableState<T> {
             override var value:T
                 get()=state.value

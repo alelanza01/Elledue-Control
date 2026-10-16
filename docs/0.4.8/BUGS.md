@@ -1,0 +1,17 @@
+# Difetti affrontati e causa verificata
+
+| Caso | Causa / limite osservato | Correzione |
+|---|---|---|
+| Salvataggio prenotazione apparentemente ignorato | Upsert già basato sull'UUID; motivo di rettifica mancante, capienza e vincoli sui rendiconti possono rifiutare la scrittura. L'errore era in cima al modulo, fuori viewport. Non è stato osservato direttamente il telefono dell'utente. | Motivo economico richiesto in un passaggio visibile e persistente; errore porta all'inizio; conferma solo dopo commit; revisione iniziale verificata e test di modifica multipla/riapertura. Nessun aggiramento dei rendiconti confermati. |
+| Perdita dati compilati dopo uscita | Stato conservato prevalentemente con rememberSaveable/VM, insufficiente alla chiusura del processo | Preferenze private sincrone e chiavi per modulo/record; recupero esplicito. Un edit non elimina la bozza di una nuova prenotazione diversa. |
+| Ritorno errato dopo recupero bozza | L'editor assumeva che la schermata precedente fosse sempre il dettaglio o il rendiconto | Ritorno al contesto originale; se l'origine è Bozze, apertura della scheda salvata. Test sia da rendiconto sia dopo riavvio delle Activity. |
+| Eliminazione limitata ai record vuoti | Guardia storica deleteEmpty non consentiva la rimozione completa richiesta | Flusso distinto con piano, backup verificato, conferma forte e transazione sulle dipendenze. La guardia storica resta compatibile con le chiamate precedenti, ma il nuovo comando usa il piano completo. |
+| Errore di navigazione dopo eliminazione | Nel nuovo test integrato il callback di uscita poteva raggiungere Lifecycle fuori dal dispatcher principale, dopo il commit del DB | Navigazione riportata esplicitamente su Main.immediate; stato di errore distingue una cancellazione già completata da un rollback. Test del flusso SAF completo. |
+| Riepiloghi mescolati | Un unico modello di gestione applicato al portfolio | Tipologia esplicita, parametro congelato nei soggiorni, filtri e totali separati; caricamento della nuova selezione senza riutilizzare temporaneamente i dati della precedente. |
+| Previsione tassa da reinserire | Il dato fiscale veniva creato solo nell'editor dedicato | Proposta automatica con soggetti noti e parametri immobili; salvaguardia di conteggi consolidati, riscossioni e attribuzioni. |
+| Riga nominativa non controllabile nel report | Nessun dato indipendente per visibilità e inclusione | Opzioni per report, anteprima effettiva, render PDF filtrato e rettifiche versionate. |
+| Calendario con codici tecnici dominanti | Marcatori sintetici per conteggi, poco leggibili come intervalli | Pill orizzontali, estremi e frecce, iniziali discrete, colori informativi e descrizioni complete per accessibilità. |
+| Navigazione Economia troppo bassa | Nuove card economiche spostavano i collegamenti principali oltre la prima porzione visibile | Collegamenti compatti in alto; regressioni native verificate, senza eliminare controlli contabili. |
+| Promemoria e blocco non operativi | In 0.4.7 erano rinviati o assenti | Allarmi e notifiche Android, riconciliazione del programma e credenziale ufficiale. Nessuna falsa garanzia su arresto forzato, Doze o riconoscimento biometrico fisico. |
+
+Le correzioni non alterano automaticamente parametri storici, incassi reali, report confermati o PDF già esportati. I test non sono stati disabilitati per ottenere un esito positivo.

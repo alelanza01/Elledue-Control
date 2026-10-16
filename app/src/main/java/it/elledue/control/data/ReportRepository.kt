@@ -19,7 +19,8 @@ class ReportRepository(private val db: AppDatabase, private val context: Context
         val report = ReportEntity(UUID.randomUUID().toString(), property, month, (versions.maxOfOrNull { it.version } ?: 0) + 1, "DRAFT", null, null)
         dao.save(report); refreshLocked(report); report.id
     }
-    suspend fun beginRevision(id: String, reason: String): String = db.withTransaction {
+    suspend fun beginRevision(id: String, reason: String): String {
+        val result=db.withTransaction {
         require(reason.isNotBlank()) { "Motiva la versione rettificativa." }
         val original = requireNotNull(dao.get(id)); require(original.status == "CONFIRMED")
         val versions = dao.period(original.propertyId, original.yearMonth)
@@ -27,6 +28,9 @@ class ReportRepository(private val db: AppDatabase, private val context: Context
         versions.firstOrNull { it.status == "DRAFT" }?.let { return@withTransaction it.id }
         val report = ReportEntity(UUID.randomUUID().toString(), original.propertyId, original.yearMonth, versions.maxOf { it.version } + 1, "DRAFT", null, null, original.id, reason.trim(), original.notes)
         dao.save(report); dao.options(original.id).forEach{dao.option(it.copy(reportId=report.id))}; refreshLocked(report); report.id
+        }
+        DraftStore.get(context).clear("report/$id#reason")
+        return result
     }
     suspend fun refresh(id: String, notes: String? = null): ReportSnapshot {
         val snapshot=db.withTransaction {

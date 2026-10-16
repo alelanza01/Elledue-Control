@@ -35,10 +35,11 @@ import kotlinx.coroutines.*
             OutlinedButton(onClick={picker.launch("Elledue-backup-prima-eliminazione.json")},enabled=!busy,modifier=Modifier.testTag("deletion-backup")){Text("1 · Salva e verifica backup preventivo")}
             receipt?.let{Text("Backup verificato e accessibile nel documento scelto.",color=ArrivalColor)}
             OutlinedTextField(text,{text=it},label={Text("Digita ELIMINA ${p.label}")},enabled=!busy,modifier=Modifier.fillMaxWidth().testTag("deletion-confirmation"))
-            Button(onClick={if(!busy){busy=true;scope.launch{try {
+            Button(onClick={if(!busy){busy=true;scope.launch{var committed=false;try {
                 repository.delete(p,requireNotNull(receipt),text,docs)
-                done()
-            }catch(e:CancellationException){throw e}catch(e:Exception){error=e.message ?: "Eliminazione non riuscita. Dati conservati."}finally{busy=false}}}},enabled=!busy && receipt!=null && text=="ELIMINA ${p.label}" && (p.reportIds.isEmpty()||docs),colors=ButtonDefaults.buttonColors(containerColor=MaterialTheme.colorScheme.error),modifier=Modifier.testTag("delete-permanently")){Text("2 · Elimina definitivamente")}
+                committed=true
+                withContext(Dispatchers.Main.immediate){done()}
+            }catch(e:CancellationException){throw e}catch(e:Exception){error=if(committed)"Eliminazione completata nel database. Torna all’elenco immobili." else e.message ?: "Eliminazione non riuscita. Dati conservati."}finally{busy=false}}}},enabled=!busy && receipt!=null && text=="ELIMINA ${p.label}" && (p.reportIds.isEmpty()||docs),colors=ButtonDefaults.buttonColors(containerColor=MaterialTheme.colorScheme.error),modifier=Modifier.testTag("delete-permanently")){Text("2 · Elimina definitivamente")}
         }
         if(busy)LinearProgressIndicator(Modifier.fillMaxWidth());error?.let{Text(it,color=MaterialTheme.colorScheme.error)}
     }

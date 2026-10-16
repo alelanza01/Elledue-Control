@@ -23,7 +23,7 @@ class AccessUiTest {
     @Test fun unavailableCredentialAndCancelledAuthenticationNeverUnlockOrRemoveStoredData(){
         val activity=compose.activity;val app=activity.application as ElledueApplication
         waitTag("home-scroll");app.appLock.configureAuthenticated(LockSettings(true,0,true));app.appLock.lock();waitTag("app-locked")
-        compose.onNodeWithTag("nav-calendar").assertDoesNotExist()
+        compose.onNodeWithTag("nav-calendar").assertDoesNotExist();nativeCapture(compose,"access-locked-small")
         var message:String?=null;var success=false
         compose.runOnUiThread{activity.authenticate(true,{success=true},{message=it})}
         assertFalse(success);assertNotNull(message);assertFalse(app.appLock.unlocked.value)

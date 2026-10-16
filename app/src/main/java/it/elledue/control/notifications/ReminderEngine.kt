@@ -52,14 +52,15 @@ class ReminderEngine(private val app:ElledueApplication) {
             if(!allowed() || !store.load().enabled)return
             val job=jobs(now).firstOrNull{it.key==key && it.version==version} ?: return
             if(job.at>now.plusSeconds(60).toEpochMilli() || now.toEpochMilli()-job.at>48*3600*1000L || store.delivered(key)==version)return
-            show(job);store.mark(job)
+            if(show(job))store.mark(job)
         }finally{mutex.unlock()}
     }
-    fun test(){check(allowed()){ "Concedi il permesso notifiche nelle impostazioni Android." };channel();show(Reminder("test",System.currentTimeMillis(),"Elledue Control","Notifica locale di prova. Nessun dato contabile è stato modificato.","notifications","test"))}
-    private fun show(job:Reminder){
+    fun test(){check(allowed()){ "Concedi il permesso notifiche nelle impostazioni Android." };channel();check(show(Reminder("test",System.currentTimeMillis(),"Elledue Control","Notifica locale di prova. Nessun dato contabile è stato modificato.","notifications","test"))){"Il permesso notifiche è stato revocato durante l’invio."}}
+    private fun show(job:Reminder):Boolean {
+        if(Build.VERSION.SDK_INT>=33 && ContextCompat.checkSelfPermission(app,Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED)return false
         val intent=Intent(app,MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP).setData(Uri.parse("elledue-open://local/${Uri.encode(job.key)}")).putExtra("route",job.route)
         val open=PendingIntent.getActivity(app,0,intent,PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-        NotificationManagerCompat.from(app).notify(job.key.hashCode(),NotificationCompat.Builder(app,CHANNEL).setSmallIcon(R.drawable.elledue_notification).setContentTitle(job.title).setContentText(job.text).setStyle(NotificationCompat.BigTextStyle().bigText(job.text)).setVisibility(NotificationCompat.VISIBILITY_PRIVATE).setAutoCancel(true).setContentIntent(open).build())
+        return try { NotificationManagerCompat.from(app).notify(job.key.hashCode(),NotificationCompat.Builder(app,CHANNEL).setSmallIcon(R.drawable.elledue_notification).setContentTitle(job.title).setContentText(job.text).setStyle(NotificationCompat.BigTextStyle().bigText(job.text)).setVisibility(NotificationCompat.VISIBILITY_PRIVATE).setAutoCancel(true).setContentIntent(open).build());true } catch(_:SecurityException){false}
     }
     companion object {const val CHANNEL="elledue_operations_v1";const val ACTION="it.elledue.control.REMINDER"}
 }
