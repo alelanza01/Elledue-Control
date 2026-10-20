@@ -1,0 +1,501 @@
+{
+  "tests": 182,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "environment": "Robolectric API 34 / native Android rendering; no physical device",
+  "command": "./gradlew :app:testDebugUnitTest :app:lintDebug :app:assembleDebug",
+  "codeCommit": "fc0e4fc8f2c4f07730412c5a421efe628079976e",
+  "suites": [
+    {
+      "class": "it.elledue.control.AccessUiTest",
+      "tests": 1,
+      "failures": 0,
+      "cases": [
+        "unavailableCredentialAndCancelledAuthenticationNeverUnlockOrRemoveStoredData"
+      ]
+    },
+    {
+      "class": "it.elledue.control.AccountingMigrationTest",
+      "tests": 1,
+      "failures": 0,
+      "cases": [
+        "publishedVersionTwoMigratesWithBookingExpenseAndAllHistoricalSettingsIntact"
+      ]
+    },
+    {
+      "class": "it.elledue.control.AccountingRepositoryTest",
+      "tests": 14,
+      "failures": 0,
+      "cases": [
+        "expensesTaxAndMovementsPersistAfterClosingAndReopeningFileDatabase",
+        "movingAnUncollectedBookingRequiresNewPropertyTaxRulesAfterReview",
+        "ownerPaymentsAndNegativeBalancesAreExplicitAndReversible",
+        "expensesSeparatePropertiesAndRejectBookingFromOtherProperty",
+        "categoriesAreEditableAndSeedDoesNotOverwriteCustomization",
+        "remittanceHasSeparateResponsibleAndDoesNotDoubleDeductBalance",
+        "reimbursementsRequireBothAdvancedAndReimbursableFlags",
+        "expenseCorrectionsKeepSnapshotsAndVoidingExcludesWithoutDeleting",
+        "cleaningLaundryAreSingleRowsWithEffectiveCostAndHistoricalUnitRate",
+        "collectionIsIdempotentAndCompensationCannotExceedSourceOrBeDuplicated",
+        "bookingChangesRequireTaxReviewAndCannotMoveCollectedTaxToAnotherProperty",
+        "reversalRequiresReasonAndDependentCompensationsMustBeReversedFirst",
+        "financialCorrectionRequiresReasonAndPreservesBothSnapshots",
+        "partialAndFullCollectionsAreManualEvenAfterCheckoutAndCancellationPreservesHistory"
+      ]
+    },
+    {
+      "class": "it.elledue.control.AccountingUiTest",
+      "tests": 3,
+      "failures": 0,
+      "cases": [
+        "customCategoryAndQuickExpenseAreUsable",
+        "cleaningIsSavedOnceRectifiedWithReasonAndVoidedWithAuditHistory",
+        "taxIsConfiguredCollectedPartiallyAndCompensatedOnlyOnExplicitConfirmation"
+      ]
+    },
+    {
+      "class": "it.elledue.control.AmountsTest",
+      "tests": 4,
+      "failures": 0,
+      "cases": [
+        "invalidInputsAreRejected",
+        "halfCentRoundsUp",
+        "decimalParsingKeepsCentsExact",
+        "briefCommissionExampleIsExact"
+      ]
+    },
+    {
+      "class": "it.elledue.control.AppNavigationTest",
+      "tests": 3,
+      "failures": 0,
+      "cases": [
+        "darkThemeRendersWithOfficialNightBackground",
+        "propertyCanBeCreatedEditedArchivedAndReactivatedThroughUi",
+        "allMainSectionsAndSettingsAreAccessible"
+      ]
+    },
+    {
+      "class": "it.elledue.control.BackupServiceTest",
+      "tests": 6,
+      "failures": 0,
+      "cases": [
+        "exportRestoreIncludesConfirmedSnapshotsLedgerAuditsAndIds",
+        "checksummedButBrokenRelationshipsAndInvalidMoneyAreRejected",
+        "missingReportAllocationsAreRejectedEvenWithCorrectChecksum",
+        "malformedChecksumUnsupportedVersionAndMissingTablesDoNotAlterCurrentData",
+        "restoredDataPersistsAfterFileDatabaseReopening",
+        "restoreOverPopulatedLedgerIsAtomicAndRequiresExplicitConfirmation"
+      ]
+    },
+    {
+      "class": "it.elledue.control.BookingDatesTest",
+      "tests": 4,
+      "failures": 0,
+      "cases": [
+        "sameDayTurnoverDoesNotOverlapButActualIntersectionsDo",
+        "datePickerUsesUtcDateWithoutRomeOffsetDriftAcrossDst",
+        "todayUsesRomeRatherThanHostUtc",
+        "impossibleDatesAreNotNormalized"
+      ]
+    },
+    {
+      "class": "it.elledue.control.BookingFinanceTest",
+      "tests": 6,
+      "failures": 0,
+      "cases": [
+        "largestLongDoesNotOverflowDuringPercentageMultiplication",
+        "requiredExampleUsesNetAsFeeBase",
+        "outOfRangeAmountsAndPercentagesAreRejected",
+        "zeroAndFullCommissionsAreValid",
+        "eachCommissionRoundsHalfUpToTheCent",
+        "actualOtaOverridesPercentageIncludingZero"
+      ]
+    },
+    {
+      "class": "it.elledue.control.BrandAssetTest",
+      "tests": 4,
+      "failures": 0,
+      "cases": [
+        "horizontalLogoPreservesOriginalAspectAndAlphaWithRequestedOfficialGold",
+        "adaptiveIconUsesNightBackgroundAndAuthenticGoldSymbolInsideMask",
+        "minimumAndroidVersionInflatesAdaptiveIconWithOptionalMonochromeTag",
+        "circularAndSquircleMasksRetainEntireGoldSymbolAndMonochromeLayer"
+      ]
+    },
+    {
+      "class": "it.elledue.control.BusinessModelTest",
+      "tests": 4,
+      "failures": 0,
+      "cases": [
+        "ownershipDoesNotInventManagementFeesOwnersOrPartnerSharesAndArchivesAreExcludedBySql",
+        "privateDraftsAreIncludedInBackupAndNoOtherDataIsFinalized",
+        "taxProposalUsesKnownSubjectsNightsCapsAndChangesOnlyUntilConsolidated",
+        "hiddenIsDifferentFromExcludedAndConfirmedDocumentsRequireVersioning"
+      ]
+    },
+    {
+      "class": "it.elledue.control.ConceptVisualTest",
+      "tests": 2,
+      "failures": 0,
+      "cases": [
+        "richNativeScreensFollowConceptAndPdfPreviewRemainsReal",
+        "darkPrimaryThemeAndAccessibleNavigationRemainOnSmallLightSystemPhone"
+      ]
+    },
+    {
+      "class": "it.elledue.control.ConsolidatedDataTest",
+      "tests": 13,
+      "failures": 0,
+      "cases": [
+        "forecastsAreNotCostsAndCleaningConfirmationIsOneExpenseWithActualOverride",
+        "ownPropertyHasTransportCategoryAndNoAutomaticManagementOrCostForecasts",
+        "copiedCalendarIncludesDeparturesTodayAndAllFutureWithoutChangingDates",
+        "collectedTaxRemovesOnlyTaxPromptFromContextualTemplate",
+        "portalDefaultsAndManualOverrideUseExactCentsAndPropertyTakesPrecedence",
+        "scheduledInterventionAndTurnoverAreSortedWithTimelessActivitiesLast",
+        "issueSurvivesEndedBookingReopensAndKeepsStatusHistoryAndSingleLinkedCost",
+        "guestChangesRecalculateLaundryUntilOverrideWithoutChangingConfirmedCosts",
+        "versionSevenBackupRestoresAndPreservesHistoricalReportBytes",
+        "taxThirtySixIsForecastNotCollectionAndPartialCollectionKeepsCorrectResidual",
+        "occupancyClipsMonthsYearsLeapDaysAndDeduplicatesOverlapsWithoutChangingCompetence",
+        "ownerExclusionRequiresReasonKeepsInternalOccupancyAndFrozenOriginalUnchanged",
+        "bookingDeletionDetachesIssueInsteadOfRemovingItAndBackupRoundTripsAllNewData"
+      ]
+    },
+    {
+      "class": "it.elledue.control.ConsolidatedMigrationTest",
+      "tests": 1,
+      "failures": 0,
+      "cases": [
+        "publishedSevenMigratesToEightWithoutRecalculationOrLossOfConfirmedReports"
+      ]
+    },
+    {
+      "class": "it.elledue.control.ConsolidatedReminderTest",
+      "tests": 2,
+      "failures": 0,
+      "cases": [
+        "scheduledPendingIntentReallyRunsReceiverAndPublishesNotificationWithoutCallingTestButton",
+        "delayedScheduledJobIsRecoveredOnceAndProtectedNotificationContainsNoPrivateText"
+      ]
+    },
+    {
+      "class": "it.elledue.control.ConsolidatedUiTest",
+      "tests": 7,
+      "failures": 0,
+      "cases": [
+        "notificationOpensContextualGuestTemplateWithEditableTextAndManualHandledState",
+        "compactIssueAndDayRemainScrollable",
+        "operationalDayGuestReminderOpensTheRelevantMessage",
+        "newReservationHasNoPropertyAndOneRangePickerPreservesBothDates",
+        "calendarTapOpensChronologicalOperationalDayAndIssueDetail",
+        "reportLayoutsAndProtectedAccessScreensAreCaptured",
+        "issuesStaySummaryExpensesAndAnalyticsAreNavigableUsingRealPersistedFixtures"
+      ]
+    },
+    {
+      "class": "it.elledue.control.DatabaseMigrationTest",
+      "tests": 1,
+      "failures": 0,
+      "cases": [
+        "publishedVersionOneUpgradesAndPreservesPropertyOwnerSettingsAndBooking"
+      ]
+    },
+    {
+      "class": "it.elledue.control.DeviceVisualUiTest",
+      "tests": 1,
+      "failures": 0,
+      "cases": [
+        "nativeNotificationSettingsOwnedPropertyAndVerifiedSafDeletionAreUsable"
+      ]
+    },
+    {
+      "class": "it.elledue.control.GuestTextTest",
+      "tests": 8,
+      "failures": 0,
+      "cases": [
+        "englishAndItalianVariablesResolveWithoutInventedValues",
+        "missingTimesAccentsAndMultipleGuests",
+        "inclusiveCustomEndKeepsRealDatesWithoutTruncation",
+        "stableChronologicalOrderAndTurnoverIncludesBothStaysWhenTheyOverlapPeriod",
+        "overlapIncludesPreviousMonthAndYearButNotCancelledOrOtherProperty",
+        "invalidCustomRangeIsRejected",
+        "emptyPeriodHasNoInventedBookingAndTextsNeverContainAccounting",
+        "independentPropertiesNeverMixGuests"
+      ]
+    },
+    {
+      "class": "it.elledue.control.OperationalAccountingTest",
+      "tests": 9,
+      "failures": 0,
+      "cases": [
+        "taxCountsExemptionsNightsLimitAndSixteenYearCriterion",
+        "manualTaxOverrideRequiresReasonAndSnapshotsRemainHistorical",
+        "expenseCompetenceCanDifferFromActualDateAndActualAmountPrevails",
+        "staysCrossingYearsBelongToDecemberOfPreviousYear",
+        "staysCrossingMonthsBelongEntirelyToCheckInMonth",
+        "cancelledFeesVoidedExpensesAndReversedMoneyDoNotInflateTotals",
+        "summaryUsesOneExpensePerInterventionAndSeparateCompensation",
+        "quantitiesUseExactCentsHalfUpAndRejectOverflowOrInvalidValues",
+        "cancelledStayDoesNotRequestTaxButCashIsStillVisibleForReconciliation"
+      ]
+    },
+    {
+      "class": "it.elledue.control.OperationsMigrationTest",
+      "tests": 1,
+      "failures": 0,
+      "cases": [
+        "publishedFiveMigratesToSixPreservingConfirmedSnapshotAllocationsCashAndActivities"
+      ]
+    },
+    {
+      "class": "it.elledue.control.OperationsPdfTest",
+      "tests": 1,
+      "failures": 0,
+      "cases": [
+        "compactPdfSeparatesActualReimbursementsWithoutCountingOtherCleaningCosts"
+      ]
+    },
+    {
+      "class": "it.elledue.control.OperationsRepositoryTest",
+      "tests": 6,
+      "failures": 0,
+      "cases": [
+        "messageCrudCategoriesAndScopedBackupRoundTrip",
+        "v5BackupUpgradesAndDoesNotInventNewData",
+        "removedDefaultMessageCategoryDoesNotReappearOnReopeningLibrary",
+        "titleOnlyTaskCrudIsIdempotentAndCannotDeleteAccounting",
+        "linkedTaskFollowsLegitimateBookingMoveAndBackupRemainsRestorable",
+        "portalRatesAreExplicitDirectZeroActualWinsAndSnapshotsNeverRefresh"
+      ]
+    },
+    {
+      "class": "it.elledue.control.OperationsUiTest",
+      "tests": 7,
+      "failures": 0,
+      "cases": [
+        "copyCalendarRemainsScrollableAndCopyableInLandscapeWithLargeText",
+        "directTaskFormDateCalendarEditCompleteReopenDeleteAndPersistence",
+        "bilingualMessageLibraryPreviewCopyAndAppearancePersist",
+        "analysisUsesRealFeesExpensesAndEmptyPeriodWithoutInventedPercentages",
+        "fourPortalBadgesApplyConfiguredRatesAndActualOtaIsSaved",
+        "calendarPreviewCopiesExactSinglePropertyTextToAndroidClipboard",
+        "centralPlusCreatesTitleOnlyGeneralTaskWithoutAnyActiveProperty"
+      ]
+    },
+    {
+      "class": "it.elledue.control.OwnershipUiTest",
+      "tests": 1,
+      "failures": 0,
+      "cases": [
+        "explicitBusinessScopesKeepOwnProfitSeparateAndExternalReportsDisabled"
+      ]
+    },
+    {
+      "class": "it.elledue.control.ProductArchiveTest",
+      "tests": 6,
+      "failures": 0,
+      "cases": [
+        "publishedV4BackupImportsWithEmptyNewFieldsAndSameFrozenSnapshot",
+        "destructiveDeleteIsBlockedForHistoryButEmptyPropertyCanBeDeletedAndArchivedRecovered",
+        "analyticsSeparateCheckinCompetenceFromCalendarOccupancyAndDeduplicateOverlaps",
+        "bothLayoutsRenderAllPagesUsingRealPdfRendererOnAndroidBitmapsAndKeepSameBalance",
+        "coverAndProfileSurviveBackupRestoreReopenAndPropertyEdits",
+        "invalidPhotoCannotReplaceArchiveEvenWithRecalculatedChecksum"
+      ]
+    },
+    {
+      "class": "it.elledue.control.ProductMigrationTest",
+      "tests": 1,
+      "failures": 0,
+      "cases": [
+        "publishedSchemaFourUpgradesWithoutLosingAccountingAndAudit"
+      ]
+    },
+    {
+      "class": "it.elledue.control.ProductUiTest",
+      "tests": 5,
+      "failures": 0,
+      "cases": [
+        "localProfileEditsPersistAndKeyboardCanBeDismissed",
+        "phonePhotoSelectionReplacementRemovalAndRecreationUseOwnedBytes",
+        "smallScreenLargeFontsKeepPrimaryActionsAndEmptyStatesAccessible",
+        "lightThemeUsesSameNativeNavigationAndPortfolio",
+        "operationalJourneyPreservesLinksAndExposesAllDestinationsAndRealPdfPreview"
+      ]
+    },
+    {
+      "class": "it.elledue.control.PropertyDraftTest",
+      "tests": 3,
+      "failures": 0,
+      "cases": [
+        "defaultsMatchOperationalBrief",
+        "completeDraftRoundTripsWithoutLosingRatesOrTemplates",
+        "requiredAndInvalidFieldsAreRejected"
+      ]
+    },
+    {
+      "class": "it.elledue.control.PropertyRepositoryTest",
+      "tests": 5,
+      "failures": 0,
+      "cases": [
+        "editingAccessInstructionsPreservesUnrelatedFutureTemplates",
+        "createEditArchiveAndReactivateKeepIdentityAndHistory",
+        "futureReservationCannotBeOrphanedAndSurvivesArchiving",
+        "rejectedEditKeepsPreviouslySavedRecord",
+        "settingsAndAllRelationsSurviveFileDatabaseReopening"
+      ]
+    },
+    {
+      "class": "it.elledue.control.ReminderEngineTest",
+      "tests": 2,
+      "failures": 0,
+      "cases": [
+        "actualAndroidAlarmNotificationPermissionDeepLinkAndDeduplicationAreIntegrated",
+        "deniedRuntimePermissionLeavesNoScheduledAlarmAndTestNotificationCannotPretendSuccess"
+      ]
+    },
+    {
+      "class": "it.elledue.control.ReminderPlannerTest",
+      "tests": 4,
+      "failures": 0,
+      "cases": [
+        "settingsAndDeliveredMarkersSurviveANewStoreAndLockCannotBypassColdStartOrTimeout",
+        "remindersHonorRomeDaylightSavingAndQuietHoursAndUnknownTaxNeverBecomesCash",
+        "cancelledArchivedCompletedAndCollectedEventsAreRemovedAndUpdatesHaveNewIdentity",
+        "actualScheduledCleaningAndDateOnlyTasksNotifyButCompletedOrUnscheduledNeverDo"
+      ]
+    },
+    {
+      "class": "it.elledue.control.ReportMigrationTest",
+      "tests": 1,
+      "failures": 0,
+      "cases": [
+        "publishedSchemaThreeUpgradesWithoutLosingAccountingAndAudit"
+      ]
+    },
+    {
+      "class": "it.elledue.control.ReportPdfTest",
+      "tests": 2,
+      "failures": 0,
+      "cases": [
+        "largeMultipageReportWrapsVeryLongGuestNamesSetDefinitionsAndNotes",
+        "realPdfWithSyntheticDataShows170AndHistoricalRegenerationUsesFrozenRows"
+      ]
+    },
+    {
+      "class": "it.elledue.control.ReportRepositoryTest",
+      "tests": 13,
+      "failures": 0,
+      "cases": [
+        "monthAndYearBoundariesNeverAllocateBookingTwice",
+        "estimatedOtaWarningsRequireAcknowledgmentAndZeroActualPrevails",
+        "immutableSnapshotAndRevisionKeepOneEconomicAllocation",
+        "cancelledBookingKeepsHistoricalCashAndForeignExpenseCompetenceRemainsSeparate",
+        "sourceEditsRefreshDraftAndStalePreviewCannotBeConfirmed",
+        "allocatedExpenseCorrectionsRequireRevisionAndCannotChangePeriod",
+        "recognizedOwnerPaymentProducesCreditWithoutNegativeTransfer",
+        "generationReusesDraftAndRefusesSecondConfirmedDocumentForSamePeriod",
+        "inconsistentEconomicRowsAndPendingTaxReviewBlockConfirmation",
+        "crossMonthExpenseAndCompensationKeepBookingReferenceWithoutCountingFeeAgain",
+        "draftUsesActualRowsAndMandatoryFinalExampleIs170",
+        "perBookingRoundingIsSummedRatherThanRoundingMonthlyNetAgain",
+        "collectionAfterConfirmationIsAllowedButAllocatedCompensationReversalRequiresRevision"
+      ]
+    },
+    {
+      "class": "it.elledue.control.ReportUiTest",
+      "tests": 2,
+      "failures": 0,
+      "cases": [
+        "userGeneratesChecksAndConfirmsThenRevisesSourceWithoutOverwritingHistory",
+        "settingsExposeManualBackupAndOriginalLogoIsDisplayed"
+      ]
+    },
+    {
+      "class": "it.elledue.control.ReservationRepositoryTest",
+      "tests": 10,
+      "failures": 0,
+      "cases": [
+        "conflictNeedsExplicitCurrentApprovalAndCancellationReleasesDates",
+        "differentPropertiesCanHaveSameDates",
+        "defaultsUsePlatformRateButHistoricalBookingAndEditingKeepSnapshots",
+        "archivedPropertyKeepsExistingBookingsButRejectsNewOnes",
+        "oneNightStayIsPossibleWithoutStructuralTwoNightRestriction",
+        "checkOutAndNextCheckInOnSameDayAreAllowed",
+        "savedBookingAndRatesPersistAfterDatabaseReopening",
+        "createEditAndCancelKeepIdAndEconomicHistory",
+        "changingAConflictInvalidatesAnOldApproval",
+        "invalidDatesGuestCountsTimesAndUnknownPropertiesAreRejected"
+      ]
+    },
+    {
+      "class": "it.elledue.control.ReservationUiTest",
+      "tests": 3,
+      "failures": 0,
+      "cases": [
+        "overlappingSaveRequiresUserConfirmation",
+        "calendarDistinguishesTurnoverAndPropertyFilterAndOpensBooking",
+        "userCreatesWithPickerEditsActualOtaAndCancelsWithoutLosingHistory"
+      ]
+    },
+    {
+      "class": "it.elledue.control.SettingsRepositoryTest",
+      "tests": 4,
+      "failures": 0,
+      "cases": [
+        "emptyDatabaseProvidesDefaults",
+        "savingReplacesTheSingletonAndTrimsWhitespace",
+        "blankNameDoesNotOverwriteSavedSettings",
+        "savedSettingsSurviveDatabaseReopening"
+      ]
+    },
+    {
+      "class": "it.elledue.control.SettingsViewModelTest",
+      "tests": 1,
+      "failures": 0,
+      "cases": [
+        "databaseReadFailureIsExposedWithoutInventingDefaultData"
+      ]
+    },
+    {
+      "class": "it.elledue.control.StabilityDataTest",
+      "tests": 6,
+      "failures": 0,
+      "cases": [
+        "durableDraftsAreIsolatedClearOnlyAfterSuccessAndRejectStaleOverwrite",
+        "changedDataRequiresFreshBackupAndStrongConfirmation",
+        "fivePlusBookingFieldsReallyPersistAcrossDatabaseCloseReopenAndFeedProjections",
+        "deleteBookingWithConfirmedReportIsRejectedAndIndependentCostsAndDocumentsSurvive",
+        "deletePropertyWithConfirmedReportIsBlockedAndArchiveKeepsAllRelations",
+        "deletionRequiresTheSafetyBackupStillToExistAndDraftCleanupMatchesIdsPrecisely"
+      ]
+    },
+    {
+      "class": "it.elledue.control.StabilityMigrationTest",
+      "tests": 1,
+      "failures": 0,
+      "cases": [
+        "publishedSixMigratesToSevenWithoutRecalculationOrLossOfConfirmedReports"
+      ]
+    },
+    {
+      "class": "it.elledue.control.StabilityUiTest",
+      "tests": 2,
+      "failures": 0,
+      "cases": [
+        "fivePlusEditedFieldsAndFinancialReasonSurviveClosingAllActivitiesAndResumingADurableDraft",
+        "financialChangesAskForVisibleReasonAndConfirmOnlyAfterTheActualUpdate"
+      ]
+    },
+    {
+      "class": "it.elledue.control.VisibilityPdfTest",
+      "tests": 1,
+      "failures": 0,
+      "cases": [
+        "hiddenNominalBookingIsAbsentFromBothActualPdfLayoutsWhileTotalsAndFrozenOriginalRemain"
+      ]
+    }
+  ]
+}

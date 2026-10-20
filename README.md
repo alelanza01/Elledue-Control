@@ -1,5 +1,12 @@
 # Elledue Control
 
+## 0.4.9 — aggiornamento consolidato (branch dedicato)
+
+Nuovi problemi/interventi e Giornata operativa, prenotazioni più rapide, previsioni pulizie/lavanderia separate dai consuntivi, contabilità e PDF aggiornati, occupazione effettiva e riparazione delle notifiche programmate. Database 8 con migrazione additiva e application ID invariato. Nessun merge su main.
+
+[Brief](docs/0.4.9/BRIEF.md) · [Requisiti e prove](docs/0.4.9/REQUIREMENTS.md) · [Migrazione e aggiornamento](docs/0.4.9/MIGRATION.md) · [Changelog](docs/0.4.9/CHANGELOG.md) · [Bug](docs/0.4.9/BUGS.md) · [QA](docs/0.4.9/QA.md) · [Backlog](docs/0.4.9/BACKLOG.md)
+
+
 Applicazione Android nativa per Elledue Management, gestione di immobili per affitti brevi. Il repository è stato creato da zero in Kotlin e Jetpack Compose.
 
 ## 0.4.8 — stabilizzazione operativa (branch dedicato)

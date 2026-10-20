@@ -1,0 +1,12 @@
+{
+  "file": "Elledue-Control-0.4.9-debug.apk",
+  "bytes": 33053167,
+  "sha256": "bef74c1dc39d926c571a2ad9258734e7ea93db82b54ce562fb2774995c50aa7f",
+  "applicationId": "it.elledue.control",
+  "versionName": "0.4.9",
+  "versionCode": 9,
+  "certificateSha256": "cc45fdd9dccf37a2d94fb35e142bfde73b25de3e46e3b8ce93d4d5b9a7b2065c",
+  "signatureV2Verified": true,
+  "matches048Certificate": true,
+  "codeCommit": "fc0e4fc8f2c4f07730412c5a421efe628079976e"
+}
