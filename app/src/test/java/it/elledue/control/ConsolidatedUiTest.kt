@@ -69,6 +69,21 @@ class ConsolidatedUiTest {
   assertFalse(app.reminderStore.handled("departure:049-b"))
   compose.onNodeWithText("Segna come gestito").performScrollTo().performClick();assertTrue(app.reminderStore.handled("departure:049-b"))
  }
+ @Test fun operationalDayGuestReminderOpensTheRelevantMessage(){
+  org.robolectric.Shadows.shadowOf(app).grantPermissions(android.Manifest.permission.POST_NOTIFICATIONS)
+  runBlocking{app.reminderStore.save(it.elledue.control.notifications.ReminderSettings(enabled=true,monthly=false));app.reminders.reconcile(force=true)}
+  val target=day+2
+  route("day/$target");waitTag("operational-day")
+  compose.onNodeWithTag("day-guest:departure:049-next").performScrollTo().performClick();waitTag("guest-reminder-message")
+  compose.onNodeWithTag("reminder-message-text").assertTextContains("Buongiorno Secondo",substring=true)
+ }
+ @Test fun reportLayoutsAndProtectedAccessScreensAreCaptured(){
+  val id=runBlocking{app.reportRepository.generate("049-p",YearMonth.from(today).toString())}
+  route("report/$id");waitTag("report-balance");capture("report-summary")
+  compose.onNodeWithTag("pdf-detailed").performScrollTo().performClick();capture("report-detailed")
+  route("access");waitTag("access-settings");capture("access-protection")
+  route("analysis");waitTag("analysis-scroll");compose.onNodeWithText("Elledue privata").performClick();capture("analytics-private")
+ }
  @Test @Config(qualifiers="w320dp-h740dp-hdpi") fun compactIssueAndDayRemainScrollable(){
   route("day/$day");waitTag("operational-day");capture("compact-day")
   compose.onNodeWithTag("day-issue:049-issue").performScrollTo().performClick();waitTag("issue-editor");capture("compact-issue")

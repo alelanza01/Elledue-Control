@@ -77,8 +77,15 @@ import kotlinx.coroutines.launch
 }
 
 @OptIn(ExperimentalLayoutApi::class)
-@Composable fun OperationalDayScreen(day:Long,properties:List<PropertyWithOwner>,bookings:List<ReservationEntity>,activities:List<ActivityEntity>,issues:List<PropertyIssue>,open:(String)->Unit,back:()->Unit) {
- val rows=OperationalDay.events(day,bookings,activities,issues)
+@Composable fun OperationalDayScreen(day:Long,properties:List<PropertyWithOwner>,bookings:List<ReservationEntity>,activities:List<ActivityEntity>,issues:List<PropertyIssue>,open:(String)->Unit,expenses:List<ExpenseEntity> = emptyList(),back:()->Unit) {
+ val app=androidx.compose.ui.platform.LocalContext.current.applicationContext as it.elledue.control.ElledueApplication
+ val store=app.reminderStore
+ val ids=properties.map{it.property.id}.toSet()
+ val guestJobs=(store.scheduled().values+store.history()).distinctBy{it.key}.filter{job->
+    job.route.startsWith("guest-message/") && Instant.ofEpochMilli(job.at).atZone(BookingDates.zone).toLocalDate().toEpochDay()==day && bookings.any{it.id==job.route.split('/').getOrNull(1) && it.propertyId in ids && it.status!="CANCELLED"}
+ }
+ val guestEvents=guestJobs.map{job->val b=bookings.first{it.id==job.route.split('/')[1]};DayEvent("guest:${job.key}",Instant.ofEpochMilli(job.at).atZone(BookingDates.zone).toLocalTime().toString(),job.title+" · messaggio ospite",b.propertyId,job.route,store.handled(job.key),"GUEST_MESSAGE")}
+ val rows=(OperationalDay.events(day,bookings,activities,issues,expenses=expenses)+guestEvents).sortedWith(compareBy<DayEvent>{it.time==null}.thenBy{it.time}.thenBy{it.key})
  val names=properties.associate{it.property.id to it.property.name}
  val change=bookings.filter{it.status!="CANCELLED" && it.checkInEpochDay==day}.map{it.propertyId}.toSet().intersect(bookings.filter{it.status!="CANCELLED" && it.checkOutEpochDay==day}.map{it.propertyId}.toSet())
  LazyColumn(Modifier.fillMaxSize().testTag("operational-day"),contentPadding=PaddingValues(20.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {

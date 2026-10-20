@@ -23,7 +23,7 @@ import it.elledue.control.notifications.ReminderStore
  val due=accounting?.taxes.orEmpty().firstOrNull{it.reservationId==b.id}?.expectedCents ?: b.expectedTaxCents
  val residual=due?.let{Ledger.residual(it,collected)}
  val raw=template?.let{if(language=="IT")it.italian else it.english} ?: ""
- val resolved=GuestText.resolve(raw,b,property?.property?.name,residual,language=="EN")
+ val resolved=GuestText.resolve(GuestText.forResidual(raw,residual),b,property?.property?.name,residual,language=="EN")
  val key="messages?booking=${b.id}&reminder=$kind&language=$language&template=${template?.id ?: "none"}"
  var text by rememberPersistentDraft("$key#text",resolved.text)
  val context=LocalContext.current;var feedback by remember{mutableStateOf("")}

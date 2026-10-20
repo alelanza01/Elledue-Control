@@ -69,7 +69,7 @@ fun BookingEditorScreen(initial: BookingDraft, properties: List<PropertyWithOwne
                 draft = draft.copy(guests = it,taxableGuestCount=it.toIntOrNull()?.let{total->(total-exempt).coerceAtLeast(0).toString()} ?: "")
             }
             val exempt=runCatching{draft.guests.toInt()-(draft.taxableGuestCount.ifBlank{if(isNew)draft.guests else ""}).toInt()}.getOrNull()?.toString() ?: ""
-            BookingField("Ospiti esenti · soggetti dai 16 anni compiuti",exempt,enabled,KeyboardType.Number,"booking-exempt-guests"){value->draft=draft.copy(taxableGuestCount=runCatching{(draft.guests.toInt()-value.toInt()).toString()}.getOrDefault(""))}
+            BookingField("Ospiti esenti · soggetti dai ${selected?.property?.touristTaxMinAge ?: 16} anni compiuti",exempt,enabled,KeyboardType.Number,"booking-exempt-guests"){value->draft=draft.copy(taxableGuestCount=runCatching{(draft.guests.toInt()-value.toInt()).toString()}.getOrDefault(""))}
             val taxPreview=runCatching{val subjects=draft.taxableGuestCount.ifBlank{if(isNew)draft.guests else ""}.toInt();val total=draft.guests.toInt();require(subjects in 0..total);val n=(BookingDates.parse(draft.checkOut).toEpochDay()-BookingDates.parse(draft.checkIn).toEpochDay());require(n>0);val p=selected!!.property;java.math.BigDecimal.valueOf(p.touristTaxNightCents).multiply(java.math.BigDecimal.valueOf(subjects.toLong())).multiply(java.math.BigDecimal.valueOf(minOf(n,p.touristTaxMaxNights?.toLong() ?: n))).longValueExact()}.getOrNull()
             Text(taxPreview?.let{"Tassa prevista ${Amounts.euro(it)} · nessun incasso automatico"} ?: "Previsione da completare: indica gli ospiti soggetti, senza inserire età individuali.",style=MaterialTheme.typography.bodySmall)
             if(draft.businessType=="OWNED")Text("Immobile proprio: nessun compenso di gestione automatico.",color=ElledueGold)
@@ -96,7 +96,7 @@ fun BookingEditorScreen(initial: BookingDraft, properties: List<PropertyWithOwne
             Text("Usa HH:mm. Gli orari effettivi sono facoltativi.", style = MaterialTheme.typography.bodySmall)
             HorizontalDivider()
             Text("Economia della prenotazione", style = MaterialTheme.typography.titleLarge)
-            Text("Pagamento accreditato al proprietario. Elledue matura il compenso sul netto dopo OTA.", style = MaterialTheme.typography.bodyMedium)
+            Text(if(draft.businessType=="OWNED")"Ricavo dell’immobile proprio: nessun compenso di gestione automatico." else "Pagamento accreditato al proprietario. Elledue matura il compenso sul netto dopo OTA.", style = MaterialTheme.typography.bodyMedium)
             BookingField("Lordo (€) *", draft.gross, enabled, KeyboardType.Decimal, "booking-gross") { draft = draft.copy(gross = it) }
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 BookingField("OTA (%)", draft.otaPercent, enabled, KeyboardType.Decimal, "booking-ota-percent", Modifier.weight(1f)) { draft = draft.copy(otaPercent = it,otaManual=true) }
@@ -165,7 +165,7 @@ fun FinanceCard(gross: Long, totals: BookingTotals, title: String = "Riepilogo e
     Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer), modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(title, style = MaterialTheme.typography.titleMedium)
-            listOf("Lordo al proprietario" to gross, (if (actualOta) "OTA effettiva" else "OTA stimata") to totals.otaCents, "Netto dopo OTA" to totals.netCents).forEach { (label, cents) -> Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text(label); Text(Amounts.euro(cents)) } }
+            listOf("Importo prenotazione" to gross, (if (actualOta) "OTA effettiva" else "OTA stimata") to totals.otaCents, "Netto dopo OTA" to totals.netCents).forEach { (label, cents) -> Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text(label); Text(Amounts.euro(cents)) } }
             HorizontalDivider()
             Text("Compenso di gestione Elledue", style = MaterialTheme.typography.labelLarge)
             Text(Amounts.euro(totals.managementCents), style = MaterialTheme.typography.headlineMedium, modifier = Modifier.testTag("booking-fee"))

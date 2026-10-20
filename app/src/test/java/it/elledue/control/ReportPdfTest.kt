@@ -27,7 +27,7 @@ class ReportPdfTest {
             val reports = ReportRepository(db, context); val revision = reports.beginRevision(original.id, "OTA effettive rettificate")
             val current = db.reservationDao().get("synthetic-booking")!!
             ReservationRepository(db).save(BookingDraft.from(current).copy(actualOta = "150", correctionReason = "Commissione verificata"))
-            reports.refresh(revision); reports.confirm(revision, ReportCodec.hash(ReportCodec.encode(reports.snapshot(revision))), false)
+            reports.refresh(revision); reports.confirm(revision, ReportCodec.hash(ReportCodec.encode(reports.snapshot(revision))), true)
             val file = File("build/reports/m4/Elledue-rendiconto-sintetico.pdf"); file.parentFile!!.mkdirs()
             val pdf = ReportPdf(context); file.outputStream().use { pdf.write(reports.snapshot(original.id), it) }
             assertTrue(file.length() > 1000); assertTrue(file.readBytes().take(4).toByteArray().toString(Charsets.US_ASCII).startsWith("%PDF"))

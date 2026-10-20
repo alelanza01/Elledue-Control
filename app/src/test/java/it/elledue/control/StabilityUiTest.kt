@@ -33,7 +33,7 @@ class StabilityUiTest {
         compose.onNodeWithTag("booking-first-name").performTextReplacement("Nuovo")
         compose.onNodeWithTag("booking-last-name").performTextReplacement("Persistente")
         compose.onNodeWithTag("booking-guests").performTextReplacement("4")
-        compose.onNodeWithTag("booking-taxable-guests").performTextReplacement("3")
+        compose.onNodeWithTag("booking-exempt-guests").performTextReplacement("1")
         compose.onNodeWithTag("booking-actual-ota").performScrollTo().performTextReplacement("150")
         compose.onNodeWithText("Arrivo previsto").performScrollTo().performTextReplacement("17:30")
         compose.onNodeWithText("Note").performScrollTo().performTextReplacement("Nota dopo riavvio")

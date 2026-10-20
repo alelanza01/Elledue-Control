@@ -31,7 +31,7 @@ class OperationsUiTest {
         app.propertyRepository.save(PropertyDraft(id="op-q",ownerId="op-qo",name="Altro immobile",address="Test",ownerName="Test"))
         app.reservationRepository.save(BookingDraft(id="op-b",propertyId="op-p",firstName="Nicolò",lastName="D’Amico",guests="3",checkIn=BookingDates.display(today.toEpochDay()),checkOut=BookingDates.display(today.plusDays(4).toEpochDay()),gross="1000"))
     }
-    private fun waitTag(tag:String){compose.waitUntil(20000){compose.onAllNodes(hasTestTag(tag)).fetchSemanticsNodes().isNotEmpty()}}
+    private fun waitTag(tag:String){try{compose.waitUntil(20000){compose.onAllNodes(hasTestTag(tag)).fetchSemanticsNodes().isNotEmpty()}}catch(e:Throwable){File("build/reports/049-failure-$tag.txt").writeText(compose.onRoot().printToString());shot("failure-$tag");throw e}}
     private fun shot(name:String){compose.mainClock.advanceTimeBy(600);compose.waitForIdle();compose.runOnIdle {
         val view=compose.activity.window.decorView;val b=Bitmap.createBitmap(view.width,view.height,Bitmap.Config.ARGB_8888);view.draw(Canvas(b))
         File("build/reports/screenshots/047-$name.png").apply{parentFile!!.mkdirs()}.outputStream().use{b.compress(Bitmap.CompressFormat.PNG,100,it)};b.recycle()
@@ -115,7 +115,7 @@ class OperationsUiTest {
     }
     @Test fun analysisUsesRealFeesExpensesAndEmptyPeriodWithoutInventedPercentages() {
         runBlocking {app.accountingRepository.initialize();app.accountingRepository.saveExpense(ExpenseDraft(id="op-cost",propertyId="op-p",date=BookingDates.display(today.toEpochDay()),month=YearMonth.from(today).toString(),categoryId="cleaning",quantity="3",unit="8"))}
-        waitTag("home-scroll");compose.onNodeWithTag("nav-economy").performClick();waitTag("open-analysis");compose.onNodeWithTag("open-analysis").performClick();waitTag("analysis-scroll")
+        waitTag("home-scroll");compose.onNodeWithTag("nav-economy").performClick();waitTag("open-analysis");compose.onNodeWithTag("open-analysis").performClick();waitTag("analysis-scroll");compose.onNodeWithText("Elledue privata").performClick()
         compose.onNodeWithTag("analysis-scroll").performScrollToNode(hasText("Compenso di gestione Elledue"));compose.onNodeWithText("Compenso di gestione Elledue").assertIsDisplayed();shot("analysis")
         compose.onNodeWithTag("analysis-scroll").performScrollToNode(hasText("Spese per categoria"));shot("expense-chart")
         compose.onNodeWithTag("analysis-scroll").performScrollToNode(hasText("Costo operativo totale"));compose.onNodeWithText("Costo operativo totale").assertIsDisplayed()

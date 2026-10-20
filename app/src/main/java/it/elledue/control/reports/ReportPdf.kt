@@ -23,6 +23,7 @@ class ReportPdf(private val context: Context) {
     private lateinit var snapshot: ReportSnapshot
     private var y = 0f; private var number = 0
     private var rowCounter = 0
+    private var compact=false
     val pageCount get() = number
     private val left = 40f; private val right = 555f; private val bottom = 775f
     private fun width(value: String, size: Float, bold: Boolean = false): Float = (if (bold) boldFont else regular).getStringWidth(value) * size / 1000f
@@ -68,16 +69,16 @@ class ReportPdf(private val context: Context) {
         text("RENDICONTO MENSILE", 310f, 26f, 12f, Color.WHITE, true)
         text("${snapshot.month}  ·  VERSIONE ${snapshot.version}", 310f, 48f, 9f, gold)
         text("${if (snapshot.draft) "BOZZA · " else ""}${snapshot.id.take(8)}${if (snapshot.previousId != null) " · RETTIFICATIVO" else ""}", 310f, 67f, 8f, Color.WHITE)
-        y = 115f
+        y = if(compact)105f else 115f
     }
     private fun ensure(height: Float) { if (y + height > bottom) newPage() }
     private fun paragraph(value: String, size: Float = 9f, bold: Boolean = false) {
         val wrapped = lines(value, right - left, size, bold)
         if (wrapped.size * (size + 5f) + 5f <= bottom - 115f) ensure(wrapped.size * (size + 5f) + 5f)
-        wrapped.forEach { line -> ensure(size + 7f); text(line, left, y, size, bold = bold); y += size + 5f }
-        y += 5f
+        wrapped.forEach { line -> ensure(size + 7f); text(line, left, y, size, bold = bold); y += size + if(compact)3f else 5f }
+        y += if(compact)3f else 5f
     }
-    private fun section(title: String) { ensure(48f); y += 8f; text(title, left, y, 13f, night, true); y += 22f; rect(left, y, right, y + 1f, gold); y += 8f }
+    private fun section(title: String) { ensure(48f); y += if(compact)5f else 8f; text(title, left, y, 13f, night, true); y += if(compact)18f else 22f; rect(left, y, right, y + 1f, gold); y += if(compact)5f else 8f }
     private fun table(headers: List<String>, widths: List<Float>, rows: List<List<String>>) {
         fun header() {
             val height = headers.maxOf { lines(it, widths[headers.indexOf(it)] - 10f, 8f, true).size } * 12f + 14f
@@ -111,9 +112,10 @@ class ReportPdf(private val context: Context) {
         }
         y += 10f
     }
-    private fun amount(label: String, cents: Long) { ensure(20f); text(label, left, y, 9f); val value = Amounts.euro(cents); text(value, right - width(value, 9f), y); y += 21f }
+    private fun amount(label: String, cents: Long) { ensure(20f); text(label, left, y, 9f); val value = Amounts.euro(cents); text(value, right - width(value, 9f), y); y += if(compact)17f else 21f }
     fun write(value: ReportSnapshot, output: OutputStream, layout: ReportLayout = ReportLayout.DETAILED) {
         require(value.issues().none { it.blocking }) { "Snapshot incoerente." }
+        compact=layout==ReportLayout.SUMMARY
         snapshot = value; PDFBoxResourceLoader.init(context); document = PDDocument(); number = 0; rowCounter = 0
         regular = context.assets.open("fonts/DejaVuSans.ttf").use { PDType0Font.load(document, it) }; boldFont = context.assets.open("fonts/DejaVuSans-Bold.ttf").use { PDType0Font.load(document, it) }
         try {
@@ -124,8 +126,8 @@ class ReportPdf(private val context: Context) {
             if (value.previousId != null) paragraph("Rettifica della versione precedente: ${value.revisionReason}")
             section("01  Prenotazioni")
             if (layout == ReportLayout.SUMMARY) {
-                table(listOf("Ospite", "Soggiorno / ospiti", "Lordo", "Compenso"), listOf(175f, 155f, 90f, 95f), value.bookings.filter { it.status != "CANCELLED" && it.id !in value.hiddenBookingIds.orEmpty() }.map {
-                    listOf("${it.guestFirstName} ${it.guestLastName}", "${BookingDates.display(it.checkInEpochDay)} → ${BookingDates.display(it.checkOutEpochDay)} · ${it.guestCount} ospiti", Amounts.euro(it.grossCents), Amounts.euro(it.managementCents))
+                table(listOf("Ospite", "Soggiorno / ospiti", "Lordo", "OTA"), listOf(175f, 155f, 90f, 95f), value.bookings.filter { it.status != "CANCELLED" && it.id !in value.hiddenBookingIds.orEmpty() }.map {
+                    listOf("${it.guestFirstName} ${it.guestLastName}", "${BookingDates.display(it.checkInEpochDay)} → ${BookingDates.display(it.checkOutEpochDay)} · ${it.guestCount} ospiti", Amounts.euro(it.grossCents), Amounts.euro(it.otaCents))
                 })
             } else {
             table(listOf("Ospite / portale", "Soggiorno", "Lordo", "OTA", "Netto", "Gestione", "Compenso"), listOf(139f, 81f, 59f, 58f, 60f, 51f, 67f), value.bookings.filter { it.status != "CANCELLED" && it.id !in value.hiddenBookingIds.orEmpty() }.map {
@@ -134,7 +136,10 @@ class ReportPdf(private val context: Context) {
             }
             if(value.hiddenBookingIds.orEmpty().isNotEmpty()) paragraph("${value.hiddenBookingIds.orEmpty().size} prenotazioni non dettagliate: gli importi sono inclusi negli aggregati del rendiconto.",8f)
             val totals = value.summary()
-            amount("Lordo prenotazioni (tassa esclusa)", value.gross()); if (layout == ReportLayout.DETAILED) { amount("Commissioni OTA", value.ota()); amount("Netto dopo OTA al proprietario", value.net()) }; if (layout == ReportLayout.DETAILED) amount("Compenso di gestione Elledue", totals.fees)
+            section("Resoconto compenso gestione")
+            amount("Lordo prenotazioni (tassa esclusa)", value.gross()); amount("Commissioni OTA", value.ota()); amount("Netto dopo OTA al proprietario", value.net())
+            paragraph("Percentuali di gestione applicate: "+value.bookings.filter{it.status!="CANCELLED"}.map{Amounts.editable(it.appliedManagementBasisPoints.toLong())+"%"}.distinct().joinToString(" · "),8f)
+            if (layout == ReportLayout.DETAILED) amount("Compenso di gestione Elledue", totals.fees)
             if (layout == ReportLayout.DETAILED) {
             section("02  Pulizie")
             fun bookingName(id: String?) = if(id in value.hiddenBookingIds.orEmpty()) "Prenotazione non dettagliata" else (value.bookings + value.linkedBookings.orEmpty()).firstOrNull { it.id == id }?.let { "${it.guestFirstName} ${it.guestLastName}" } ?: if (id == null) "Non collegata" else "Collegamento storico"
@@ -149,7 +154,7 @@ class ReportPdf(private val context: Context) {
             paragraph("Le tariffe e i costi effettivi degli interventi sono storici. Nel saldo entrano soltanto spese anticipate da Elledue e rimborsabili dal proprietario.", 8f)
             } else {
                 section("02  Spese rimborsabili")
-                table(listOf("Rimborso dovuto", "Importo"), listOf(426f, 89f), listOf("CLEANING" to "Pulizie", "LAUNDRY" to "Lavanderia", "OTHER" to "Altre spese").map { (kind,label) -> listOf(label,Amounts.euro(OperationalMoney.total(value.expenses.filter {it.kind==kind && !it.voided && it.advancedByElledue && it.reimbursable}.map {it.actualCents}))) })
+                table(listOf("Rimborso dovuto", "Importo"), listOf(426f, 89f), value.expenses.filter{!it.voided && it.advancedByElledue && it.reimbursable}.groupBy{it.category}.toSortedMap().map{(category,rows)->listOf(category,Amounts.euro(OperationalMoney.total(rows.map{it.actualCents})))} )
                 amount("Totale rimborsi effettivamente dovuti",totals.reimbursable)
             }
             section("Tassa di soggiorno e anticipi")
@@ -157,7 +162,7 @@ class ReportPdf(private val context: Context) {
             if(layout==ReportLayout.DETAILED || totals.payments!=0L) amount("Altri anticipi", totals.payments)
             if (totals.collectedTax != totals.compensated) paragraph("Nel saldo sono riconosciuti ${Amounts.euro(totals.compensated)} di tassa, a fronte di ${Amounts.euro(totals.collectedTax)} riscossi. Riscossione e compensazione sono registrazioni distinte; possono riferirsi a periodi differenti.", 8f)
             if (value.notes.isNotBlank()) { section("Note"); paragraph(value.notes) }
-            ensure(if (layout == ReportLayout.SUMMARY) 180f else 210f)
+            ensure(if (layout == ReportLayout.SUMMARY) 173f else 210f)
             section("Saldo del periodo")
             amount("Compenso di gestione Elledue", totals.fees); amount("Rimborsi anticipati", totals.reimbursable); if (layout == ReportLayout.SUMMARY) amount("Meno anticipi riconosciuti (tassa e altri)", OperationalMoney.total(listOf(totals.compensated, totals.payments))) else { amount("Meno compensazioni riconosciute", totals.compensated); amount("Meno altri anticipi / pagamenti", totals.payments) }
             ensure(76f); rect(left, y, right, y + 76f, night)

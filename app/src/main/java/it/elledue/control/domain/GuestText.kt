@@ -24,6 +24,8 @@ object CalendarText {
 }
 data class ResolvedMessage(val text:String,val missing:Set<String>)
 object GuestText {
+    fun forResidual(body:String,residual:Long?):String = if(residual==0L)body.lineSequence().filterNot{it.contains("{tassa_residua}")}.joinToString("\n") else body
+
     private val variable=Regex("\\{\\{?([a-zA-Z_]+)\\}?\\}")
     fun resolve(body:String, booking:ReservationEntity?, property:String?, residual:Long?, english:Boolean=false):ResolvedMessage {
         val values=mapOf("nome_ospite" to booking?.guestFirstName,"immobile" to property,"nome_immobile" to property,

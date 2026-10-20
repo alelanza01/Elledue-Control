@@ -48,7 +48,7 @@ object ReminderPlanner {
         }
         if(s.monthly && properties.any{!it.property.archived && it.property.businessType!="OWNED"}) {
             val month=YearMonth.from(now.atZone(zone))
-            listOf(month,month.plusMonths(1)).forEach{m->add("month:$m",m.atEndOfMonth().atTime(LocalTime.parse(s.reminderTime)).atZone(zone),"Verifica rendiconti mensili","Prepara e controlla le bozze dei rendiconti del periodo.","reports",m.toString())}
+            listOf(month.minusMonths(1),month,month.plusMonths(1)).forEach{m->add("month:$m",m.atEndOfMonth().atTime(LocalTime.parse(s.reminderTime)).atZone(zone),"Verifica rendiconti mensili","Prepara e controlla le bozze dei rendiconti del periodo.","reports",m.toString())}
         }
         return jobs.distinctBy{it.key}.sortedBy{it.at}
     }

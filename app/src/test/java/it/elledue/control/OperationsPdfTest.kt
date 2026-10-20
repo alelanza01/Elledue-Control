@@ -28,8 +28,9 @@ class OperationsPdfTest {
             val snapshot=original.copy(expenses=original.expenses+original.expenses.first{it.kind=="CLEANING"}.copy(id="non-reimbursable",actualCents=90000,reimbursable=false))
             assertEquals(17000L,snapshot.summary().balance)
             val bytes=ByteArrayOutputStream().also{ReportPdf(context).write(snapshot,it,ReportLayout.SUMMARY)}.toByteArray()
-            val text=PDDocument.load(bytes).use {assertEquals(1,it.numberOfPages);PDFTextStripper().getText(it)}
-            listOf("Pulizie","Lavanderia","Altre spese","24,00","10,00","5,00","39,00","170,00").forEach{assertTrue("Missing $it",text.contains(it))}
+            File("build/reports/049-summary-candidate.pdf").writeBytes(bytes)
+            val text=PDDocument.load(bytes).use {pdf->File("build/reports/049-summary-pages.txt").writeText((1..pdf.numberOfPages).joinToString("\n---PAGE---\n"){page->PDFTextStripper().apply{startPage=page;endPage=page}.getText(pdf)});assertEquals(1,pdf.numberOfPages);PDFTextStripper().getText(pdf)}
+            listOf("Pulizie","Lavanderia","Detergenti","24,00","10,00","5,00","39,00","170,00").forEach{assertTrue("Missing $it",text.contains(it))}
             assertFalse(text.contains("900,00"));assertEquals(17000L,original.summary().balance)
             File("build/reports/047/rendiconto-sintetico-test.pdf").apply{parentFile!!.mkdirs();writeBytes(bytes)}
         }finally{db.close()}

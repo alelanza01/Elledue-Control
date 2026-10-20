@@ -117,6 +117,24 @@ class ConsolidatedDataTest {
   assertNull(db.issueDao().get("i")!!.reservationId);assertTrue(IssueRepository.open(db.issueDao().get("i")!!));assertTrue(db.stayCostDao().get("b").isEmpty())
   backup.restore(backup.prepare(original),true);assertEquals("b",db.issueDao().get("i")!!.reservationId);assertEquals(2,db.stayCostDao().get("b").size)
  }
+ @Test fun collectedTaxRemovesOnlyTaxPromptFromContextualTemplate(){
+  val body="Partenza alle {ora_check_out}\nRicorda la tassa {tassa_residua}\nGrazie"
+  assertEquals("Partenza alle {ora_check_out}\nGrazie",GuestText.forResidual(body,0))
+  assertEquals(body,GuestText.forResidual(body,300))
+ }
+ @Test fun versionSevenBackupRestoresAndPreservesHistoricalReportBytes()=runBlocking<Unit>{
+  val frozen=reportFixture(db,context);val report=db.reportDao().get(frozen.id)!!
+  val legacy=org.json.JSONObject(report.snapshotJson!!).apply{remove("unconfirmedCosts");getJSONObject("property").apply{remove("laundryGuestsPerSet");remove("habitualTransportCents")}}.toString()
+  db.reportDao().save(report.copy(snapshotJson=legacy))
+  val service=BackupService(db,context);val root=org.json.JSONObject(service.export().toString(Charsets.UTF_8));val tables=org.json.JSONObject(root.getString("payload"))
+  listOf("property_issues","issue_history","stay_cost_forecasts").forEach{tables.remove(it)}
+  val props=tables.getJSONArray("properties");for(i in 0 until props.length())props.getJSONObject(i).apply{remove("laundryGuestsPerSet");remove("habitualTransportCents")}
+  val opts=tables.getJSONArray("report_booking_options");for(i in 0 until opts.length())opts.getJSONObject(i).apply{remove("reason");remove("auditJson")}
+  root.put("databaseVersion",7).put("payload",tables.toString()).put("sha256",ReportCodec.hash(tables.toString()))
+  service.restore(service.prepare(root.toString().toByteArray()),true)
+  assertEquals(legacy,db.reportDao().get(frozen.id)!!.snapshotJson);assertEquals(17000L,ReportCodec.decode(legacy).summary().balance)
+  assertTrue(db.issueDao().all().isEmpty());assertEquals(2,db.propertyDao().get(frozen.property.id)!!.property.laundryGuestsPerSet)
+ }
  @Test fun ownPropertyHasTransportCategoryAndNoAutomaticManagementOrCostForecasts()=runBlocking<Unit>{
   seed();PropertyRepository(db).save(PropertyDraft(id="own",ownerId="own-o",name="Propria",address="Test",businessType="OWNED",transportRate="7,50"))
   val own=BookingDraft(id="owned-stay",firstName="Ospite",lastName="Proprio",gross="500").withPropertyDefaults(db.propertyDao().get("own")!!)

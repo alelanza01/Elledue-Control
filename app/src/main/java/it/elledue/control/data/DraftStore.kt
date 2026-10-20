@@ -49,6 +49,9 @@ class DraftStore(context:Context) {
                 else->false
             }
         }.forEach(::clear)
+        routes().filter{it.startsWith("issue/")}.forEach{route->
+            load(route,PropertyIssue::class.java)?.takeIf{it.reservationId in ref.bookings}?.let{save(route,it.copy(reservationId=null))}
+        }
     }
     companion object {
         private val stores=java.util.WeakHashMap<Context,DraftStore>()

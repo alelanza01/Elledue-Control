@@ -160,7 +160,7 @@ fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewMo
                 if(b!=null)GuestReminderScreen(b,d.arguments?.getString("kind") ?: "out",records.firstOrNull{it.property.id==b.propertyId},app.messageRepository,accountingData,app.reminderStore){navigation.popBackStack()} else LoadingScreen()
             }
             composable("issues") { IssuesScreen(issues.filter{it.propertyId in normalIds},normalRecords,jump){navigation.popBackStack()} }
-            composable("day/{day}") { d->OperationalDayScreen(d.arguments?.getString("day")?.toLongOrNull() ?: BookingDates.today().toEpochDay(),normalRecords,normalBookings,normalActivities,issues.filter{it.propertyId in normalIds},jump){navigation.popBackStack()} }
+            composable("day/{day}") { d->OperationalDayScreen(d.arguments?.getString("day")?.toLongOrNull() ?: BookingDates.today().toEpochDay(),normalRecords,normalBookings,normalActivities,issues.filter{it.propertyId in normalIds},jump,expenses=normalAccounting?.expenses.orEmpty()){navigation.popBackStack()} }
             composable("issue-create?property={property}&booking={booking}",arguments=listOf("property","booking").map{name->androidx.navigation.navArgument(name){defaultValue=""}}) {d->
                 val initial=remember{it.elledue.control.data.PropertyIssue(propertyId=d.arguments?.getString("property") ?: "",reservationId=d.arguments?.getString("booking")?.ifBlank{null})}
                 IssueEditor(initial,records,bookings,accountingData?.expenses.orEmpty(),app.issueRepository,{navigation.popBackStack()}){id->navigation.popBackStack();jump("issue/$id")}

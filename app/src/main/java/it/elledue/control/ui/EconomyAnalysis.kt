@@ -172,7 +172,7 @@ fun EconomyAnalysis(bookings: List<ReservationEntity>, properties: List<Property
   Row(horizontalArrangement=Arrangement.spacedBy(20.dp),verticalAlignment=androidx.compose.ui.Alignment.CenterVertically){
    Box(Modifier.size(104.dp),contentAlignment=androidx.compose.ui.Alignment.Center){
     Canvas(Modifier.fillMaxSize().padding(10.dp)){drawArc(ConceptBorder,-90f,360f,false,style=androidx.compose.ui.graphics.drawscope.Stroke(10.dp.toPx()));drawArc(ElledueGold,-90f,ratio*360f,false,style=androidx.compose.ui.graphics.drawscope.Stroke(10.dp.toPx(),cap=androidx.compose.ui.graphics.StrokeCap.Round))}
-    Text("${java.math.BigDecimal.valueOf((ratio*100).toDouble()).setScale(1,java.math.RoundingMode.HALF_UP)}%",style=MaterialTheme.typography.titleLarge)
+    Text("${java.math.BigDecimal.valueOf((ratio*100).toDouble()).setScale(1,java.math.RoundingMode.HALF_UP).toPlainString().replace('.',',')}%",style=MaterialTheme.typography.titleLarge)
    }
    Column(verticalArrangement=Arrangement.spacedBy(7.dp)){Text("$sold notti vendute",style=MaterialTheme.typography.titleMedium);Text("$available notti calendario disponibili",style=MaterialTheme.typography.bodySmall);Text("${active.count{it.checkInEpochDay in start until end}} check-in · ${active.count{it.checkOutEpochDay in start until end}} check-out",style=MaterialTheme.typography.bodySmall)}
   }
@@ -181,6 +181,6 @@ fun EconomyAnalysis(bookings: List<ReservationEntity>, properties: List<Property
    Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text(p.property.name,Modifier.weight(1f));Text("${m.nights}/${m.calendarDays} notti",style=MaterialTheme.typography.labelMedium)}
    LinearProgressIndicator(progress={m.calendarOccupiedDays.toFloat()/m.calendarDays},modifier=Modifier.fillMaxWidth().height(8.dp),color=propertyColor(p.property.id))
   }
-  Text("Notti uniche: eventuali sovrapposizioni non aumentano l’occupazione. Nessuna disponibilità commerciale o blocco inventato.",style=MaterialTheme.typography.bodySmall,color=ConceptMuted)
+  Text("Le notti sovrapposte vengono conteggiate una sola volta. Il giorno della partenza libera l’immobile.",style=MaterialTheme.typography.bodySmall,color=ConceptMuted)
  }}
 }

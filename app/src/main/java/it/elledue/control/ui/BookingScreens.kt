@@ -129,7 +129,7 @@ private fun MonthGrid(month:YearMonth,selected:Long,today:Long,records:List<Rese
    val start=first+w*7;val end=start+7
    Column(verticalArrangement=Arrangement.spacedBy(5.dp)){
     Row{repeat(7){offset->val day=start+offset;val date=LocalDate.ofEpochDay(day)
-     Box(Modifier.weight(1f).heightIn(min=48.dp).clip(MaterialTheme.shapes.small).background(if(day==selected)ElledueGold else Color.Transparent).clickable{select(day)}.testTag("calendar-day-$day").semantics{contentDescription=BookingDates.display(day)+", apri giornata operativa"},contentAlignment=Alignment.Center){Text(date.dayOfMonth.toString(),color=if(day==selected)ElledueNight else if(date.month!=month.month)ConceptMuted.copy(.45f) else if(day==today)ElledueGold else MaterialTheme.colorScheme.onSurface)}
+     Box(Modifier.weight(1f).heightIn(min=48.dp).clip(MaterialTheme.shapes.small).background(if(day==selected)ElledueGold else Color.Transparent).clickable{select(day)}.testTag("calendar-day-$day").semantics{contentDescription=BookingDates.display(day)+", ${records.count{it.checkInEpochDay==day}} arrivi, ${records.count{it.checkOutEpochDay==day}} partenze, ${records.count{day>=it.checkInEpochDay && day<it.checkOutEpochDay}} soggiorni, apri giornata operativa"},contentAlignment=Alignment.Center){Text(date.dayOfMonth.toString(),color=if(day==selected)ElledueNight else if(date.month!=month.month)ConceptMuted.copy(.45f) else if(day==today)ElledueGold else MaterialTheme.colorScheme.onSurface)}
     }}
     val stays=records.filter{it.checkInEpochDay<end && it.checkOutEpochDay>=start}.sortedWith(compareBy<ReservationEntity>{it.propertyId}.thenBy{it.checkInEpochDay})
     stays.take(5).forEach{b->
@@ -186,7 +186,7 @@ fun BookingDetailScreen(item: ReservationEntity, propertyName: String, busy: Boo
                 Text("Rettifica: ${change.reason}\nOTA ${Amounts.euro(before.getLong("otaCents"))} → ${Amounts.euro(after.getLong("otaCents"))} · Elledue ${Amounts.euro(before.getLong("managementCents"))} → ${Amounts.euro(after.getLong("managementCents"))}", style = MaterialTheme.typography.bodySmall)
             }
             OutlinedButton(onClick = onTax, modifier = Modifier.fillMaxWidth().testTag("open-booking-tax")) { Text("Tassa di soggiorno e movimenti") }
-            Text("Il lordo è accreditato al proprietario. Il compenso maturato non indica un pagamento già ricevuto da Elledue.", style = MaterialTheme.typography.bodyMedium)
+            Text(if(item.appliedBusinessType=="OWNED")"Ricavi e costi dell’immobile proprio: nessun saldo con un proprietario esterno." else "Il lordo è accreditato al proprietario. Il compenso maturato non indica un pagamento già ricevuto da Elledue.", style = MaterialTheme.typography.bodyMedium)
             if (item.overlapAcknowledged && item.status != BookingStatus.CANCELLED.name) Text("Sovrapposizione autorizzata al salvataggio.", color = MaterialTheme.colorScheme.error)
             if (item.notes.isNotBlank()) { Text("Note", style = MaterialTheme.typography.titleMedium); Text(item.notes) }
             if (error != null) Text(error, color = MaterialTheme.colorScheme.error)

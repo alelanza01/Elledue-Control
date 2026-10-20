@@ -31,7 +31,8 @@ class ReminderStore(context:Context) {
     fun handled(key:String)=prefs.getBoolean("handled:$key",false)
     fun handle(key:String){check(prefs.edit().putBoolean("handled:$key",true).commit())}
     fun delivered(key:String)=prefs.getString("sent:$key",null)
-    fun mark(job:Reminder){check(prefs.edit().putString("sent:${job.key}",job.version).commit())}
+    fun history():List<Reminder> = prefs.all.keys.filter{it.startsWith("delivered-job:")}.mapNotNull{key->runCatching{Gson().fromJson(prefs.getString(key,null),Reminder::class.java)}.getOrNull()}
+    fun mark(job:Reminder){check(prefs.edit().putString("sent:${job.key}",job.version).putString("delivered-job:${job.key}",Gson().toJson(job)).commit())}
 }
 class ReminderEngine(private val app:ElledueApplication) {
     private val store get()=app.reminderStore

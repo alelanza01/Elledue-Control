@@ -17,12 +17,13 @@ class StayCostRepository(private val db:AppDatabase) {
  suspend fun update(b:ReservationEntity,p:PropertyEntity) {
   if(b.appliedBusinessType!="MANAGED" || b.status=="CANCELLED")return
   val old=db.stayCostDao().get(b.id)
-  listOf(StayCostForecast(b.id,"CLEANING","2",p.cleaningHourlyCents),StayCostForecast(b.id,"LAUNDRY",((b.guestCount+p.laundryGuestsPerSet-1)/p.laundryGuestsPerSet).toString(),p.laundrySetCents)).forEach { item ->
+  listOf(StayCostForecast(b.id,"CLEANING","2",p.cleaningHourlyCents),StayCostForecast(b.id,"LAUNDRY",((b.guestCount.toLong()+p.laundryGuestsPerSet-1)/p.laundryGuestsPerSet).toString(),p.laundrySetCents)).forEach { item ->
    if(old.firstOrNull{it.kind==item.kind}?.manual!=true && db.accountingDao().expense(expenseId(b.id,item.kind))==null)db.stayCostDao().save(item)
   }
  }
  suspend fun save(item:StayCostForecast)=db.withTransaction {
   require(item.kind in listOf("CLEANING","LAUNDRY"));require(item.unitCents>=0);OperationalMoney.cost(item.quantity,item.unitCents)
+  require(item.kind!="LAUNDRY" || OperationalMoney.quantity(item.quantity).stripTrailingZeros().scale()<=0){"I set di lavanderia devono essere interi."}
   require(item.overrideCents==null || item.overrideCents>=0);requireNotNull(db.reservationDao().get(item.reservationId))
   db.stayCostDao().save(item.copy(manual=true))
  }

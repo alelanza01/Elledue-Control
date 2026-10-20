@@ -59,6 +59,7 @@ class MainActivity : FragmentActivity() {
         if(Regex("guest-message/[A-Za-z0-9_-]{1,100}/(pre|out)").matches(route) || route in listOf("reports","notifications") || Regex("(booking|activity|tax|issue)/[A-Za-z0-9_-]{1,100}").matches(route))notificationRoute.value=route
         intent.removeExtra("route")
     }
+    override fun onSaveInstanceState(outState:Bundle){notificationRoute.value?.let{outState.putString("pending-notification-route",it)};super.onSaveInstanceState(outState)}
     override fun onNewIntent(intent:Intent){super.onNewIntent(intent);setIntent(intent);acceptNotification(intent)}
     override fun onStart(){super.onStart();(application as ElledueApplication).appLock.start()}
     override fun onStop(){(application as ElledueApplication).appLock.stop();super.onStop()}
@@ -75,6 +76,7 @@ class MainActivity : FragmentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         acceptNotification(intent)
+        if(notificationRoute.value==null)savedInstanceState?.getString("pending-notification-route")?.let{acceptNotification(Intent().putExtra("route",it))}
         val repository = (application as ElledueApplication).settingsRepository
         setContent {
             ElledueTheme {

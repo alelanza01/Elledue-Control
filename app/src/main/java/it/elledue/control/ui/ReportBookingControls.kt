@@ -13,7 +13,7 @@ import it.elledue.control.reports.ReportSnapshot
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @Composable fun ReportBookingControls(snapshot:ReportSnapshot,booking:ReservationEntity,model:ReportViewModel) {
-    var reason by remember{mutableStateOf("")}
+    var reason by remember(snapshot.id,booking.id){mutableStateOf(snapshot.bookingOptions.orEmpty().firstOrNull{it.reservationId==booking.id}?.reason.orEmpty())}
     var dialog by remember{mutableStateOf(false)};var applying by remember{mutableStateOf(false)}
     val rule=snapshot.bookingOptions.orEmpty().firstOrNull{it.reservationId==booking.id}
     var hidden by remember(snapshot.id,rule){mutableStateOf(rule?.hideDetails ?: (booking.id in snapshot.hiddenBookingIds.orEmpty()))}
@@ -25,7 +25,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
     if(dialog)AlertDialog(onDismissRequest={if(!busy){dialog=false;model.clearPreview()}},title={Text("Prenotazione nel rendiconto")},text={Column(Modifier.verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(10.dp)){
         Text("${booking.guestFirstName} ${booking.guestLastName}")
         Row{Checkbox(hidden,{hidden=it;model.clearPreview()});Text("Non mostrare la riga nominativa nel PDF; importi inclusi",Modifier.weight(1f).padding(top=10.dp))}
-        Row{Checkbox(excluded,{excluded=it;model.clearPreview()});Text("Escludi dal rendiconto proprietario: dettaglio, importi e movimenti collegati",Modifier.weight(1f).padding(top=10.dp))}
+        Row{Checkbox(!excluded,{excluded=!it;model.clearPreview()});Text("Includi nel rendiconto proprietario",Modifier.weight(1f).padding(top=10.dp))}
+        Text("Se disattivato, il soggiorno è escluso da dettaglio e calcolo del solo rendiconto corrente, comprese le voci direttamente collegate.",style=MaterialTheme.typography.bodySmall)
         if(excluded)OutlinedTextField(reason,{reason=it},label={Text("Motivazione interna obbligatoria")},modifier=Modifier.fillMaxWidth())
         Text("L’esclusione deve rispettare il perimetro concordato: non omettere somme dovute al proprietario.",style=MaterialTheme.typography.bodySmall)
         Text("La prenotazione rimane nel calendario. Incassi e riversamenti reali non vengono modificati.",style=MaterialTheme.typography.bodySmall)
