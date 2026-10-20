@@ -33,7 +33,7 @@ fun ExpenseEditor(initial: ExpenseDraft, properties: List<PropertyWithOwner>, bo
     val calculated = runCatching { if (draft.quantity.isNotBlank() && draft.unit.isNotBlank()) OperationalMoney.cost(draft.quantity, Amounts.parseCents(draft.unit)) else null }.getOrNull()
     fun selectCategory(id: String): ExpenseDraft {
         val c = categories.firstOrNull { it.id == id }; val p = properties.firstOrNull { it.property.id == draft.propertyId }?.property
-        return draft.copy(categoryId = id, quantity = if (c?.kind == "OTHER") "" else draft.quantity.ifBlank { "1" }, unit = when (c?.kind) { "CLEANING" -> Amounts.editable(p?.cleaningHourlyCents ?: 800); "LAUNDRY" -> Amounts.editable(p?.laundrySetCents ?: 500); else -> "" })
+        return draft.copy(categoryId = id, quantity = if(id=="transport" && p?.habitualTransportCents!=null)"1" else if (c?.kind == "OTHER") "" else draft.quantity.ifBlank { "1" }, unit = when (c?.kind) { "CLEANING" -> Amounts.editable(p?.cleaningHourlyCents ?: 800); "LAUNDRY" -> Amounts.editable(p?.laundrySetCents ?: 500); else -> if(id=="transport")p?.habitualTransportCents?.let(Amounts::editable) ?: "" else "" })
     }
     Scaffold(topBar = { TopAppBar(title = { Text(if (initial.revision == 0) "Nuova spesa" else "Rettifica spesa") }, navigationIcon = { IconButton(onClick = back) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Indietro spesa") } }, actions = { TextButton(onClick = { model.saveExpense(draft) }, enabled = !busy, modifier = Modifier.testTag("save-expense")) { Text("Salva") } }) }) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).verticalScroll(editorScroll).padding(20.dp).testTag("expense-editor"), verticalArrangement = Arrangement.spacedBy(14.dp)) {

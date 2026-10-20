@@ -63,7 +63,7 @@ class AccountingMigrationTest {
                 assertEquals("2026-12", migrated.competenceMonth); assertEquals(15000L, migrated.actualOtaCents); assertEquals(17000L, migrated.managementCents)
                 val cost = db.accountingDao().expense(expense.id)!!
                 assertEquals(500L, cost.actualCents); assertEquals(booking.id, cost.reservationId); assertEquals("2027-01", cost.competenceMonth)
-                assertEquals(8, db.accountingDao().observeCategories().first().size)
+                assertEquals(9, db.accountingDao().observeCategories().first().size)
                 assertTrue(db.accountingDao().movements().isEmpty()); assertTrue(db.accountingDao().observeAssessments().first().isEmpty())
                 db.openHelper.readableDatabase.query("SELECT organizationName FROM app_settings").use { it.moveToFirst(); assertEquals("Gestione storica", it.getString(0)) }
                 db.openHelper.readableDatabase.query("SELECT title FROM activities").use { it.moveToFirst(); assertEquals("Controllo", it.getString(0)) }

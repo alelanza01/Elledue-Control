@@ -27,7 +27,7 @@ class BackupServiceTest {
         val reports = ReportRepository(db, context); val revision = reports.beginRevision(snapshot.id, "Rettifica dimostrativa")
         val booking = db.reservationDao().get("synthetic-booking")!!
         ReservationRepository(db).save(BookingDraft.from(booking).copy(actualOta = "150", correctionReason = "OTA verificate"))
-        reports.refresh(revision); reports.confirm(revision, ReportCodec.hash(ReportCodec.encode(reports.snapshot(revision))), false)
+        reports.refresh(revision); reports.confirm(revision, ReportCodec.hash(ReportCodec.encode(reports.snapshot(revision))), true)
         val exported = service.export(); val verified = service.prepare(exported)
         val target = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java).build()
         try {

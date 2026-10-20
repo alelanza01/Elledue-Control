@@ -60,7 +60,7 @@ class ReminderEngine(private val app:ElledueApplication) {
             // Recover only already scheduled, still current jobs; never invent old reminders.
             all.filter{it.at<=now.toEpochMilli() && old[it.key]?.version==it.version && store.delivered(it.key)!=it.version && !store.handled(it.key)}.forEach{if(show(it))store.mark(it)}
             val planned=if(allowed()) all.filter{it.at>=now.toEpochMilli() && store.delivered(it.key)!=it.version && !store.handled(it.key)}.associateBy{it.key} else emptyMap()
-            old.forEach{(key,value)->if(planned[key]?.version!=value.version){alarm.cancel(pending(value));NotificationManagerCompat.from(app).cancel(key.hashCode())}}
+            old.forEach{(key,value)->if(planned[key]?.version!=value.version){alarm.cancel(pending(value));if(all.none{it.key==key && it.version==value.version})NotificationManagerCompat.from(app).cancel(key.hashCode())}}
             planned.forEach{(key,value)->if(force || old[key]?.version!=value.version)schedule(alarm,value)}
             store.scheduled(planned)
         }finally{mutex.unlock()}
