@@ -60,27 +60,20 @@ class StabilityDataTest {
         val stale=BookingDraft.from(repo.get("b")!!);repo.save(stale.copy(notes="Aggiornata"));assertEquals("unrelated-draft",store.load("booking/new",BookingDraft::class.java)!!.id);reject{repo.save(stale.copy(notes="Vecchia bozza"))};assertEquals("Aggiornata",repo.get("b")!!.notes)
         store.routes().forEach(store::clear)
     }
-    @Test fun deleteBookingRemovesItsDependenciesAndInvalidatesWholeReportChainButKeepsIndependentCosts()=runBlocking<Unit> {
-        val frozen=reportFixture(db,context);val accounting=AccountingRepository(db)
-        accounting.saveExpense(ExpenseDraft(id="independent",propertyId=frozen.property.id,categoryId="other",date="15/11/2026",month="2026-11",amount="7"))
-        val service=DeletionRepository(db,context);val plan=service.prepare("booking","synthetic-booking")
-        assertTrue(plan.reportIds.contains(frozen.id));assertEquals(2,plan.counts["Movimenti e storni"])
-        val file=File(context.cacheDir,"delete-backup.json");val receipt=service.saveVerifiedBackup(plan,Uri.fromFile(file))
-        reject{service.delete(plan,receipt,"ELIMINA ${plan.label}",false)}
-        assertNotNull(db.reservationDao().get("synthetic-booking"))
-        service.delete(plan,receipt,"ELIMINA ${plan.label}",true)
-        assertNull(db.reservationDao().get("synthetic-booking"));assertNull(db.accountingDao().expense("synthetic-cleaning"));assertNotNull(db.accountingDao().expense("independent"));assertNotNull(db.accountingDao().expense("synthetic-laundry"));assertNull(db.reportDao().get(frozen.id));assertTrue(db.accountingDao().movements().isEmpty())
-        BackupService(db,context).restore(BackupService(db,context).prepare(file.readBytes()),true)
-        assertEquals(frozen,ReportRepository(db,context).snapshot(frozen.id));assertNotNull(db.reservationDao().get("synthetic-booking"))
+    @Test fun deleteBookingWithConfirmedReportIsRejectedAndIndependentCostsAndDocumentsSurvive()=runBlocking<Unit> {
+        val frozen=reportFixture(db,context)
+        val service=DeletionRepository(db,context)
+        reject{service.prepare("booking","synthetic-booking")}
+        assertNotNull(db.reservationDao().get("synthetic-booking"));assertEquals(frozen,ReportRepository(db,context).snapshot(frozen.id))
+        assertEquals(3,db.reportDao().expenses().size);assertEquals(2,db.accountingDao().movements().size)
+        BackupService(db,context).prepare(BackupService(db,context).export())
     }
-    @Test fun deletePropertyIsAtomicOnFailureAndSuccessfulDeletionLeavesNoOrphans()=runBlocking<Unit> {
-        val frozen=reportFixture(db,context);PropertyRepository(db).save(PropertyDraft(id="other",ownerId=frozen.owner.id,name="Condivisa",address="Test",ownerName=frozen.owner.name))
-        val service=DeletionRepository(db,context){error("Injected pre-commit failure")};val plan=service.prepare("property",frozen.property.id)
-        val receipt=service.saveVerifiedBackup(plan,Uri.fromFile(File(context.cacheDir,"before-delete.json")))
-        try{service.delete(plan,receipt,"ELIMINA ${plan.label}",true);fail()}catch(_:IllegalStateException){}
+    @Test fun deletePropertyWithConfirmedReportIsBlockedAndArchiveKeepsAllRelations()=runBlocking<Unit> {
+        val frozen=reportFixture(db,context)
+        reject{DeletionRepository(db,context).prepare("property",frozen.property.id)}
+        PropertyRepository(db).archive(frozen.property.id,true)
         assertEquals(frozen,ReportRepository(db,context).snapshot(frozen.id));assertEquals(3,db.reportDao().expenses().size)
-        DeletionRepository(db,context).delete(plan,receipt,"ELIMINA ${plan.label}",true)
-        assertNull(db.propertyDao().get(frozen.property.id));assertNotNull(db.propertyDao().get("other"));assertTrue(db.reportDao().bookings().isEmpty());assertTrue(db.reportDao().expenses().isEmpty())
+        assertNotNull(db.reservationDao().get("synthetic-booking"));assertTrue(db.propertyDao().get(frozen.property.id)!!.property.archived)
         db.openHelper.readableDatabase.query("PRAGMA foreign_key_check").use{assertFalse(it.moveToFirst())}
     }
     @Test fun changedDataRequiresFreshBackupAndStrongConfirmation()=runBlocking<Unit> {

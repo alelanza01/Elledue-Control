@@ -69,7 +69,7 @@ fun PropertiesScreen(items: List<PropertyWithOwner>, onCreate: () -> Unit, onOpe
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PropertyDetailScreen(item: PropertyWithOwner, busy: Boolean, error: String?, onBack: () -> Unit, onEdit: () -> Unit, onArchive: (Boolean) -> Unit, onPhoto: (String?) -> Unit = {}, onDelete: () -> Unit = {}) {
+fun PropertyDetailScreen(item: PropertyWithOwner, busy: Boolean, error: String?, onBack: () -> Unit, onEdit: () -> Unit, onArchive: (Boolean) -> Unit, onPhoto: (String?) -> Unit = {}, onDelete: () -> Unit = {}, issueContent:@Composable ()->Unit={}) {
     var confirmArchive by rememberSaveable { mutableStateOf(false) }
     var menu by remember { mutableStateOf(false) }
     val p = item.property
@@ -83,6 +83,7 @@ fun PropertyDetailScreen(item: PropertyWithOwner, busy: Boolean, error: String?,
     } }) }) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
             PhotoControls(p.coverImageBase64, onPhoto = onPhoto)
+            issueContent()
             Text(p.name, style = MaterialTheme.typography.headlineLarge)
             Text(p.address, color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (p.archived) SuggestionChip(onClick = {}, label = { Text("Archiviato · storico conservato") })
@@ -170,6 +171,8 @@ fun PropertyEditorScreen(initial: PropertyDraft, isNew: Boolean, busy: Boolean, 
                 Text("Prenotazione diretta: OTA iniziale 0%; eventuali costi di pagamento sono spese distinte.",style=MaterialTheme.typography.bodySmall)
                 EditorField("Configurazione portali anche storici (Portale=percentuale)", draft.platformRates, busy, multiline = true) { draft = draft.copy(platformRates = it) }
                 EditorField("Pulizie (€/ora)", draft.cleaningRate, busy, KeyboardType.Decimal) { draft = draft.copy(cleaningRate = it) }
+                EditorField("Ospiti per set lavanderia",draft.laundryGuests,busy,KeyboardType.Number){draft=draft.copy(laundryGuests=it)}
+                EditorField("Trasporti · importo abituale € (facoltativo)",draft.transportRate,busy,KeyboardType.Decimal){draft=draft.copy(transportRate=it)}
                 EditorField("Lavanderia (€/set matrimoniale)", draft.laundryRate, busy, KeyboardType.Decimal) { draft = draft.copy(laundryRate = it) }
             }
             EditorGroup("Tassa di soggiorno") {

@@ -38,7 +38,7 @@ class ReminderEngineTest {
         val notifications=Shadows.shadowOf(app.getSystemService(NotificationManager::class.java))
         val shown=notifications.allNotifications.single()
         assertEquals("Check-in imminente",shown.extras.getCharSequence("android.title"))
-        assertEquals("booking/b",Shadows.shadowOf(shown.contentIntent).savedIntent.getStringExtra("route"))
+        assertEquals("guest-message/b/pre",Shadows.shadowOf(shown.contentIntent).savedIntent.getStringExtra("route"))
         assertEquals(job.version,app.reminderStore.delivered(job.key))
         app.reminders.deliver(job.key,job.version,Instant.ofEpochMilli(job.at));assertEquals(1,notifications.allNotifications.size)
         app.reminders.reconcile(force=true);assertFalse(app.reminderStore.scheduled().containsKey("arrival:b"))

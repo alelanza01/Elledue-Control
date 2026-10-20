@@ -13,6 +13,7 @@ import it.elledue.control.reports.ReportSnapshot
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @Composable fun ReportBookingControls(snapshot:ReportSnapshot,booking:ReservationEntity,model:ReportViewModel) {
+    var reason by remember{mutableStateOf("")}
     var dialog by remember{mutableStateOf(false)};var applying by remember{mutableStateOf(false)}
     val rule=snapshot.bookingOptions.orEmpty().firstOrNull{it.reservationId==booking.id}
     var hidden by remember(snapshot.id,rule){mutableStateOf(rule?.hideDetails ?: (booking.id in snapshot.hiddenBookingIds.orEmpty()))}
@@ -24,10 +25,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
     if(dialog)AlertDialog(onDismissRequest={if(!busy){dialog=false;model.clearPreview()}},title={Text("Prenotazione nel rendiconto")},text={Column(Modifier.verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(10.dp)){
         Text("${booking.guestFirstName} ${booking.guestLastName}")
         Row{Checkbox(hidden,{hidden=it;model.clearPreview()});Text("Non mostrare la riga nominativa nel PDF; importi inclusi",Modifier.weight(1f).padding(top=10.dp))}
-        Row{Checkbox(excluded,{excluded=it;model.clearPreview()});Text("Escludi dai calcoli di questo rendiconto anche spese e riconoscimenti direttamente collegati",Modifier.weight(1f).padding(top=10.dp))}
+        Row{Checkbox(excluded,{excluded=it;model.clearPreview()});Text("Escludi dal rendiconto proprietario: dettaglio, importi e movimenti collegati",Modifier.weight(1f).padding(top=10.dp))}
+        if(excluded)OutlinedTextField(reason,{reason=it},label={Text("Motivazione interna obbligatoria")},modifier=Modifier.fillMaxWidth())
+        Text("L’esclusione deve rispettare il perimetro concordato: non omettere somme dovute al proprietario.",style=MaterialTheme.typography.bodySmall)
         Text("La prenotazione rimane nel calendario. Incassi e riversamenti reali non vengono modificati.",style=MaterialTheme.typography.bodySmall)
         OutlinedButton(onClick={model.previewOption(snapshot.id,booking.id,hidden,excluded)},enabled=!busy,modifier=Modifier.testTag("preview-report-option")){Text("Verifica effetto sui totali")}
         preview?.takeIf{it.id==snapshot.id}?.let{p->AmountLine("Saldo prima",snapshot.summary().balance);AmountLine("Saldo dopo",p.summary().balance);AmountLine("Compenso di gestione Elledue",p.summary().fees);AmountLine("Rimborsi dopo",p.summary().reimbursable)}
         error?.let{Text(it,color=MaterialTheme.colorScheme.error)}
-    }},confirmButton={TextButton(onClick={preview?.let{applying=true;model.applyOption(snapshot.id,booking.id,hidden,excluded,it)}},enabled=!busy && preview!=null,modifier=Modifier.testTag("apply-report-option")){Text("Applica alla bozza")}},dismissButton={TextButton(onClick={dialog=false;model.clearPreview()},enabled=!busy){Text("Continua senza applicare")}})
+    }},confirmButton={TextButton(onClick={preview?.let{applying=true;model.applyOption(snapshot.id,booking.id,hidden,excluded,it,reason)}},enabled=!busy && preview!=null && (!excluded || reason.isNotBlank()),modifier=Modifier.testTag("apply-report-option")){Text("Applica alla bozza")}},dismissButton={TextButton(onClick={dialog=false;model.clearPreview()},enabled=!busy){Text("Continua senza applicare")}})
 }

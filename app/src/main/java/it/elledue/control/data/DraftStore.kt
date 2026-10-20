@@ -38,6 +38,7 @@ class DraftStore(context:Context) {
             when {
                 route.startsWith("property/")->id in ref.properties
                 route.startsWith("booking/")->id in ref.bookings || load(route,it.elledue.control.domain.BookingDraft::class.java)?.propertyId in ref.properties
+                route.startsWith("issue/")->load(route,PropertyIssue::class.java)?.propertyId in ref.properties
                 route.startsWith("tax/")->id in ref.bookings
                 route.startsWith("expense/")->id in ref.expenses || load(route,it.elledue.control.domain.ExpenseDraft::class.java)?.let{it.propertyId in ref.properties || it.reservationId in ref.bookings}==true
                 route.startsWith("activity/")->id in ref.activities || load("$route#property",String::class.java) in ref.properties || load("$route#booking",String::class.java) in ref.bookings

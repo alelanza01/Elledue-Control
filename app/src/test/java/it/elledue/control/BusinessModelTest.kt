@@ -56,7 +56,7 @@ class BusinessModelTest {
         repo.setBookingOption(id,"synthetic-booking",true,false,ReportCodec.hash(ReportCodec.encode(preview)))
         assertEquals(listOf("synthetic-booking"),repo.snapshot(id).hiddenBookingIds)
         val excluded=repo.previewBookingOption(id,"synthetic-booking",false,true);assertEquals(1500L,excluded.summary().balance)
-        repo.setBookingOption(id,"synthetic-booking",false,true,ReportCodec.hash(ReportCodec.encode(excluded)))
+        repo.setBookingOption(id,"synthetic-booking",false,true,ReportCodec.hash(ReportCodec.encode(excluded)),reason="Esclusione autorizzata nel test")
         assertTrue(repo.snapshot(id).bookings.isEmpty());assertEquals(3000L,db.reservationDao().get("synthetic-booking")!!.collectedTaxCents);assertEquals(2,db.accountingDao().movements().size)
         repo.setBookingOption(id,"synthetic-booking",false,false);assertEquals(17000L,repo.snapshot(id).summary().balance)
         assertEquals(original,repo.snapshot(original.id));assertEquals(1,db.reportDao().bookings().size)

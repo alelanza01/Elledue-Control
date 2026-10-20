@@ -23,10 +23,12 @@ class DeletionRepository(private val db:AppDatabase,private val context:Context,
         val direct=allReports.filter {report->kind=="property" || report.yearMonth==booking!!.competenceMonth || report.snapshotJson?.let {json->
             val s=ReportCodec.decode(json);(s.bookings+s.linkedBookings.orEmpty()+s.excludedBookings.orEmpty()).any{it.id==id} || s.expenses.any{it.reservationId==id} || s.movements.any{it.reservationId==id}
         }==true}
+        require(direct.none{it.status=="CONFIRMED"}){"Sono presenti rendiconti confermati: usa l’archiviazione per conservare documenti e collegamenti storici."}
         val periods=direct.map{it.yearMonth}.toSet();val reports=allReports.filter{it.yearMonth in periods}.map{it.id}.toSet()
         fun rows(table:String)=tables.getJSONArray(table).let{array->(0 until array.length()).map{array.getJSONObject(it)}}
         val costs=rows("expenses").filter{if(kind=="property")it.optString("propertyId")==id else it.optString("reservationId")==id}.map{it.getString("id")}.toSet()
         val counts=linkedMapOf<String,Int>()
+        counts["Problemi conservati o eliminati con immobile"]=rows("property_issues").count{if(kind=="property")it.getString("propertyId")==id else it.optString("reservationId")==id}
         counts["Prenotazioni"]=rows("reservations").count{if(kind=="property")it.getString("propertyId")==id else it.getString("id")==id}
         counts["Spese collegate"]=costs.size
         counts["Attività"]=rows("activities").count{if(kind=="property")it.optString("propertyId")==id else it.optString("reservationId")==id}
@@ -65,12 +67,16 @@ class DeletionRepository(private val db:AppDatabase,private val context:Context,
             sql.execSQL("DELETE FROM reports WHERE id=?",arrayOf(rid))
         }
         val bookings=if(plan.kind=="booking")listOf(plan.id) else db.reportDao().bookings().filter{it.propertyId==propertyId}.map{it.id}
+        if(plan.kind=="property") {
+            sql.execSQL("DELETE FROM issue_history WHERE issueId IN(SELECT id FROM property_issues WHERE propertyId=?)",arrayOf(propertyId))
+            sql.execSQL("DELETE FROM property_issues WHERE propertyId=?",arrayOf(propertyId))
+        }
         val expenses=db.reportDao().expenses().filter{if(plan.kind=="property")it.propertyId==propertyId else it.reservationId==plan.id}.map{it.id}
         expenses.forEach{sql.execSQL("DELETE FROM expense_revisions WHERE expenseId=?",arrayOf(it));sql.execSQL("DELETE FROM report_allocations WHERE kind='EXPENSE' AND sourceId=?",arrayOf(it));sql.execSQL("DELETE FROM expenses WHERE id=?",arrayOf(it))}
         val money=db.accountingDao().movements().filter{if(plan.kind=="property")it.propertyId==propertyId else it.reservationId==plan.id}
         money.sortedBy{when(it.kind){"REVERSAL"->0;"COMPENSATION","REMITTANCE"->1;else->2}}.forEach{sql.execSQL("DELETE FROM report_allocations WHERE kind='MOVEMENT' AND sourceId=?",arrayOf(it.id));sql.execSQL("DELETE FROM money_movements WHERE id=?",arrayOf(it.id))}
         bookings.forEach {bid->
-            listOf("activities","tax_assessment_revisions","tax_assessments","booking_financial_changes","report_booking_options").forEach{table->sql.execSQL("DELETE FROM `$table` WHERE reservationId=?",arrayOf(bid))}
+            listOf("stay_cost_forecasts","activities","tax_assessment_revisions","tax_assessments","booking_financial_changes","report_booking_options").forEach{table->sql.execSQL("DELETE FROM `$table` WHERE reservationId=?",arrayOf(bid))}
             sql.execSQL("DELETE FROM report_allocations WHERE kind='BOOKING' AND sourceId=?",arrayOf(bid))
             sql.execSQL("DELETE FROM reservations WHERE id=?",arrayOf(bid))
         }

@@ -36,6 +36,8 @@ import java.time.format.DateTimeFormatter
         TextButton(onClick=back){Text("Indietro")};ConceptHeading("Notifiche Android","Promemoria locali · Europe/Rome")
         Text(if(allowed)"Permesso Android concesso" else "Notifiche bloccate da Android",color=if(allowed)ArrivalColor else ElledueGold)
         OutlinedButton(onClick={if(Build.VERSION.SDK_INT>=33 && !allowed)permission.launch(Manifest.permission.POST_NOTIFICATIONS) else context.startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE,context.packageName))}){Text("Permesso e canale Android")}
+        Text(if(app.reminders.exactAllowed())"Allarmi precisi disponibili" else "Allarmi non esatti: Android può ritardare i promemoria",color=ElledueGold)
+        if(Build.VERSION.SDK_INT>=31 && !app.reminders.exactAllowed())OutlinedButton(onClick={context.startActivity(Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM,android.net.Uri.parse("package:"+context.packageName)))}){Text("Consenti allarmi precisi (facoltativo)")}
         ToggleSetting("Attiva promemoria",value.enabled){value=value.copy(enabled=it)}
         ToggleSetting("Arrivi",value.arrivals){value=value.copy(arrivals=it)}
         ToggleSetting("Partenze",value.departures){value=value.copy(departures=it)}
@@ -55,7 +57,7 @@ import java.time.format.DateTimeFormatter
         TimeSetting("Attività senza ora · orario (HH:mm)",value.allDayTime){value=value.copy(allDayTime=it)}
         ToggleSetting("Fascia di silenzio",value.quietEnabled){value=value.copy(quietEnabled=it)}
         if(value.quietEnabled){TimeSetting("Silenzio dalle (HH:mm)",value.quietStart){value=value.copy(quietStart=it)};TimeSetting("Silenzio fino alle (HH:mm)",value.quietEnd){value=value.copy(quietEnd=it)}}
-        Text("Le notifiche nella fascia di silenzio slittano alla sua fine. Gli allarmi sono inesatti e possono essere ritardati da Android, risparmio energetico o produttore. Dopo un arresto forzato riapri l’app. Nessun allarme esatto richiesto.",style=MaterialTheme.typography.bodySmall)
+        Text("Le notifiche nella fascia di silenzio slittano alla sua fine. Se autorizzati vengono usati allarmi precisi, altrimenti Android può ritardare la consegna. Dopo un arresto forzato riapri l’app. Verifica anche le restrizioni del produttore.",style=MaterialTheme.typography.bodySmall)
         maintenanceError?.let{Text(it,color=MaterialTheme.colorScheme.error)}
         error?.let{Text(it,color=MaterialTheme.colorScheme.error)};result?.let{Text(it)}
         Button(onClick={scope.launch{runCatching{app.reminderStore.save(value);app.drafts.clear("notifications");app.reminders.reconcile(force=true)}.onSuccess{result="Impostazioni salvate e promemoria aggiornati";error=null;refresh++}.onFailure{error=it.message ?: "Salvataggio non riuscito"}}},modifier=Modifier.fillMaxWidth().testTag("save-notifications")){Text("Salva promemoria")}

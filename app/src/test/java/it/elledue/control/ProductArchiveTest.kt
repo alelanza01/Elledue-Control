@@ -96,7 +96,7 @@ class ProductArchiveTest {
         val base = reportFixture(db, context).bookings.first().copy(checkInEpochDay = java.time.LocalDate.parse("2026-11-29").toEpochDay(), checkOutEpochDay = java.time.LocalDate.parse("2026-12-03").toEpochDay(), competenceMonth = "2026-11")
         val november = PortfolioAnalytics.calculate(YearMonth.of(2026,11), base.propertyId, listOf(base, base.copy(id = "overlap", status = "CANCELLED")))
         val december = PortfolioAnalytics.calculate(YearMonth.of(2026,12), base.propertyId, listOf(base))
-        assertEquals(1, november.bookings); assertEquals(4, november.nights); assertEquals(2, november.calendarOccupiedDays)
+        assertEquals(1, november.bookings); assertEquals(2, november.nights); assertEquals(2, november.calendarOccupiedDays)
         assertEquals(0L, december.gross); assertEquals(0, december.bookings); assertEquals(2, december.calendarOccupiedDays)
         assertEquals(base.grossCents, november.gross)
     }

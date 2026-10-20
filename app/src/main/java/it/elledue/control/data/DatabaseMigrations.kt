@@ -95,4 +95,19 @@ object DatabaseMigrations {
         }
     }
 
+    val MIGRATION_7_8=object:Migration(7,8) {
+        override fun migrate(db:SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE properties ADD COLUMN laundryGuestsPerSet INTEGER NOT NULL DEFAULT 2")
+            db.execSQL("ALTER TABLE properties ADD COLUMN habitualTransportCents INTEGER")
+            db.execSQL("CREATE TABLE IF NOT EXISTS property_issues (id TEXT NOT NULL PRIMARY KEY, propertyId TEXT NOT NULL, title TEXT NOT NULL, description TEXT NOT NULL, category TEXT NOT NULL, reportedDay INTEGER NOT NULL, priority TEXT NOT NULL, status TEXT NOT NULL, reservationId TEXT, scheduledAt INTEGER, hasTime INTEGER NOT NULL, assignee TEXT NOT NULL, notes TEXT NOT NULL, expenseId TEXT, resolvedAt INTEGER, updatedAt INTEGER NOT NULL, FOREIGN KEY(propertyId) REFERENCES properties(id) ON DELETE RESTRICT, FOREIGN KEY(reservationId) REFERENCES reservations(id) ON DELETE SET NULL, FOREIGN KEY(expenseId) REFERENCES expenses(id) ON DELETE SET NULL)")
+            listOf("propertyId","reservationId","expenseId").forEach{db.execSQL("CREATE INDEX IF NOT EXISTS index_property_issues_$it ON property_issues($it)")}
+            db.execSQL("CREATE TABLE IF NOT EXISTS issue_history (id TEXT NOT NULL PRIMARY KEY, issueId TEXT NOT NULL, recordedAt INTEGER NOT NULL, snapshotJson TEXT NOT NULL, FOREIGN KEY(issueId) REFERENCES property_issues(id) ON DELETE RESTRICT)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_issue_history_issueId ON issue_history(issueId)")
+            db.execSQL("CREATE TABLE IF NOT EXISTS stay_cost_forecasts (reservationId TEXT NOT NULL, kind TEXT NOT NULL, quantity TEXT NOT NULL, unitCents INTEGER NOT NULL, overrideCents INTEGER, manual INTEGER NOT NULL, PRIMARY KEY(reservationId,kind), FOREIGN KEY(reservationId) REFERENCES reservations(id) ON DELETE RESTRICT)")
+            db.execSQL("ALTER TABLE report_booking_options ADD COLUMN reason TEXT NOT NULL DEFAULT ''")
+            db.execSQL("ALTER TABLE report_booking_options ADD COLUMN auditJson TEXT NOT NULL DEFAULT '[]'")
+            db.execSQL("INSERT OR IGNORE INTO expense_categories VALUES ('transport','Trasporti','OTHER',0)")
+        }
+    }
+
 }

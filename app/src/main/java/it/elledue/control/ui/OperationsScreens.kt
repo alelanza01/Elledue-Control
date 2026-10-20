@@ -97,26 +97,14 @@ val homeCovers=listOf(R.drawable.home_cover_1,R.drawable.home_cover_2,R.drawable
 }
 
 @Composable fun CopyCalendarScreen(records:List<ReservationEntity>,properties:List<PropertyWithOwner>, initialProperty:String, initialMonth:String, selected:Long, back:()->Unit) {
-    val month=YearMonth.parse(initialMonth)
     var property by rememberSaveable {mutableStateOf(initialProperty)}
-    var mode by rememberSaveable {mutableIntStateOf(1)}
-    var from by rememberSaveable {mutableStateOf(month.atDay(1).format(BookingDates.inputFormat))};var through by rememberSaveable {mutableStateOf(month.atEndOfMonth().format(BookingDates.inputFormat))}
     val context=LocalContext.current;var feedback by remember {mutableStateOf("")}
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp).testTag("copy-calendar-screen"),verticalArrangement=Arrangement.spacedBy(12.dp)) {
         TextButton(onClick=back){Text("Indietro")};ConceptHeading("Copia calendario","Un messaggio indipendente per appartamento")
         ConceptPropertySelector(properties,property,allOption=true){property=it;feedback=""}
-        Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(6.dp)) {listOf("Settimana","Mese","Personalizzato").forEachIndexed {i,label ->ConceptPill(mode==i,{
-            mode=i;feedback=""
-            if(i==0){val day=LocalDate.ofEpochDay(selected);val start=day.minusDays((day.dayOfWeek.value-1).toLong());from=start.format(BookingDates.inputFormat);through=start.plusDays(6).format(BookingDates.inputFormat)}
-            if(i==1){from=month.atDay(1).format(BookingDates.inputFormat);through=month.atEndOfMonth().format(BookingDates.inputFormat)}
-        },label={Text(label)})} }
-        BookingDateField("Dal",from,mode==2,"copy-from",Modifier.fillMaxWidth()){from=it}
-        BookingDateField("Al (incluso)",through,mode==2,"copy-through",Modifier.fillMaxWidth()){through=it}
-        Text("Solo nominativi, ospiti e date reali. Incolla manualmente in WhatsApp; nessun invio automatico.",style=MaterialTheme.typography.bodySmall)
-        val period=runCatching {val a=BookingDates.parse(from);val b=BookingDates.parse(through);require(!b.isBefore(a));a to b}
-        if(period.isFailure) Text("Controlla le date del periodo.",color=MaterialTheme.colorScheme.error)
-        else properties.filter {property.isBlank() || it.property.id==property}.forEach {p ->
-            val rows=CalendarText.bookings(p.property.id,period.getOrThrow().first,period.getOrThrow().second,records)
+        Text("Tutti i soggiorni non cancellati con check-out da oggi in poi, compresi quelli in partenza oggi. Nessun limite futuro e nessun invio automatico.",style=MaterialTheme.typography.bodySmall)
+        properties.filter {property.isBlank() || it.property.id==property}.forEach {p ->
+            val rows=CalendarText.upcoming(p.property.id,BookingDates.today(),records)
             val text=CalendarText.render(p.property.name,rows)
             Card(Modifier.fillMaxWidth(),colors=CardDefaults.cardColors(containerColor=ConceptCard),border=BorderStroke(1.dp,ConceptBorder)) {Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(10.dp)) {
                 Text(p.property.name,style=MaterialTheme.typography.titleLarge)

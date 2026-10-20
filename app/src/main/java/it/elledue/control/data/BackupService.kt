@@ -31,14 +31,14 @@ class BackupService(private val db: AppDatabase, private val context: Context) {
         }
         val payload = tables.toString()
         val draftPayload=JSONObject(DraftStore.get(context).snapshot()).toString()
-        val bytes = JSONObject().put("draftsPayload",draftPayload).put("draftsSha256",ReportCodec.hash(draftPayload)).put("format", "ElledueControlBackup").put("formatVersion", 1).put("databaseVersion", 7)
+        val bytes = JSONObject().put("draftsPayload",draftPayload).put("draftsSha256",ReportCodec.hash(draftPayload)).put("format", "ElledueControlBackup").put("formatVersion", 1).put("databaseVersion", 8)
             .put("payload", payload).put("sha256", ReportCodec.hash(payload)).toString().toByteArray(Charsets.UTF_8)
         require(bytes.size <= MAX_BYTES) { "Backup oltre il limite di 32 MiB." }; bytes
     }
     private fun parse(bytes: ByteArray): JSONObject {
         require(bytes.size in 1..MAX_BYTES) { "File vuoto o troppo grande." }
         val envelope = JSONObject(bytes.toString(Charsets.UTF_8))
-        require(envelope.getString("format") == "ElledueControlBackup" && envelope.getInt("formatVersion") == 1 && envelope.getInt("databaseVersion") in 4..7) { "Formato o versione backup non compatibile." }
+        require(envelope.getString("format") == "ElledueControlBackup" && envelope.getInt("formatVersion") == 1 && envelope.getInt("databaseVersion") in 4..8) { "Formato o versione backup non compatibile." }
         val payload = envelope.getString("payload")
         require(ReportCodec.hash(payload) == envelope.getString("sha256")) { "Backup corrotto: checksum non valido." }
         return JSONObject(payload).also { tables ->
@@ -63,6 +63,13 @@ class BackupService(private val db: AppDatabase, private val context: Context) {
                 listOf("properties" to "businessType","reservations" to "appliedBusinessType").forEach{(table,column)->val rows=tables.getJSONArray(table);for(i in 0 until rows.length())rows.getJSONObject(i).put(column,"MANAGED")}
                 val taxes=tables.getJSONArray("tax_assessments");for(i in 0 until taxes.length())taxes.getJSONObject(i).put("consolidated",1)
             }
+            if(envelope.getInt("databaseVersion")<8) {
+                tables.put("property_issues",JSONArray()).put("issue_history",JSONArray()).put("stay_cost_forecasts",JSONArray())
+                val properties=tables.getJSONArray("properties")
+                for(i in 0 until properties.length())properties.getJSONObject(i).put("laundryGuestsPerSet",2).put("habitualTransportCents",JSONObject.NULL)
+                val options=tables.getJSONArray("report_booking_options")
+                for(i in 0 until options.length())options.getJSONObject(i).put("reason","").put("auditJson","[]")
+            }
         }.also { require(it.keys().asSequence().toSet() == TABLES.toSet()) { "Tabelle del backup incomplete o sconosciute." } }
     }
     private fun parseDrafts(bytes:ByteArray):Map<String,String> {
@@ -70,7 +77,7 @@ class BackupService(private val db: AppDatabase, private val context: Context) {
         val raw=envelope.getString("draftsPayload");require(ReportCodec.hash(raw)==envelope.getString("draftsSha256")){"Checksum delle bozze non valido."}
         val values=JSONObject(raw);require(values.length()<=20000)
         return values.keys().asSequence().associateWith{key->
-            require(key.length<=500 && listOf("booking/","property/","activity/","expense/","tax/","messages?","movement/","settings","profile","appearance","categories","notifications","report/","activities?").any{key.startsWith(it)}){"Chiave bozza non riconosciuta."}
+            require(key.length<=500 && listOf("issue/","booking/","property/","activity/","expense/","tax/","messages?","movement/","settings","profile","appearance","categories","notifications","report/","activities?").any{key.startsWith(it)}){"Chiave bozza non riconosciuta."}
             values.getString(key).also{require(it.length<=500000);com.google.gson.JsonParser.parseString(it)}
         }
     }
@@ -136,6 +143,14 @@ class BackupService(private val db: AppDatabase, private val context: Context) {
         staged.messageDao().all().forEach { require(it.title.isNotBlank() && it.title.length<=300 && (it.italian.isNotBlank() || it.english.isNotBlank()) && it.italian.length<=20000 && it.english.length<=20000) }
         staged.openHelper.readableDatabase.query("SELECT businessType FROM properties UNION ALL SELECT appliedBusinessType FROM reservations").use{c->while(c.moveToNext())require(c.getString(0) in listOf("MANAGED","OWNED"))}
         staged.openHelper.readableDatabase.query("SELECT o.reportId, o.reservationId, r.propertyId, b.propertyId FROM report_booking_options o JOIN reports r ON r.id=o.reportId JOIN reservations b ON b.id=o.reservationId").use{c->while(c.moveToNext())require(c.getString(2)==c.getString(3))}
+        staged.issueDao().all().forEach { issue ->
+            require(issue.title.isNotBlank() && issue.title.length<=300 && issue.status in IssueRepository.statuses && issue.priority in IssueRepository.priorities)
+            require(issue.reservationId==null || staged.reservationDao().get(issue.reservationId)?.propertyId==issue.propertyId)
+            require(issue.expenseId==null || staged.accountingDao().expense(issue.expenseId)?.propertyId==issue.propertyId)
+            require((issue.status=="RESOLVED")== (issue.resolvedAt!=null))
+        }
+        staged.openHelper.readableDatabase.query("SELECT laundryGuestsPerSet,habitualTransportCents FROM properties").use{c->while(c.moveToNext())require(c.getInt(0)>0 && (c.isNull(1)||c.getLong(1)>=0))}
+        staged.openHelper.readableDatabase.query("SELECT quantity,unitCents,overrideCents,kind FROM stay_cost_forecasts").use{c->while(c.moveToNext()){OperationalMoney.cost(c.getString(0),c.getLong(1));require(c.getLong(1)>=0 && (c.isNull(2)||c.getLong(2)>=0) && c.getString(3) in listOf("CLEANING","LAUNDRY"))}}
         val dao = staged.reportDao(); val bookings = dao.bookings(); val costs = dao.expenses(); val taxes = dao.taxes(); val money = staged.accountingDao().movements()
         bookings.forEach { b ->
             require(b.checkOutEpochDay > b.checkInEpochDay && b.guestCount > 0 && Competence.booking(b.checkInEpochDay) == b.competenceMonth && b.status in listOf("CONFIRMED", "COMPLETED", "CANCELLED")) { "Prenotazione del backup non valida." }
@@ -175,6 +190,6 @@ class BackupService(private val db: AppDatabase, private val context: Context) {
     }
     companion object {
         const val MAX_BYTES = 32 * 1024 * 1024
-        val TABLES = listOf("app_settings", "owners", "properties", "platform_commissions", "message_templates", "reservations", "expense_categories", "expenses", "activities", "reports", "expense_revisions", "tax_assessments", "tax_assessment_revisions", "money_movements", "booking_financial_changes", "report_allocations", "message_categories", "guest_messages", "report_booking_options")
+        val TABLES = listOf("app_settings", "owners", "properties", "platform_commissions", "message_templates", "reservations", "expense_categories", "expenses", "activities", "reports", "expense_revisions", "tax_assessments", "tax_assessment_revisions", "money_movements", "booking_financial_changes", "report_allocations", "message_categories", "guest_messages", "report_booking_options", "property_issues", "issue_history", "stay_cost_forecasts")
     }
 }

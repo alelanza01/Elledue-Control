@@ -6,6 +6,10 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 object CalendarText {
+    fun upcoming(propertyId:String, today:LocalDate, records:List<ReservationEntity>) = records.filter {
+        it.propertyId==propertyId && it.status!="CANCELLED" && it.checkOutEpochDay>=today.toEpochDay()
+    }.sortedWith(compareBy<ReservationEntity>{it.checkInEpochDay}.thenBy{it.expectedArrivalTime}.thenBy{it.id})
+
     /** Inclusive requested dates; stay interval is half-open: departure-only boundary is excluded. */
     fun bookings(propertyId:String, from:LocalDate, through:LocalDate, records:List<ReservationEntity>):List<ReservationEntity> {
         require(!through.isBefore(from)) { "Il termine deve seguire l’inizio." }

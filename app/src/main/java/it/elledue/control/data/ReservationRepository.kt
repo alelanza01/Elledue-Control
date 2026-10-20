@@ -32,8 +32,10 @@ class ReservationRepository(private val database: AppDatabase,private val drafts
             if (currentTokens.isNotEmpty() && currentTokens != approved) throw OverlapException(conflicts)
             val saved = candidate.copy(overlapAcknowledged = conflicts.isNotEmpty())
             dao.save(saved)
+            StayCostRepository(database).update(saved,property.property)
             if(previous==null || saved.taxableGuests!=previous.taxableGuests || saved.guestCount!=previous.guestCount || saved.checkInEpochDay!=previous.checkInEpochDay || saved.checkOutEpochDay!=previous.checkOutEpochDay || saved.propertyId!=previous.propertyId) TaxForecast.update(database,saved,property.property)
             if(previous!=null && previous.propertyId!=saved.propertyId) database.activityDao().moveWithBooking(saved.id,saved.propertyId)
+            if(previous!=null && previous.propertyId!=saved.propertyId) database.openHelper.writableDatabase.execSQL("UPDATE property_issues SET reservationId=NULL WHERE reservationId=? AND propertyId<>?",arrayOf(saved.id,saved.propertyId))
             if (financialChange) database.accountingDao().insertFinancialChange(BookingFinancialChangeEntity(java.util.UUID.randomUUID().toString(), saved.id,
                 AccountingRepository.snapshot(previous!!), AccountingRepository.snapshot(saved), draft.correctionReason.trim(), saved.updatedAt))
         }

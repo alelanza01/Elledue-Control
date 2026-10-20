@@ -38,13 +38,15 @@ data class PropertyEntity(
     val laundrySetCents: Long = 500,
     val touristTaxNightCents: Long = 300,
     val touristTaxMinAge: Int = 16,
-    val touristTaxMaxNights: Int? = null,
+    val touristTaxMaxNights: Int? = 4,
     val touristTaxExemptions: String = "",
     val archived: Boolean = false,
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis(),
     val coverImageBase64: String? = null,
     @androidx.room.ColumnInfo(defaultValue = "'MANAGED'") val businessType:String = "MANAGED",
+    @androidx.room.ColumnInfo(defaultValue="2") val laundryGuestsPerSet:Int=2,
+    val habitualTransportCents:Long?=null,
 )
 
 @Entity(

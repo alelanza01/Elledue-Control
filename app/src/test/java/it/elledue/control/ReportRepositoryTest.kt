@@ -65,7 +65,7 @@ class ReportRepositoryTest {
         reject { confirm(id, false) }
         reservations.save(BookingDraft.from(reservations.get(input.id)!!).copy(actualOta = "0", managementPercent = "25", correctionReason = "Commissione effettiva zero"))
         report.refresh(id); val s = report.snapshot(id)
-        assertEquals(0L, s.ota()); assertEquals(25000L, s.summary().fees); assertTrue(s.issues().isEmpty()); confirm(id, false)
+        assertEquals(0L, s.ota()); assertEquals(25000L, s.summary().fees); assertTrue(s.issues().none{it.message.contains("OTA stimata")}); assertTrue(s.issues().any{it.message.contains("Consuntivo non confermato")}); confirm(id, true)
     }
     @Test fun sourceEditsRefreshDraftAndStalePreviewCannotBeConfirmed() = runBlocking<Unit> {
         val id = report.generate(property.id, "2026-11"); val stale = ReportCodec.hash(ReportCodec.encode(report.snapshot(id)))

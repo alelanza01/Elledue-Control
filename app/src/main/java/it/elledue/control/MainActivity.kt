@@ -56,7 +56,7 @@ class MainActivity : FragmentActivity() {
     }
     private fun acceptNotification(intent:Intent?) {
         val route=intent?.getStringExtra("route") ?: return
-        if(route in listOf("reports","notifications") || Regex("(booking|activity|tax)/[A-Za-z0-9_-]{1,100}").matches(route))notificationRoute.value=route
+        if(Regex("guest-message/[A-Za-z0-9_-]{1,100}/(pre|out)").matches(route) || route in listOf("reports","notifications") || Regex("(booking|activity|tax|issue)/[A-Za-z0-9_-]{1,100}").matches(route))notificationRoute.value=route
         intent.removeExtra("route")
     }
     override fun onNewIntent(intent:Intent){super.onNewIntent(intent);setIntent(intent);acceptNotification(intent)}

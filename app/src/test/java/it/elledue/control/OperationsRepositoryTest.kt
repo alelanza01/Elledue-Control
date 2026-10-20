@@ -56,7 +56,7 @@ class OperationsRepositoryTest {
     }
     @Test fun portalRatesAreExplicitDirectZeroActualWinsAndSnapshotsNeverRefresh()=runBlocking<Unit> {
         val p=db.propertyDao().get("p")!!
-        assertEquals("",BookingDraft.otaDefault(p,"Airbnb"));assertEquals("0,00",BookingDraft.otaDefault(p,"Prenotazione diretta"))
+        assertEquals("19,50",BookingDraft.otaDefault(p,"Airbnb"));assertEquals("0,00",BookingDraft.otaDefault(p,"Prenotazione diretta"))
         PropertyRepository(db).save(PropertyDraft(id="p",ownerId="o",name="Casa",address="Test",ownerName="Test",platformRates="Booking.com=19,5\nAirbnb=15\nVrbo=8"))
         val configured=db.propertyDao().get("p")!!
         assertEquals("15,00",BookingDraft.otaDefault(configured,"Airbnb"));assertEquals("8,00",BookingDraft.otaDefault(configured,"Vrbo"))

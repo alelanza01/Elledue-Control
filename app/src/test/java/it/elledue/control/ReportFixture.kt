@@ -19,5 +19,5 @@ internal suspend fun reportFixture(db: AppDatabase, context: Context): ReportSna
     accounting.post(cash); accounting.post(cash.copy(id = "synthetic-compensation", kind = "COMPENSATION", sourceId = cash.id, notes = "Anticipo riconosciuto"))
     val reports = ReportRepository(db, context); val id = reports.generate(property.id, "2026-11")
     reports.refresh(id, "Documento generato esclusivamente con dati sintetici. La tassa di soggiorno è esterna al lordo della prenotazione.")
-    return reports.confirm(id, ReportCodec.hash(ReportCodec.encode(reports.snapshot(id))), false)
+    return reports.confirm(id, ReportCodec.hash(ReportCodec.encode(reports.snapshot(id))), true)
 }

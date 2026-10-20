@@ -7,6 +7,7 @@ import it.elledue.control.R
 import it.elledue.control.domain.*
 import it.elledue.control.reports.*
 import java.util.UUID
+import kotlinx.coroutines.flow.first
 
 class ReportRepository(private val db: AppDatabase, private val context: Context) {
     private val dao = db.reportDao()
@@ -59,7 +60,7 @@ class ReportRepository(private val db: AppDatabase, private val context: Context
         val snapshot = ReportSnapshot(id = report.id, month = report.yearMonth, version = report.version, previousId = report.previousId, revisionReason = report.revisionReason,
             issuedAt = report.createdAt, property = property.property, owner = property.owner, organization = organization, logoBase64 = logo, notes = report.notes,
             bookings = bookings, expenses = costs, taxes = dao.taxes().filter { t -> bookings.any { it.id == t.reservationId } }, movements = allMoney.filter { it.id in ids }.sortedBy { it.id },
-            linkedBookings = allBookings.filter { b -> b.propertyId == report.propertyId && bookings.none { it.id == b.id } && (costs.any { it.reservationId == b.id } || allMoney.any { it.id in ids && it.reservationId == b.id }) }.sortedBy { it.id }, hiddenBookingIds=hidden, excludedBookings=allBookings.filter{it.id in excluded},bookingOptions=options)
+            linkedBookings = allBookings.filter { b -> b.propertyId == report.propertyId && bookings.none { it.id == b.id } && (costs.any { it.reservationId == b.id } || allMoney.any { it.id in ids && it.reservationId == b.id }) }.sortedBy { it.id }, hiddenBookingIds=hidden, excludedBookings=allBookings.filter{it.id in excluded},bookingOptions=options,unconfirmedCosts=db.stayCostDao().observe().first().filter{f->bookings.any{it.id==f.reservationId} && costs.none{it.reservationId==f.reservationId && it.kind==f.kind}})
         if(persist)dao.save(report.copy(snapshotJson = ReportCodec.encode(snapshot))); return snapshot
     }
     suspend fun previewBookingOption(reportId:String,bookingId:String,hideDetails:Boolean,excluded:Boolean):ReportSnapshot=db.withTransaction {
@@ -67,13 +68,16 @@ class ReportRepository(private val db: AppDatabase, private val context: Context
         val options=dao.options(reportId).filter{it.reservationId!=bookingId}+ReportBookingOption(reportId,bookingId,hideDetails,excluded)
         refreshLocked(report,options,false)
     }
-    suspend fun setBookingOption(reportId:String,bookingId:String,hideDetails:Boolean,excluded:Boolean,previewHash:String?=null)=db.withTransaction {
+    suspend fun setBookingOption(reportId:String,bookingId:String,hideDetails:Boolean,excluded:Boolean,previewHash:String?=null,reason:String="")=db.withTransaction {
         val report=requireNotNull(dao.get(reportId));require(report.status=="DRAFT"){"Apri prima una versione rettificativa: la versione confermata resta immutabile."}
         val booking=requireNotNull(db.reservationDao().get(bookingId))
         require(booking.propertyId==report.propertyId)
         require(booking.competenceMonth==report.yearMonth || dao.expenses().any{it.reservationId==bookingId && it.competenceMonth==report.yearMonth} || db.accountingDao().movements().any{it.reservationId==bookingId && it.competenceMonth==report.yearMonth})
         if(previewHash!=null)require(ReportCodec.hash(ReportCodec.encode(previewBookingOption(reportId,bookingId,hideDetails,excluded)))==previewHash){"I dati sono cambiati: verifica nuovamente l’anteprima."}
-        dao.option(ReportBookingOption(reportId,bookingId,hideDetails,excluded));refreshLocked(report)
+        val old=dao.options(reportId).firstOrNull{it.reservationId==bookingId}
+        require(!excluded || reason.isNotBlank()){ "Motiva l’esclusione interna dal rendiconto proprietario." }
+        val history=org.json.JSONArray(old?.auditJson ?: "[]").put(org.json.JSONObject().put("at",System.currentTimeMillis()).put("excluded",excluded).put("hideDetails",hideDetails).put("reason",reason.trim()))
+        dao.option(ReportBookingOption(reportId,bookingId,hideDetails,excluded,reason.trim(),history.toString()));refreshLocked(report)
     }
     suspend fun refreshDrafts() {
         val ids=mutableListOf<String>();db.openHelper.readableDatabase.query("SELECT id FROM reports WHERE status='DRAFT'").use{c->while(c.moveToNext())ids.add(c.getString(0))}

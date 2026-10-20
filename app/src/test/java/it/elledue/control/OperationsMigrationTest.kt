@@ -44,8 +44,8 @@ class OperationsMigrationTest {
                 }
                 val setup=schema.getJSONArray("setupQueries");for(i in 0 until setup.length())sql.execSQL(setup.getString(i));sql.version=5
             }
-            Room.databaseBuilder(context,AppDatabase::class.java,name).addMigrations(DatabaseMigrations.MIGRATION_5_6, DatabaseMigrations.MIGRATION_6_7).build().withClosing {db ->
-                assertEquals(7,db.openHelper.readableDatabase.version)
+            Room.databaseBuilder(context,AppDatabase::class.java,name).addMigrations(DatabaseMigrations.MIGRATION_5_6, DatabaseMigrations.MIGRATION_6_7,DatabaseMigrations.MIGRATION_7_8).build().withClosing {db ->
+                assertEquals(8,db.openHelper.readableDatabase.version)
                 assertEquals(oldSnapshot,db.reportDao().get(snapshot.id)!!.snapshotJson)
                 assertEquals(17000L,ReportCodec.decode(oldSnapshot!!).summary().balance)
                 assertTrue(db.reportDao().allocations().isNotEmpty());assertTrue(db.accountingDao().movements().isNotEmpty())

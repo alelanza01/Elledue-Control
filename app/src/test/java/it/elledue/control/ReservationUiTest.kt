@@ -31,6 +31,8 @@ class ReservationUiTest {
     private fun calendar() { compose.onNodeWithTag("nav-calendar").performClick(); waitTag("new-booking") }
     private fun fillNew() {
         compose.onNodeWithTag("new-booking").performClick()
+        compose.onNodeWithTag("booking-property-selector").performClick()
+        compose.onNodeWithTag("select-property-ui-property-a").performClick()
         compose.onNodeWithTag("booking-first-name").performTextReplacement("Ospite")
         compose.onNodeWithTag("booking-last-name").performTextReplacement("UI")
         compose.onNodeWithTag("booking-guests").performTextReplacement("2")
@@ -49,24 +51,24 @@ class ReservationUiTest {
         calendar(); fillNew()
         compose.onNodeWithTag("booking-fee").performScrollTo().assertTextEquals(Amounts.euro(16100))
         compose.onNodeWithTag("booking-check-in").performScrollTo()
-        compose.onNodeWithContentDescription("Seleziona Check-in").performClick()
-        compose.onNodeWithText("Conferma data").performClick()
+        compose.onNodeWithTag("booking-date-range").performScrollTo().performClick()
+        compose.onNodeWithText("Conferma soggiorno").performClick()
         compose.activityRule.scenario.recreate()
         compose.onNodeWithTag("booking-first-name").assertTextContains("Ospite")
         compose.onNodeWithTag("save-booking").performClick()
-        waitText("Scheda prenotazione")
+        waitText("Riepilogo soggiorno")
         compose.onNodeWithTag("booking-fee").performScrollTo().assertTextEquals(Amounts.euro(16100))
         screenshot("m2-booking-finance")
         compose.onNodeWithText("Modifica").performClick()
         compose.onNodeWithTag("booking-actual-ota").performScrollTo().performTextReplacement("150")
         compose.onNodeWithTag("booking-correction-reason").performScrollTo().performTextReplacement("OTA verificata")
         compose.onNodeWithTag("booking-fee").performScrollTo().assertTextEquals(Amounts.euro(17000))
-        compose.onNodeWithTag("save-booking").performClick(); waitText("Scheda prenotazione")
+        compose.onNodeWithTag("save-booking").performClick(); waitText("Riepilogo soggiorno")
         compose.onNodeWithTag("cancel-booking").performScrollTo().performClick()
         compose.onNodeWithText("Conferma annullamento").performClick()
         compose.waitUntil(15_000) { runBlocking { app.reservationRepository.reservations.firstValue().single().status == "CANCELLED" } }
-        compose.waitUntil(15000) { compose.onAllNodes(hasTestTag("booking-status") and hasText("Annullata")).fetchSemanticsNodes().isNotEmpty() }
-        compose.onNodeWithTag("booking-status").performScrollTo().assertTextEquals("Annullata")
+        compose.waitUntil(15000) { compose.onAllNodes(hasTestTag("booking-status") and hasText("Cancellata")).fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithTag("booking-status").performScrollTo().assertTextEquals("Cancellata")
         compose.onNodeWithContentDescription("Indietro").performClick()
         compose.onNodeWithTag("booking-list-mode").performClick()
         compose.onNodeWithText("Ospite UI").assertDoesNotExist()
@@ -82,7 +84,7 @@ class ReservationUiTest {
         assertEquals(1, runBlocking { app.reservationRepository.reservations.firstValue().size })
         compose.onNodeWithText("Correggi date").performClick()
         compose.onNodeWithTag("save-booking").performClick(); waitText("Sovrapposizione rilevata")
-        compose.onNodeWithText("Conferma sovrapposizione").performClick(); waitText("Scheda prenotazione")
+        compose.onNodeWithText("Conferma sovrapposizione").performClick(); waitText("Riepilogo soggiorno")
         assertEquals(2, runBlocking { app.reservationRepository.reservations.firstValue().size })
     }
     @Test fun calendarDistinguishesTurnoverAndPropertyFilterAndOpensBooking() {
@@ -99,7 +101,7 @@ class ReservationUiTest {
         compose.onNodeWithTag("select-property-${other.id}").performClick()
         compose.onNodeWithTag("calendar-day-${target.toEpochDay()}").assertContentDescriptionContains("0 arrivi, 1 partenze, 0 soggiorni", substring = true)
         compose.onNodeWithTag("bookings-scroll").performScrollToNode(hasTestTag("booking-row-${b.id}"))
-        compose.onNodeWithTag("booking-row-${b.id}").performClick(); waitText("Scheda prenotazione")
+        compose.onNodeWithTag("booking-row-${b.id}").performClick(); waitText("Riepilogo soggiorno")
         compose.onNodeWithText("Calendario B").assertIsDisplayed()
         compose.onNodeWithText("Casa B").assertIsDisplayed()
     }

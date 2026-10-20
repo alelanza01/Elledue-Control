@@ -10,7 +10,7 @@ data class ReportAllocationEntity(val kind: String, val sourceId: String, val pr
     ForeignKey(entity=ReportEntity::class,parentColumns=["id"],childColumns=["reportId"],onDelete=ForeignKey.RESTRICT),
     ForeignKey(entity=ReservationEntity::class,parentColumns=["id"],childColumns=["reservationId"],onDelete=ForeignKey.RESTRICT)
 ],indices=[Index("reservationId")])
-data class ReportBookingOption(val reportId:String,val reservationId:String,val hideDetails:Boolean=false,val excluded:Boolean=false)
+data class ReportBookingOption(val reportId:String,val reservationId:String,val hideDetails:Boolean=false,val excluded:Boolean=false,@ColumnInfo(defaultValue="''") val reason:String="",@ColumnInfo(defaultValue="'[]'") val auditJson:String="[]")
 
 @Dao
 interface ReportDao {

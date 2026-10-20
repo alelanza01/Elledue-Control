@@ -15,7 +15,7 @@ class PropertyDraftTest {
         assertEquals(500L, p.laundrySetCents)
         assertEquals(300L, p.touristTaxNightCents)
         assertEquals(16, p.touristTaxMinAge)
-        assertNull(p.touristTaxMaxNights)
+        assertEquals(4,p.touristTaxMaxNights)
     }
     @Test fun requiredAndInvalidFieldsAreRejected() {
         listOf(valid.copy(name = " "), valid.copy(address = ""), valid.copy(ownerName = ""),

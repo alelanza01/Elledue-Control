@@ -30,7 +30,9 @@ fun BookingEditorScreen(initial: BookingDraft, properties: List<PropertyWithOwne
     val scroll=rememberScrollState()
     LaunchedEffect(error){if(error!=null)scroll.animateScrollTo(0)}
     LaunchedEffect(correction){if(correction)scroll.scrollTo(0)}
+    fun prepared()=if(isNew && draft.taxableGuestCount.isBlank()) draft.copy(taxableGuestCount=draft.guests) else draft
     fun save(){
+        draft=prepared()
         focus.clearFocus();keyboardController?.hide()
         val financial=!isNew && listOf(draft.gross,draft.otaPercent,draft.actualOta,draft.managementPercent)!=listOf(initial.gross,initial.otaPercent,initial.actualOta,initial.managementPercent)
         if(financial && draft.correctionReason.isBlank()){correction=true;return}
@@ -62,18 +64,23 @@ fun BookingEditorScreen(initial: BookingDraft, properties: List<PropertyWithOwne
             if (!isNew) Text("Le percentuali salvate restano invariate. Puoi rettificarle esplicitamente qui.", style = MaterialTheme.typography.bodySmall)
             BookingField("Nome ospite *", draft.firstName, enabled, tag = "booking-first-name") { draft = draft.copy(firstName = it) }
             BookingField("Cognome ospite *", draft.lastName, enabled, tag = "booking-last-name") { draft = draft.copy(lastName = it) }
-            BookingField("Ospiti totali", draft.guests, enabled, KeyboardType.Number, "booking-guests") { draft = draft.copy(guests = it) }
-            BookingField("Ospiti soggetti alla tassa · da verificare",draft.taxableGuestCount,enabled,KeyboardType.Number,"booking-taxable-guests"){draft=draft.copy(taxableGuestCount=it)}
-            val taxPreview=runCatching{val subjects=draft.taxableGuestCount.toInt();val total=draft.guests.toInt();require(subjects in 0..total);val n=(BookingDates.parse(draft.checkOut).toEpochDay()-BookingDates.parse(draft.checkIn).toEpochDay());require(n>0);val p=selected!!.property;java.math.BigDecimal.valueOf(p.touristTaxNightCents).multiply(java.math.BigDecimal.valueOf(subjects.toLong())).multiply(java.math.BigDecimal.valueOf(minOf(n,p.touristTaxMaxNights?.toLong() ?: n))).longValueExact()}.getOrNull()
+            BookingField("Ospiti totali", draft.guests, enabled, KeyboardType.Number, "booking-guests") {
+                val exempt=draft.guests.toIntOrNull()?.let{total->draft.taxableGuestCount.toIntOrNull()?.let{total-it}} ?: 0
+                draft = draft.copy(guests = it,taxableGuestCount=it.toIntOrNull()?.let{total->(total-exempt).coerceAtLeast(0).toString()} ?: "")
+            }
+            val exempt=runCatching{draft.guests.toInt()-(draft.taxableGuestCount.ifBlank{if(isNew)draft.guests else ""}).toInt()}.getOrNull()?.toString() ?: ""
+            BookingField("Ospiti esenti · soggetti dai 16 anni compiuti",exempt,enabled,KeyboardType.Number,"booking-exempt-guests"){value->draft=draft.copy(taxableGuestCount=runCatching{(draft.guests.toInt()-value.toInt()).toString()}.getOrDefault(""))}
+            val taxPreview=runCatching{val subjects=draft.taxableGuestCount.ifBlank{if(isNew)draft.guests else ""}.toInt();val total=draft.guests.toInt();require(subjects in 0..total);val n=(BookingDates.parse(draft.checkOut).toEpochDay()-BookingDates.parse(draft.checkIn).toEpochDay());require(n>0);val p=selected!!.property;java.math.BigDecimal.valueOf(p.touristTaxNightCents).multiply(java.math.BigDecimal.valueOf(subjects.toLong())).multiply(java.math.BigDecimal.valueOf(minOf(n,p.touristTaxMaxNights?.toLong() ?: n))).longValueExact()}.getOrNull()
             Text(taxPreview?.let{"Tassa prevista ${Amounts.euro(it)} · nessun incasso automatico"} ?: "Previsione da completare: indica gli ospiti soggetti, senza inserire età individuali.",style=MaterialTheme.typography.bodySmall)
             if(draft.businessType=="OWNED")Text("Immobile proprio: nessun compenso di gestione automatico.",color=ElledueGold)
             PortalSelector(draft.platform,enabled) { value ->
-                draft=draft.copy(platform=value,otaPercent=if(isNew && selected!=null) BookingDraft.otaDefault(selected,value) else draft.otaPercent)
+                draft=draft.copy(platform=value,otaPercent=if(isNew && !draft.otaManual && selected!=null) BookingDraft.otaDefault(selected,value) else draft.otaPercent)
             }
             if(isNew && draft.otaPercent.isBlank()) Text("Percentuale del portale non configurata. Inseriscila qui oppure nelle commissioni dell’immobile; puoi usare l’importo OTA effettivo.",color=ElledueGold)
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                BookingDateField("Check-in", draft.checkIn, enabled, "booking-check-in", Modifier.weight(1f)) { draft = draft.copy(checkIn = it) }
-                BookingDateField("Check-out", draft.checkOut, enabled, "booking-check-out", Modifier.weight(1f)) { draft = draft.copy(checkOut = it) }
+            StayRangeField(draft.checkIn,draft.checkOut,enabled){start,end->draft=draft.copy(checkIn=start,checkOut=end)}
+            Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+                BookingField("Check-in",draft.checkIn,enabled,tag="booking-check-in",modifier=Modifier.weight(1f)){draft=draft.copy(checkIn=it)}
+                BookingField("Check-out",draft.checkOut,enabled,tag="booking-check-out",modifier=Modifier.weight(1f)){draft=draft.copy(checkOut=it)}
             }
             val nights = runCatching { BookingDates.parse(draft.checkOut).toEpochDay() - BookingDates.parse(draft.checkIn).toEpochDay() }.getOrNull()
             if (nights != null && nights > 0) Text("$nights notti" + if (nights < 2) " · soggiorno breve rispetto al riferimento di 2 notti" else "", style = MaterialTheme.typography.labelMedium)
@@ -92,7 +99,7 @@ fun BookingEditorScreen(initial: BookingDraft, properties: List<PropertyWithOwne
             Text("Pagamento accreditato al proprietario. Elledue matura il compenso sul netto dopo OTA.", style = MaterialTheme.typography.bodyMedium)
             BookingField("Lordo (€) *", draft.gross, enabled, KeyboardType.Decimal, "booking-gross") { draft = draft.copy(gross = it) }
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                BookingField("OTA (%)", draft.otaPercent, enabled, KeyboardType.Decimal, "booking-ota-percent", Modifier.weight(1f)) { draft = draft.copy(otaPercent = it) }
+                BookingField("OTA (%)", draft.otaPercent, enabled, KeyboardType.Decimal, "booking-ota-percent", Modifier.weight(1f)) { draft = draft.copy(otaPercent = it,otaManual=true) }
                 BookingField("Elledue (%)", draft.managementPercent, enabled && draft.businessType!="OWNED", KeyboardType.Decimal, "booking-management-percent", Modifier.weight(1f)) { draft = draft.copy(managementPercent = it) }
             }
             BookingField("OTA effettiva (€) · facoltativa", draft.actualOta, enabled, KeyboardType.Decimal, "booking-actual-ota") { draft = draft.copy(actualOta = it) }
@@ -125,7 +132,7 @@ fun BookingEditorScreen(initial: BookingDraft, properties: List<PropertyWithOwne
 @Composable
 fun PropertySelector(properties: List<PropertyWithOwner>, selectedId: String?, enabled: Boolean = true, allOption: Boolean = false, onSelect: (String) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
-    val name = properties.firstOrNull { it.property.id == selectedId }?.property?.name ?: if (allOption) "Tutti gli immobili" else "Seleziona immobile"
+    val name = properties.firstOrNull { it.property.id == selectedId }?.property?.name ?: if (allOption) "Tutti gli immobili" else "Seleziona appartamento"
     ExposedDropdownMenuBox(expanded && enabled, onExpandedChange = { if (enabled) expanded = it }) {
         OutlinedTextField(name, {}, readOnly = true, enabled = enabled, label = { Text("Immobile") }, trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) }, modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth().testTag("booking-property-selector"))
         ExposedDropdownMenu(expanded && enabled, onDismissRequest = { expanded = false }) {
@@ -164,4 +171,24 @@ fun FinanceCard(gross: Long, totals: BookingTotals, title: String = "Riepilogo e
             Text(Amounts.euro(totals.managementCents), style = MaterialTheme.typography.headlineMedium, modifier = Modifier.testTag("booking-fee"))
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable fun StayRangeField(start:String,end:String,enabled:Boolean,onChange:(String,String)->Unit) {
+ var show by rememberSaveable{mutableStateOf(false)}
+ OutlinedButton(onClick={show=true},enabled=enabled,modifier=Modifier.fillMaxWidth().testTag("booking-date-range")) {
+  Icon(Icons.Outlined.CalendarMonth,null);Spacer(Modifier.width(8.dp));Text("$start → $end")
+ }
+ if(show) {
+  val picker=rememberDateRangePickerState(
+   initialSelectedStartDateMillis=runCatching{BookingDates.pickerMillis(BookingDates.parse(start))}.getOrNull(),
+   initialSelectedEndDateMillis=runCatching{BookingDates.pickerMillis(BookingDates.parse(end))}.getOrNull())
+  val valid=picker.selectedStartDateMillis!=null && picker.selectedEndDateMillis!=null && picker.selectedEndDateMillis!!>picker.selectedStartDateMillis!!
+  DatePickerDialog(onDismissRequest={show=false},confirmButton={TextButton(enabled=valid,onClick={onChange(BookingDates.fromPicker(picker.selectedStartDateMillis!!).format(BookingDates.inputFormat),BookingDates.fromPicker(picker.selectedEndDateMillis!!).format(BookingDates.inputFormat));show=false}){Text("Conferma soggiorno")}},dismissButton={TextButton(onClick={show=false}){Text("Annulla")}}) {
+   Column(Modifier.heightIn(max=560.dp)) {
+    if(valid)Text("${(picker.selectedEndDateMillis!!-picker.selectedStartDateMillis!!)/86400000} notti",Modifier.padding(16.dp))
+    DateRangePicker(picker,modifier=Modifier.weight(1f).testTag("stay-range-picker"),title={Text("Check-in e check-out",Modifier.padding(16.dp))},showModeToggle=true)
+   }
+  }
+ }
 }

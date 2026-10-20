@@ -26,12 +26,14 @@ data class PropertyDraft(
     val laundryRate: String = "5,00",
     val taxRate: String = "3,00",
     val taxMinAge: String = "16",
-    val taxMaxNights: String = "",
+    val taxMaxNights: String = "4",
     val taxExemptions: String = "",
     val accessItalian: String = "",
     val accessEnglish: String = "",
     val businessType:String = "MANAGED",
     val baseUpdatedAt:Long?=null,
+    val laundryGuests:String="2",
+    val transportRate:String="",
 ) {
     fun toRecord(previous: PropertyEntity? = null): PropertyWithOwner {
         require(name.isNotBlank()) { "Inserisci il nome dell’immobile." }
@@ -50,6 +52,7 @@ data class PropertyDraft(
         require(minAge != null && minAge in 0..120) { "L’età minima deve essere tra 0 e 120." }
         val maxNights = if (taxMaxNights.isBlank()) null else taxMaxNights.toIntOrNull()
         require(taxMaxNights.isBlank() || (maxNights != null && maxNights > 0)) { "Il limite di notti deve essere positivo, oppure vuoto." }
+        val laundryGroup=requireNotNull(laundryGuests.toIntOrNull()){ "Inserisci gli ospiti per set." };require(laundryGroup>0)
         val owner = OwnerEntity(ownerId, ownerName.trim().ifBlank { "Proprietà diretta / soci da configurare" }, ownerPhone.trim(), ownerEmail.trim())
         val property = PropertyEntity(
             id = id, ownerId = ownerId, name = name.trim(), address = address.trim(),
@@ -62,6 +65,7 @@ data class PropertyDraft(
             touristTaxMaxNights = maxNights, touristTaxExemptions = taxExemptions.trim(),
             archived = previous?.archived ?: false, businessType=businessType,
             coverImageBase64 = previous?.coverImageBase64,
+            laundryGuestsPerSet=laundryGroup, habitualTransportCents=transportRate.takeIf{it.isNotBlank()}?.let(Amounts::parseCents),
             createdAt = previous?.createdAt ?: System.currentTimeMillis(),
         )
         val rates = platformRates.lineSequence().filter { it.isNotBlank() }.map { line ->
@@ -88,7 +92,7 @@ data class PropertyDraft(
                 taxRate = Amounts.editable(touristTaxNightCents), taxMinAge = touristTaxMinAge.toString(),
                 taxMaxNights = touristTaxMaxNights?.toString() ?: "", taxExemptions = touristTaxExemptions,
                 accessItalian = item.templates.firstOrNull { it.kind == "access" && it.language == "it" }?.body ?: "",
-                businessType=businessType,baseUpdatedAt=updatedAt,
+                businessType=businessType,baseUpdatedAt=updatedAt,laundryGuests=laundryGuestsPerSet.toString(),transportRate=habitualTransportCents?.let(Amounts::editable) ?: "",
                 accessEnglish = item.templates.firstOrNull { it.kind == "access" && it.language == "en" }?.body ?: "",
             )
         }

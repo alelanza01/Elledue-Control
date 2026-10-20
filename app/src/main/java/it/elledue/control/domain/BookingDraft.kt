@@ -28,6 +28,7 @@ data class BookingDraft(
     val businessType:String = "MANAGED",
     val taxableGuestCount:String = "",
     val baseUpdatedAt:Long?=null,
+    val otaManual:Boolean=false,
 ) {
     fun totals(): BookingTotals = BookingFinance.calculate(
         Amounts.parseCents(gross), Amounts.parseBasisPoints(if(otaPercent.isBlank() && actualOta.isNotBlank()) "0" else otaPercent),
@@ -38,7 +39,7 @@ data class BookingDraft(
         expectedDeparture = item.property.checkOutTime,
         managementPercent = if(item.property.businessType=="OWNED")"0" else Amounts.editable(item.property.managementBasisPoints.toLong()),
         businessType=item.property.businessType,
-        otaPercent = otaDefault(item, platform),
+        otaPercent = if(otaManual)otaPercent else otaDefault(item, platform),
     )
     fun toRecord(previous: ReservationEntity?, overlapAcknowledged: Boolean): ReservationEntity {
         require(propertyId.isNotBlank()) { "Seleziona un immobile." }
@@ -70,11 +71,11 @@ data class BookingDraft(
     }
     companion object {
         fun otaDefault(item: PropertyWithOwner, platform: String): String {
-            if(platform.equals("Prenotazione diretta",true)) return "0,00"
             val configured=item.platformCommissions.firstOrNull {it.platform.equals(platform.trim(),true)}?.basisPoints
             if(configured!=null) return Amounts.editable(configured.toLong())
+            if(platform.equals("Prenotazione diretta",true)) return "0,00"
             // A legacy generic default is not evidence of a configured rate for another portal.
-            return ""
+            return if(platform in listOf("Booking.com", "Airbnb", "Vrbo")) "19,50" else Amounts.editable(item.property.otaBasisPoints.toLong())
         }
         fun from(item: ReservationEntity): BookingDraft = with(item) {
             BookingDraft(id, propertyId, guestFirstName, guestLastName, guestCount.toString(), platform,

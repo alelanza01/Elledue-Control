@@ -15,6 +15,7 @@ data class ReportSnapshot(
     val hiddenBookingIds:List<String>?=emptyList(),
     val excludedBookings:List<ReservationEntity>?=emptyList(),
     val bookingOptions:List<ReportBookingOption>?=emptyList(),
+    val unconfirmedCosts:List<StayCostForecast>?=emptyList(),
 ) {
     fun summary() = operationalSummary(month, property.id, bookings, expenses, taxes, movements)
     fun gross() = OperationalMoney.total(bookings.filter { it.status != "CANCELLED" }.map { it.grossCents })
@@ -24,6 +25,7 @@ data class ReportSnapshot(
         expenses.filter { !it.voided }.map { ReportAllocationEntity("EXPENSE", it.id, property.id, month) } +
         Ledger.active(movements).filter { it.competenceMonth == month && it.kind in listOf("COMPENSATION", "OWNER_PAYMENT") }.map { ReportAllocationEntity("MOVEMENT", it.id, property.id, month) }
     fun issues(): List<ReportIssue> = buildList {
+        unconfirmedCosts.orEmpty().forEach{add(ReportIssue(false,"Consuntivo non confermato: ${if(it.kind=="CLEANING")"pulizia" else "lavanderia"}. La previsione è esclusa dalle spese sostenute."))}
         bookings.forEach { booking ->
             if (booking.propertyId != property.id || Competence.booking(booking.checkInEpochDay) != month) add(ReportIssue(true, "Prenotazione con competenza o immobile incoerente."))
             val correct = runCatching { BookingFinance.calculate(booking.grossCents, booking.appliedOtaBasisPoints, booking.actualOtaCents, booking.appliedManagementBasisPoints) }.getOrNull()

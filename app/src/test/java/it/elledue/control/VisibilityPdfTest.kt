@@ -31,7 +31,7 @@ class VisibilityPdfTest {
                 val text=PDDocument.load(output.toByteArray()).use{PDFTextStripper().getText(it)}
                 assertFalse(text.contains(booking.guestFirstName+" "+booking.guestLastName));assertTrue(text.contains("non dettagliat"));assertTrue(text.contains("170,00"))
             }
-            repo.setBookingOption(revised,booking.id,false,true);val excluded=repo.snapshot(revised)
+            repo.setBookingOption(revised,booking.id,false,true,reason="Esclusione autorizzata nel test");val excluded=repo.snapshot(revised)
             assertEquals(1500L,excluded.summary().balance);assertFalse(excluded.expenses.any{it.reservationId==booking.id});assertTrue(db.accountingDao().movements().isNotEmpty())
             assertEquals(original,repo.snapshot(original.id))
         }
