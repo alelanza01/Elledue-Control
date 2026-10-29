@@ -15,7 +15,7 @@ data class StayCostForecast(val reservationId:String,val kind:String,val quantit
 class StayCostRepository(private val db:AppDatabase) {
  val forecasts=db.stayCostDao().observe()
  suspend fun update(b:ReservationEntity,p:PropertyEntity) {
-  if(b.appliedBusinessType!="MANAGED" || b.status=="CANCELLED")return
+  if(b.status=="CANCELLED")return
   if(db.reportDao().allocation("BOOKING",b.id)!=null)return
   val old=db.stayCostDao().get(b.id)
   val existing=db.reportDao().expenses().filter{it.reservationId==b.id}

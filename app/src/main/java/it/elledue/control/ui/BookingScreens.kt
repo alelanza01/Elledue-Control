@@ -151,14 +151,14 @@ fun BookingDetailScreen(item: ReservationEntity, propertyName: String, busy: Boo
     var confirm by rememberSaveable { mutableStateOf(false) }
     var showTimes by rememberSaveable{mutableStateOf(false)}
     Scaffold(topBar = { TopAppBar(title = { Text("Riepilogo soggiorno") }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Indietro") } }, actions = { TextButton(onClick = onEdit, enabled = !busy) { Text("Modifica") } }) }) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
+        Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text("${item.guestFirstName} ${item.guestLastName}", style = MaterialTheme.typography.headlineLarge)
             Text(propertyName, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.secondary)
             Text(StayStatus.label(item), modifier = Modifier.testTag("booking-status"))
             Text("${BookingDates.display(item.checkInEpochDay)} → ${BookingDates.display(item.checkOutEpochDay)} · ${item.checkOutEpochDay - item.checkInEpochDay} notti")
             Text("${item.guestCount} ospiti · ${item.platform}")
             TextButton(onClick={showTimes=!showTimes}){Text(if(showTimes)"Nascondi orari" else "Orari del soggiorno")}
-            if(showTimes)
+            if(showTimes) {
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer), modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text("Arrivo previsto: ${item.expectedArrivalTime}")
@@ -166,6 +166,7 @@ fun BookingDetailScreen(item: ReservationEntity, propertyName: String, busy: Boo
                     Text("Partenza prevista: ${item.expectedDepartureTime}")
                     Text("Partenza effettiva: ${item.actualDepartureTime ?: "Non registrata"}")
                 }
+            }
             }
             Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(onClick = { onExpense("OTHER") }, modifier = Modifier.testTag("booking-add-expense")) { Text("Spesa") }

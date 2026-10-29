@@ -34,6 +34,7 @@ data class ExpenseDraft(
     val description: String = "", val amount: String = "", val quantity: String = "", val unit: String = "",
     val advanced: Boolean = true, val reimbursable: Boolean = true, val notes: String = "",
     val setDefinition: String = "Set matrimoniale: biancheria e asciugamani", val reason: String = "", val revision: Int = 0,
+    val standardApproved:Boolean=false, val confirmActual:Boolean=false,
 ) {
     fun record(category: ExpenseCategoryEntity): ExpenseEntity {
         val qty = quantity.takeIf { it.isNotBlank() }; val rate = unit.takeIf { it.isNotBlank() }?.let(Amounts::parseCents)
@@ -54,7 +55,7 @@ data class ExpenseDraft(
     companion object {
         fun from(item: ExpenseEntity) = with(item) { ExpenseDraft(id, propertyId, reservationId ?: "", BookingDates.display(dateEpochDay), competenceMonth,
             categoryId ?: "other", description, Amounts.editable(actualCents), quantity ?: "", unitCents?.let(Amounts::editable) ?: "",
-            advancedByElledue, reimbursable, notes, setDefinition, "", revision) }
+            advancedByElledue, reimbursable, notes, setDefinition, "", revision,standardApproved=recognition=="STANDARD_APPROVED") }
     }
 }
 

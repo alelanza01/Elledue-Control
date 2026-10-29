@@ -32,7 +32,8 @@ class AccountingRepository(private val db: AppDatabase,private val drafts:DraftS
             if (draft.reservationId.isNotBlank()) require(db.reservationDao().get(draft.reservationId)?.propertyId == draft.propertyId) { "La prenotazione deve appartenere allo stesso immobile." }
             require(old == null || draft.reason.isNotBlank()) { "Motiva la rettifica della spesa." }
             if(old==null && draft.reservationId.isNotBlank() && category.kind in listOf("CLEANING","LAUNDRY"))require(dao.observeExpenses().first().none{it.reservationId==draft.reservationId && it.kind==category.kind && !it.voided}){"Intervento già registrato: modifica la voce esistente, senza aggiungere una seconda spesa."}
-            val item = draft.record(category).copy(recognition="ACTUAL",originKey=old?.originKey,approvalBatchId=old?.approvalBatchId,effectiveDateConfirmed=true)
+            val preserveStandard=old?.recognition=="STANDARD_APPROVED" && !draft.confirmActual
+            val item = draft.record(category).copy(recognition=if(preserveStandard)"STANDARD_APPROVED" else "ACTUAL",originKey=old?.originKey,approvalBatchId=old?.approvalBatchId,effectiveDateConfirmed=!preserveStandard)
             ReportGuard.allow(db, "EXPENSE", draft.id, item.propertyId, item.competenceMonth)
             // Preserve the original v1/v2 foundational row before its first rectification.
             if (old != null && dao.expenseHistory(old.id).isEmpty()) dao.insertExpenseRevision(ExpenseRevisionEntity(UUID.randomUUID().toString(), old.id, old.revision, snapshot(old), "Valore precedente alla rettifica", old.updatedAt))

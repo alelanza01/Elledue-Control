@@ -62,10 +62,10 @@ class Automation0410UiTest {
  }
  @Test fun quickTaxRecordsPartialReceiptAndRecognitionTogetherWithVisibleFeedback(){
   route("booking/b");waitTag("quick-collect-tax");capture("stay-summary")
-  compose.onNodeWithTag("quick-collect-tax").performScrollTo().performClick();waitTag("quick-tax-amount");capture("quick-tax")
+  compose.onNodeWithTag("quick-collect-tax").performScrollTo().performClick();waitTag("quick-tax-amount");compose.onNodeWithTag("quick-tax-amount").performScrollTo();capture("quick-tax")
   compose.onNodeWithTag("quick-tax-amount").performTextReplacement("12")
-  compose.onNodeWithTag("confirm-quick-tax").performClick()
-  compose.waitUntil(15000){runBlocking{app.accountingRepository.movements.first().size==2}}
+  compose.onNodeWithTag("confirm-quick-tax").performScrollTo().performClick()
+  try{compose.waitUntil(15000){runBlocking{app.accountingRepository.movements.first().size==2}}}catch(e:Throwable){File("build/reports/0410-quick-tax-failure.txt").writeText(compose.onAllNodes(isRoot())[0].printToString()+"\nMovements="+runBlocking{app.accountingRepository.movements.first()});throw e}
   val all=runBlocking{app.accountingRepository.movements.first()};assertEquals(1200L,Ledger.total(all,"COLLECTION"));assertEquals(1200L,Ledger.total(all,"COMPENSATION"))
   compose.onNodeWithText("Riscossione registrata").assertExists()
  }

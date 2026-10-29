@@ -5,9 +5,9 @@ import kotlinx.coroutines.flow.first
 
 object StandardCostProjection {
  fun defaults(b:ReservationEntity,p:PropertyEntity):List<StayCostForecast> {
-  if(b.status=="CANCELLED" || b.appliedBusinessType!="MANAGED")return emptyList()
+  if(b.status=="CANCELLED")return emptyList()
   require(p.laundryGuestsPerSet>0)
-  return listOf(StayCostForecast(b.id,"CLEANING","2",p.cleaningHourlyCents),StayCostForecast(b.id,"LAUNDRY",((b.guestCount.toLong()+p.laundryGuestsPerSet-1)/p.laundryGuestsPerSet).toString(),p.laundrySetCents))
+  return (if(b.appliedBusinessType=="MANAGED")listOf(StayCostForecast(b.id,"CLEANING","2",p.cleaningHourlyCents)) else emptyList())+StayCostForecast(b.id,"LAUNDRY",((b.guestCount.toLong()+p.laundryGuestsPerSet-1)/p.laundryGuestsPerSet).toString(),p.laundrySetCents)
  }
  data class Result(val proposed:List<ExpenseEntity>,val related:List<ExpenseEntity>,val warnings:List<String>)
  suspend fun forReport(db:AppDatabase,report:ReportEntity,bookings:List<ReservationEntity>,p:PropertyEntity,allCosts:List<ExpenseEntity>):Result {

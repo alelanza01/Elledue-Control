@@ -50,7 +50,7 @@ class Automation0410Test {
   db.reservationDao().save(b.copy(id="cancelled",status="CANCELLED"));db.reservationDao().save(b.copy(id="own",appliedBusinessType="OWNED",appliedManagementBasisPoints=0,managementCents=0))
   val cost=db.accountingDao().expense("manual")!!;EconomicReconciliation(db).reconcile(force=true);EconomicReconciliation(db).reconcile(force=true)
   assertEquals(cost,db.accountingDao().expense("manual"));assertEquals(3200L,db.stayCostDao().get(b.id).first{it.kind=="LAUNDRY"}.overrideCents)
-  assertTrue(db.stayCostDao().get("cancelled").isEmpty());assertTrue(db.stayCostDao().get("own").isEmpty())
+  assertTrue(db.stayCostDao().get("cancelled").isEmpty());assertEquals(listOf("LAUNDRY"),db.stayCostDao().get("own").map{it.kind})
  }
  @Test fun unknownHistoricalExemptionsRemainUnknownAndConsolidatedTaxIsUntouched()=runBlocking<Unit>{
   property();db.reservationDao().save(input().toRecord(null,false).copy(taxableGuests=null,exemptGuests=null,expectedTaxCents=null))
@@ -68,9 +68,10 @@ class Automation0410Test {
  @Test fun proposalsAreInBothDraftPdfsButNotPostedUntilExplicitBulkApproval()=runBlocking<Unit>{
   property();ReservationRepository(db).save(input());val r=ReportRepository(db,context);val id=r.generate("p","2026-11");val s=r.snapshot(id)
   assertEquals(2600L,s.summary().reimbursable);assertEquals(10650L,s.summary().balance);assertEquals(2,s.proposedExpenses!!.size);assertTrue(db.reportDao().expenses().isEmpty())
-  for(layout in ReportLayout.entries){val bytes=ByteArrayOutputStream().also{ReportPdf(context).write(s,it,layout)}.toByteArray();PDDocument.load(bytes).use{pdf->val text=PDFTextStripper().getText(pdf);assertTrue(text.contains("STANDARD PROPOSTI"));assertTrue(text.contains("Pulizie"));assertTrue(text.contains("Lavanderia"));assertTrue(text.contains("106,50"))}}
+  for(layout in ReportLayout.entries){val bytes=ByteArrayOutputStream().also{ReportPdf(context).write(s,it,layout)}.toByteArray();java.io.File("build/reports/0410/rendiconto-BOZZA-${layout.name}-SINTETICO.pdf").apply{parentFile!!.mkdirs();writeBytes(bytes)};PDDocument.load(bytes).use{pdf->val text=PDFTextStripper().getText(pdf);assertTrue(text.contains("STANDARD PROPOSTI"));assertTrue(text.contains("Pulizie"));assertTrue(text.contains("Lavanderia"));assertTrue(text.contains("106,50"))}}
   reject{r.confirm(id,ReportCodec.hash(ReportCodec.encode(s)),true)}
   val approved=r.confirm(id,ReportCodec.hash(ReportCodec.encode(r.snapshot(id))),true,approveStandards=true)
+  for(layout in ReportLayout.entries)java.io.File("build/reports/0410/rendiconto-APPROVATO-${layout.name}-SINTETICO.pdf").outputStream().use{ReportPdf(context).write(approved,it,layout)}
   assertEquals(10650L,approved.summary().balance);assertEquals(2,db.reportDao().expenses().size);assertNotNull(approved.approvalBatch)
   assertTrue(approved.expenses.all{it.recognition=="STANDARD_APPROVED" && !it.effectiveDateConfirmed});assertTrue(approved.proposedExpenses.orEmpty().isEmpty())
   reject{r.confirm(id,ReportCodec.hash(ReportCodec.encode(approved)),true,true)}
@@ -87,8 +88,9 @@ class Automation0410Test {
   val first=r.confirm(id,ReportCodec.hash(ReportCodec.encode(r.snapshot(id))),true,true);val json=db.reportDao().get(id)!!.snapshotJson
   assertTrue(first.expenses.all{it.competenceMonth=="2026-11" && it.dateEpochDay==BookingDates.parse("03/12/2026").toEpochDay()})
   val rev=r.beginRevision(id,"Consuntivo verificato");val cost=db.accountingDao().expense(StayCostRepository.expenseId("b","CLEANING"))!!
-  AccountingRepository(db).saveExpense(ExpenseDraft.from(cost).copy(amount="24",quantity="3",reason="Ore effettive"))
+  AccountingRepository(db).saveExpense(ExpenseDraft.from(cost).copy(amount="24",quantity="3",reason="Ore effettive",confirmActual=true))
   val second=r.confirm(rev,ReportCodec.hash(ReportCodec.encode(r.snapshot(rev))),true,true)
+  assertEquals("ACTUAL",db.accountingDao().expense(cost.id)!!.recognition);assertTrue(db.accountingDao().expense(cost.id)!!.effectiveDateConfirmed)
   assertEquals(3400L,second.summary().expenses);assertEquals(json,db.reportDao().get(id)!!.snapshotJson);assertEquals(2,db.reportDao().expenses().size)
  }
  @Test fun manualUnlinkedCostsAreFlaggedRatherThanGuessedOrDuplicated()=runBlocking<Unit>{
@@ -116,6 +118,47 @@ class Automation0410Test {
   property();ReservationRepository(db).save(input());val r=ReportRepository(db,context);val id=r.generate("p","2026-11");val s=r.confirm(id,ReportCodec.hash(ReportCodec.encode(r.snapshot(id))),true,true)
   val json=db.reportDao().get(id)!!.snapshotJson;val b=BackupService(db,context);b.restore(b.prepare(b.export()),true)
   assertEquals(json,db.reportDao().get(id)!!.snapshotJson);assertEquals(s,r.snapshot(id));assertEquals(2,db.reportDao().expenses().size)
+ }
+ @Test fun legacyEightBackupBackfillsMissingRowsAndPreservesManualCostOnRestore()=runBlocking<Unit>{
+  property();db.reservationDao().save(input().toRecord(null,false))
+  AccountingRepository(db).saveExpense(ExpenseDraft(id="manual",propertyId="p",reservationId="b",categoryId="cleaning",quantity="1",unit="11",date="03/12/2026",month="2026-12"))
+  val backup=BackupService(db,context);val envelope=org.json.JSONObject(backup.export().toString(Charsets.UTF_8));val tables=org.json.JSONObject(envelope.getString("payload"))
+  tables.remove("maintenance_state");tables.remove("standard_approvals")
+  val costs=tables.getJSONArray("expenses");for(n in 0 until costs.length())listOf("recognition","originKey","approvalBatchId","effectiveDateConfirmed").forEach{costs.getJSONObject(n).remove(it)}
+  val money=tables.getJSONArray("money_movements");for(n in 0 until money.length())money.getJSONObject(n).remove("collector")
+  envelope.put("databaseVersion",8).put("payload",tables.toString()).put("sha256",ReportCodec.hash(tables.toString()))
+  backup.restore(backup.prepare(envelope.toString().toByteArray()),true)
+  assertEquals(1100L,db.accountingDao().expense("manual")!!.actualCents);assertEquals(listOf("LAUNDRY"),db.stayCostDao().get("b").map{it.kind})
+  val before=db.stayCostDao().get("b");EconomicReconciliation(db).reconcile();assertEquals(before,db.stayCostDao().get("b"));assertTrue(db.accountingDao().movements().isEmpty())
+ }
+ @Test fun configurationChangesUpdateAutomaticEstimatesButNeverConsolidatedTaxOrManualOverrides()=runBlocking<Unit>{
+  property();ReservationRepository(db).save(input());val props=PropertyRepository(db)
+  StayCostRepository(db).save(db.stayCostDao().get("b").first{it.kind=="LAUNDRY"}.copy(unitCents=800,manual=true))
+  val tax=db.accountingDao().assessment("b")!!;AccountingRepository(db).saveTax("b",TaxDraft.from(tax));val fixed=db.accountingDao().assessment("b")
+  props.save(PropertyDraft.from(props.get("p")!!).copy(cleaningRate="10",laundryRate="7",taxRate="5"))
+  assertEquals(1000L,db.stayCostDao().get("b").first{it.kind=="CLEANING"}.unitCents)
+  assertEquals(800L,db.stayCostDao().get("b").first{it.kind=="LAUNDRY"}.unitCents);assertEquals(fixed,db.accountingDao().assessment("b"))
+ }
+ @Test fun failedBulkApprovalRollsBackEveryCostAndItsAuditThenCanBeRetried()=runBlocking<Unit>{
+  property();ReservationRepository(db).save(input());val r=ReportRepository(db,context);val id=r.generate("p","2026-11");val hash=ReportCodec.hash(ReportCodec.encode(r.snapshot(id)))
+  db.openHelper.writableDatabase.execSQL("CREATE TEMP TRIGGER injected_approval_failure BEFORE INSERT ON expenses WHEN NEW.kind='LAUNDRY' BEGIN SELECT RAISE(ABORT, 'Injected approval failure'); END")
+  var rejected=false;try{r.confirm(id,hash,true,true)}catch(_:Exception){rejected=true};assertTrue(rejected)
+  assertTrue(db.reportDao().expenses().isEmpty());assertEquals("DRAFT",db.reportDao().get(id)!!.status)
+  db.openHelper.readableDatabase.query("SELECT COUNT(*) FROM standard_approvals").use{assertTrue(it.moveToFirst());assertEquals(0,it.getInt(0))}
+  db.openHelper.writableDatabase.execSQL("DROP TRIGGER injected_approval_failure")
+  r.confirm(id,ReportCodec.hash(ReportCodec.encode(r.snapshot(id))),true,true);assertEquals(2,db.reportDao().expenses().size)
+ }
+ @Test fun aManualServiceCannotBeAddedAgainAfterStandardApproval()=runBlocking<Unit>{
+  property();ReservationRepository(db).save(input());val r=ReportRepository(db,context);val id=r.generate("p","2026-11");r.confirm(id,ReportCodec.hash(ReportCodec.encode(r.snapshot(id))),true,true)
+  reject{AccountingRepository(db).saveExpense(ExpenseDraft(id="duplicate",propertyId="p",reservationId="b",categoryId="cleaning",quantity="2",unit="8",date="03/12/2026",month="2026-12"))}
+  assertEquals(2,db.reportDao().expenses().size)
+ }
+ @Test fun changingAnApprovedStandardDoesNotAttestActualServiceWithoutExplicitConfirmation()=runBlocking<Unit>{
+  property();ReservationRepository(db).save(input());val r=ReportRepository(db,context);val id=r.generate("p","2026-11");r.confirm(id,ReportCodec.hash(ReportCodec.encode(r.snapshot(id))),true,true)
+  r.beginRevision(id,"Cambio importo standard")
+  val cost=db.accountingDao().expense(StayCostRepository.expenseId("b","CLEANING"))!!
+  AccountingRepository(db).saveExpense(ExpenseDraft.from(cost).copy(amount="18",reason="Accordo aggiornato"))
+  val changed=db.accountingDao().expense(cost.id)!!;assertEquals(1800L,changed.actualCents);assertEquals("STANDARD_APPROVED",changed.recognition);assertFalse(changed.effectiveDateConfirmed)
  }
  @Test fun oldConfirmedSourcesAreNotBackfilledOrRewritten()=runBlocking<Unit>{
   val s=reportFixture(db,context);val before=db.reportDao().get(s.id)!!.snapshotJson

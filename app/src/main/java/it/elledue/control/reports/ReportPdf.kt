@@ -152,8 +152,8 @@ class ReportPdf(private val context: Context) {
             amount("Totale lavanderia", totals.laundry)
             section("04  Altre spese")
             table(listOf("Data / categoria", "Descrizione / note", "Rimborso", "Importo"), listOf(127f, 223f, 76f, 89f), value.effectiveExpenses().filter { it.kind == "OTHER" }.map { listOf("${BookingDates.display(it.dateEpochDay)}\n${it.category}", "${it.description}\n${it.notes}", if (it.advancedByElledue && it.reimbursable) "Sì" else "No", Amounts.euro(it.actualCents)) })
-            amount("Spese complessive", totals.expenses); amount("Spese anticipate da Elledue", totals.advanced); amount("Spese anticipate e rimborsabili", totals.reimbursable)
-            paragraph("Le tariffe e i costi effettivi degli interventi sono storici. Nel saldo entrano soltanto spese anticipate da Elledue e rimborsabili dal proprietario.", 8f)
+            amount("Spese complessive", totals.expenses); amount(if(value.effectiveExpenses().any{it.recognition in listOf("PROPOSED","STANDARD_APPROVED")})"Costi a carico Elledue / standard" else "Spese anticipate da Elledue", totals.advanced); amount("Costi da riconoscere nel saldo", totals.reimbursable)
+            paragraph("Le spese consuntivate conservano i dati registrati. Gli standard etichettati richiedono approvazione e non attestano pagamenti. Nel saldo entrano solo le voci da riconoscere secondo l’accordo con il proprietario.", 8f)
             } else {
                 section("02  Spese rimborsabili")
                 table(listOf("Rimborso dovuto", "Importo"), listOf(426f, 89f), value.effectiveExpenses().filter{!it.voided && it.advancedByElledue && it.reimbursable}.groupBy{it.category}.toSortedMap().map{(category,rows)->listOf(category,Amounts.euro(OperationalMoney.total(rows.map{it.actualCents})))} )

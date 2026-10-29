@@ -105,6 +105,10 @@ fun BookingEditorScreen(initial: BookingDraft, properties: List<PropertyWithOwne
             val totals = runCatching { draft.totals() }
             if (totals.isSuccess) FinanceCard(Amounts.parseCents(draft.gross), totals.getOrThrow(), "Anteprima aggiornata", draft.actualOta.isNotBlank())
             else if (draft.gross.isNotBlank()) Text(totals.exceptionOrNull()?.message ?: "Controlla gli importi.", color = MaterialTheme.colorScheme.error)
+            if(selected!=null) {
+                val forecast=runCatching{val guests=draft.guests.toLong();require(guests>0);val p=selected.property;val sets=(guests+p.laundryGuestsPerSet-1)/p.laundryGuestsPerSet;OperationalMoney.cost("2",p.cleaningHourlyCents) to Math.multiplyExact(sets,p.laundrySetCents)}.getOrNull()
+                forecast?.let{(clean,laundry)->Text(if(draft.businessType=="MANAGED")"Standard proposti · pulizie ${Amounts.euro(clean)} · lavanderia ${Amounts.euro(laundry)}" else "Lavanderia proposta · ${Amounts.euro(laundry)} · costo privato",style=MaterialTheme.typography.bodySmall,color=ElledueGold)}
+            }
             if (!isNew) BookingField("Motivo rettifica economica", draft.correctionReason, enabled, tag = "booking-correction-reason") { draft = draft.copy(correctionReason = it) }
             BookingField("Note", draft.notes, enabled, multiline = true) { draft = draft.copy(notes = it) }
             Text("Stato", style = MaterialTheme.typography.titleMedium)

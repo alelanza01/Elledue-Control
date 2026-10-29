@@ -54,7 +54,8 @@ fun ExpenseEditor(initial: ExpenseDraft, properties: List<PropertyWithOwner>, bo
             AccountingField(if (category?.kind == "OTHER") "Importo €" else "Importo effettivo € (facoltativo)", draft.amount, "expense-amount", !busy) { draft = draft.copy(amount = it) }
             if (category?.kind != "OTHER") Text("Se inserito, l’importo effettivo prevale sul calcolo. L’intervento è una sola spesa.", style = MaterialTheme.typography.bodySmall)
             AccountingField("Descrizione (facoltativa)", draft.description, "expense-description", !busy) { draft = draft.copy(description = it) }
-            BookingDateField("Data effettiva", draft.date, !busy, "expense-date", Modifier.fillMaxWidth()) { value ->
+            if(initial.standardApproved)Row{Checkbox(draft.confirmActual,{draft=draft.copy(confirmActual=it)},enabled=!busy);Text("Confermo il consuntivo dell’intervento",Modifier.weight(1f).padding(top=12.dp))}
+            BookingDateField(if(initial.standardApproved && !draft.confirmActual)"Intervento previsto" else "Data effettiva", draft.date, !busy, "expense-date", Modifier.fillMaxWidth()) { value ->
                 val defaultMonth = runCatching { Competence.booking(BookingDates.parse(draft.date).toEpochDay()) }.getOrNull()
                 draft = draft.copy(date = value, month = if (draft.month == defaultMonth) runCatching { Competence.booking(BookingDates.parse(value).toEpochDay()) }.getOrDefault(draft.month) else draft.month)
             }
@@ -89,7 +90,8 @@ fun ExpenseDetail(item: ExpenseEntity, propertyName: String, model: AccountingVi
         Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Text(item.description, style = MaterialTheme.typography.headlineMedium, modifier = Modifier.testTag("expense-detail"))
             Text("$propertyName · ${item.category}")
-            Text("Data ${BookingDates.display(item.dateEpochDay)} · competenza ${item.competenceMonth}")
+            Text("${if(item.effectiveDateConfirmed)"Data effettiva" else "Intervento previsto"} ${BookingDates.display(item.dateEpochDay)} · competenza ${item.competenceMonth}")
+            if(item.recognition=="STANDARD_APPROVED")Text("Standard approvato nel saldo · pagamento non attestato",color=ElledueGold)
             Text(Amounts.euro(item.actualCents), style = MaterialTheme.typography.headlineLarge, modifier = Modifier.testTag("expense-actual"))
             if (item.quantity != null) Text("${item.quantity} × ${Amounts.euro(item.unitCents ?: 0)} · calcolato ${Amounts.euro(item.calculatedCents ?: 0)}")
             if (item.setDefinition.isNotBlank()) Text(item.setDefinition)

@@ -63,7 +63,7 @@ fun TaxScreen(booking: ReservationEntity, property: PropertyEntity, data: Accoun
             Text("Riscossione e compensazione sono separate. Il check-out non registra incassi. Il riversamento segue gli obblighi configurati, senza presumere il soggetto responsabile.", style = MaterialTheme.typography.bodySmall)
             Button(onClick = { model.clear(); sourceId = null; movementKind = "COLLECTION" }, enabled = canPost && collected < (assessment?.expectedCents ?: 0), modifier = Modifier.fillMaxWidth().testTag("collect-tax")) { Text("Registra incasso · anche parziale") }
             active.filter { it.kind == "COLLECTION" }.forEach { source ->
-                val compAvailable = source.amountCents - OperationalMoney.total(active.filter { it.kind == "COMPENSATION" && it.sourceId == source.id }.map { it.amountCents })
+                val compAvailable = if(source.collector!="ELLEDUE")0L else source.amountCents - OperationalMoney.total(active.filter { it.kind == "COMPENSATION" && it.sourceId == source.id }.map { it.amountCents })
                 val remitAvailable = source.amountCents - OperationalMoney.total(active.filter { it.kind == "REMITTANCE" && it.sourceId == source.id }.map { it.amountCents })
                 OutlinedCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Riscossione del ${BookingDates.display(source.dateEpochDay)} · ${Amounts.euro(source.amountCents)}", style = MaterialTheme.typography.titleSmall)

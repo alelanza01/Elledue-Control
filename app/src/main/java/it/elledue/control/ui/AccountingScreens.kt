@@ -162,6 +162,7 @@ fun MovementRow(item: MoneyMovementEntity, all: List<MoneyMovementEntity>, busy:
     val reversed = all.any { it.reversesId == item.id }
     OutlinedCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text("${movementLabel(item.kind)} · ${Amounts.euro(item.amountCents)}", style = MaterialTheme.typography.titleSmall)
+        if(item.kind=="COLLECTION")Text("Incassato da: "+when(item.collector){"OWNER"->"Proprietario";"PORTAL"->"Portale";"OTHER"->"Altro";else->"Elledue"},style=MaterialTheme.typography.bodySmall)
         Text("${BookingDates.display(item.dateEpochDay)} · competenza ${item.competenceMonth}", style = MaterialTheme.typography.bodySmall)
         if (item.sourceId != null) Text("Collegata alla riscossione del ${all.firstOrNull { it.id == item.sourceId }?.dateEpochDay?.let(BookingDates::display) ?: "data non disponibile"}", style = MaterialTheme.typography.bodySmall)
         if (item.notes.isNotBlank()) Text(item.notes, style = MaterialTheme.typography.bodySmall)

@@ -135,11 +135,11 @@ class ConsolidatedDataTest {
   assertEquals(legacy,db.reportDao().get(frozen.id)!!.snapshotJson);assertEquals(17000L,ReportCodec.decode(legacy).summary().balance)
   assertTrue(db.issueDao().all().isEmpty());assertEquals(2,db.propertyDao().get(frozen.property.id)!!.property.laundryGuestsPerSet)
  }
- @Test fun ownPropertyHasTransportCategoryAndNoAutomaticManagementOrCostForecasts()=runBlocking<Unit>{
+ @Test fun ownPropertyHasTransportAndPrivateLaundryWithoutManagementOrAutomaticCleaning()=runBlocking<Unit>{
   seed();PropertyRepository(db).save(PropertyDraft(id="own",ownerId="own-o",name="Propria",address="Test",businessType="OWNED",transportRate="7,50"))
   val own=BookingDraft(id="owned-stay",firstName="Ospite",lastName="Proprio",gross="500").withPropertyDefaults(db.propertyDao().get("own")!!)
   ReservationRepository(db).save(own)
-  assertEquals(0L,db.reservationDao().get(own.id)!!.managementCents);assertTrue(db.stayCostDao().get(own.id).isEmpty())
+  assertEquals(0L,db.reservationDao().get(own.id)!!.managementCents);assertEquals(listOf("LAUNDRY"),db.stayCostDao().get(own.id).map{it.kind})
   assertEquals(750L,db.propertyDao().get("own")!!.property.habitualTransportCents)
   assertEquals("Trasporti",db.accountingDao().category("transport")!!.label)
  }

@@ -29,7 +29,9 @@ import java.util.UUID
   var actorMenu by remember{mutableStateOf(false)}
   var error by remember{mutableStateOf<String?>(null)};var busy by remember{mutableStateOf(false)}
   val app=LocalContext.current.applicationContext as ElledueApplication;val scope=rememberCoroutineScope()
-  AlertDialog(onDismissRequest={if(!busy)show=false},title={Text("Conferma riscossione reale")},text={Column(Modifier.verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(10.dp)){
+  OutlinedCard(Modifier.fillMaxWidth().testTag("quick-tax-panel")) {
+   Surface(shape=MaterialTheme.shapes.large) {Column(Modifier.fillMaxWidth().padding(20.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
+   Text("Conferma riscossione reale",style=MaterialTheme.typography.titleLarge)
    Text("Residuo ${Amounts.euro(residual)} · puoi indicare una riscossione parziale.")
    AccountingField("Importo ricevuto €",amount,"quick-tax-amount",!busy){amount=it}
    val collectors=listOf("ELLEDUE" to "Elledue","OWNER" to "Proprietario","PORTAL" to "Portale","OTHER" to "Altro")
@@ -41,10 +43,15 @@ import java.util.UUID
    else Text("Nessuna compensazione con il proprietario.",style=MaterialTheme.typography.bodySmall)
    Text("Conferma solo denaro realmente ricevuto. Il riversamento resta separato.",style=MaterialTheme.typography.bodySmall)
    error?.let{Text(it,color=MaterialTheme.colorScheme.error)}
-  }},confirmButton={TextButton(enabled=!busy,onClick={busy=true;scope.launch{try{
+  Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.End){
+  TextButton(onClick={show=false},enabled=!busy){Text("Annulla")}
+  TextButton(enabled=!busy,onClick={busy=true;scope.launch{try{
    check(app.drafts.save("$key-id",id)){"Impossibile salvare la richiesta: nessun movimento registrato."}
    app.accountingRepository.collectTax(b.id,Amounts.parseCents(amount),actor,compensate && actor=="ELLEDUE" && b.appliedBusinessType=="MANAGED",id)
    listOf("amount","collector","compensate","id").forEach{app.drafts.clear("$key-$it")};feedback="Riscossione registrata";show=false
-  }catch(e:kotlinx.coroutines.CancellationException){throw e}catch(e:Exception){error=e.message ?: "Operazione non riuscita; nessun movimento parziale applicato."}finally{busy=false}}},modifier=Modifier.testTag("confirm-quick-tax")){Text("Conferma incasso")}},dismissButton={TextButton(onClick={show=false},enabled=!busy){Text("Annulla")}})
+  }catch(e:kotlinx.coroutines.CancellationException){throw e}catch(e:Exception){error=e.message ?: "Operazione non riuscita; nessun movimento parziale applicato."}finally{busy=false}}},modifier=Modifier.testTag("confirm-quick-tax")){Text("Conferma incasso")}
+  }
+  }}
+  }
  }
 }
