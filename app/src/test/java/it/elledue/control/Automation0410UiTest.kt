@@ -76,6 +76,11 @@ class Automation0410UiTest {
   compose.waitUntil(15000){runBlocking{app.stayCosts.forecasts.first().any{it.kind=="LAUNDRY" && it.unitCents==600L && it.manual}}}
   capture("standard-exception")
  }
+ @Test fun centralPlusKeepsAllCoreActionsAvailableFromEconomy(){
+  route("economy");waitTag("quick-action");compose.onNodeWithTag("quick-action").performClick()
+  listOf("Nuova prenotazione","Nuova spesa","Nuova attività","Nuovo intervento / problema").forEach{compose.onNodeWithText(it).assertExists()}
+  compose.onNodeWithText("Nuovo intervento / problema").performScrollTo().performClick();waitTag("issue-editor")
+ }
  @Test fun draftIncludesAutomaticCostsAndOneApprovalCreatesTheDefinitiveRows(){
   val month=YearMonth.from(LocalDate.ofEpochDay(day-3)).toString()
   val id=runBlocking{app.reportRepository.generate("p",month)}

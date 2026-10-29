@@ -70,7 +70,7 @@ class OperationsUiTest {
         compose.onNodeWithTag("copy-feedback").performScrollTo().assertTextContains("Messaggio copiato",substring=true)
         val clipboard=compose.activity.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         assertEquals(expected,clipboard.primaryClip!!.getItemAt(0).text.toString())
-        compose.activityRule.scenario.recreate();waitTag("copy-calendar-screen");compose.onNodeWithTag("calendar-text-op-p").assertTextEquals(expected)
+        compose.activityRule.scenario.recreate();waitTag("copy-calendar-screen");compose.waitUntil(15000){compose.onAllNodes(hasTestTag("calendar-text-op-p"),useUnmergedTree=true).fetchSemanticsNodes().isNotEmpty()};compose.onNodeWithTag("calendar-text-op-p",useUnmergedTree=true).assertTextEquals(expected)
     }
     @Test fun bilingualMessageLibraryPreviewCopyAndAppearancePersist() {
         waitTag("home-scroll");compose.onNodeWithTag("nav-economy").performClick();waitTag("economy-scroll")

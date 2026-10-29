@@ -50,7 +50,7 @@ val homeCovers=listOf(R.drawable.home_cover_1,R.drawable.home_cover_2,R.drawable
     }
 }
 
-@Composable fun ActivityEditor(repository:ActivityRepository, initial:ActivityEntity?, properties:List<PropertyWithOwner>, bookings:List<ReservationEntity>, back:()->Unit) {
+@Composable fun ActivityEditor(repository:ActivityRepository, initial:ActivityEntity?, properties:List<PropertyWithOwner>, bookings:List<ReservationEntity>, actionScope:kotlinx.coroutines.CoroutineScope?=null, back:()->Unit) {
     val draftKey=if(initial==null)"activity/new" else "activity/${initial.id}"
     val id by rememberPersistentDraft("$draftKey#id",initial?.id ?: UUID.randomUUID().toString())
     var title by rememberPersistentDraft("$draftKey#title",initial?.title ?: "");var notes by rememberPersistentDraft("$draftKey#notes",initial?.notes ?: "")
@@ -61,7 +61,8 @@ val homeCovers=listOf(R.drawable.home_cover_1,R.drawable.home_cover_2,R.drawable
     var completed by rememberPersistentDraft("$draftKey#completed",initial?.completed ?: false)
     var kind by rememberPersistentDraft("$draftKey#kind",initial?.kind ?: "GENERAL")
     var busy by remember {mutableStateOf(false)};var error by remember {mutableStateOf<String?>(null)};var deleting by remember {mutableStateOf(false)}
-    val scope=rememberCoroutineScope()
+    val localScope=rememberCoroutineScope()
+    val scope=actionScope ?: localScope
     fun save() {if(busy)return;busy=true;scope.launch {try {
         require(time.isBlank() || date.isNotBlank()) {"Inserisci una data prima dell’orario."}
         val stamp=if(date.isBlank()) null else {

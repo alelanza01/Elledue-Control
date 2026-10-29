@@ -315,8 +315,9 @@ fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewMo
             }
             composable("activity/new") { ActivityEditor(app.activityRepository,null,normalRecords,normalBookings){navigation.popBackStack()} }
             composable("activity/{id}") { d ->
+                val actionScope=rememberCoroutineScope()
                 val task=activities.firstOrNull {it.id==d.arguments?.getString("id")}
-                if(task!=null) ActivityEditor(app.activityRepository,task,records,bookings){navigation.popBackStack()} else EmptyState("Attività non disponibile","Torna all’elenco.")
+                if(task!=null) ActivityEditor(app.activityRepository,task,records,bookings,actionScope=actionScope){navigation.popBackStack()} else EmptyState("Attività non disponibile","Torna all’elenco.")
             }
             composable("calendar-copy?property={property}&month={month}&day={day}",arguments=listOf(
                 androidx.navigation.navArgument("property"){defaultValue=""},androidx.navigation.navArgument("month"){defaultValue=java.time.YearMonth.from(BookingDates.today()).toString()},androidx.navigation.navArgument("day"){type=androidx.navigation.NavType.LongType;defaultValue=BookingDates.today().toEpochDay()}
@@ -373,7 +374,7 @@ fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewMo
     }
     }
     if (quick) ModalBottomSheet(onDismissRequest = { quick = false },containerColor=ConceptCard,tonalElevation=0.dp,shape=MaterialTheme.shapes.large) {
-        Column(Modifier.fillMaxWidth().padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) { Text("Azione rapida", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f)); IconButton(onClick = { quick = false }, modifier = Modifier.testTag("close-quick")) { Icon(Icons.Outlined.Close, "Chiudi azioni") } }
             val actions = if (records.none { !it.property.archived }) listOf("Nuovo immobile" to "property/new", "Nuova attività" to "activity/new") else when (route) {
                 "properties" -> listOf("Nuovo immobile" to "property/new")
@@ -381,7 +382,7 @@ fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewMo
                 "calendar" -> listOf("Nuova prenotazione" to "booking/new", "Nuova attività" to "activity/new")
                 else -> listOf("Nuova prenotazione" to "booking/new", "Nuova spesa" to "expense/new/OTHER", "Nuova attività" to "activity/new")
             }
-            val completeActions=actions + ("Nuovo intervento / problema" to "issue-create")
+            val completeActions=if(records.any{!it.property.archived})actions+listOf("Nuova prenotazione" to "booking/new","Nuova spesa" to "expense/new/OTHER","Nuova attività" to "activity/new","Nuovo intervento / problema" to "issue-create") else actions
             completeActions.distinctBy{it.second}.forEach { (label, target) -> OutlinedButton(onClick = { quick = false; propertiesModel.clearError(); bookingsModel.clearError(); accountingModel.clear(); jump(target) }, modifier = Modifier.fillMaxWidth()) { Text(label) } }
             Spacer(Modifier.height(20.dp))
         }

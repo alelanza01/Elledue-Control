@@ -1,5 +1,12 @@
 # Elledue Control
 
+## 0.4.10 — automazioni economiche e UX operativa
+
+Base 0.4.9, branch `feature/0.4.10-ux-accounting`, senza merge su main. Standard retroattivi eleggibili, costi proposti nei rendiconti e approvazione atomica in blocco, riscossione rapida della tassa, calendario compatto e form semplificati. Versione/code 0.4.10/10, schema Room9.
+
+[Regole contabili](docs/0.4.10/ACCOUNTING.md) · [Migrazione e aggiornamento](docs/0.4.10/MIGRATION.md) · [Requisiti](docs/0.4.10/REQUIREMENTS.md) · [QA: 208 test PASS](docs/0.4.10/QA.md) · [Screenshot e PDF sintetici](docs/0.4.10/qa/README.md) · [PR per revisione](docs/0.4.10/PR.md)
+
+
 ## 0.4.9 — aggiornamento consolidato (branch dedicato)
 
 Nuovi problemi/interventi e Giornata operativa, prenotazioni più rapide, previsioni pulizie/lavanderia separate dai consuntivi, contabilità e PDF aggiornati, occupazione effettiva e riparazione delle notifiche programmate. Database 8 con migrazione additiva e application ID invariato. Nessun merge su main.
