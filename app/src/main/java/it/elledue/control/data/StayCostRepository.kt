@@ -16,9 +16,11 @@ class StayCostRepository(private val db:AppDatabase) {
  val forecasts=db.stayCostDao().observe()
  suspend fun update(b:ReservationEntity,p:PropertyEntity) {
   if(b.appliedBusinessType!="MANAGED" || b.status=="CANCELLED")return
+  if(db.reportDao().allocation("BOOKING",b.id)!=null)return
   val old=db.stayCostDao().get(b.id)
-  listOf(StayCostForecast(b.id,"CLEANING","2",p.cleaningHourlyCents),StayCostForecast(b.id,"LAUNDRY",((b.guestCount.toLong()+p.laundryGuestsPerSet-1)/p.laundryGuestsPerSet).toString(),p.laundrySetCents)).forEach { item ->
-   if(old.firstOrNull{it.kind==item.kind}?.manual!=true && db.accountingDao().expense(expenseId(b.id,item.kind))==null)db.stayCostDao().save(item)
+  val existing=db.reportDao().expenses().filter{it.reservationId==b.id}
+  StandardCostProjection.defaults(b,p).forEach { item ->
+   if(old.firstOrNull{it.kind==item.kind}?.manual!=true && existing.none{it.kind==item.kind} && old.firstOrNull{it.kind==item.kind}!=item)db.stayCostDao().save(item)
   }
  }
  suspend fun save(item:StayCostForecast)=db.withTransaction {

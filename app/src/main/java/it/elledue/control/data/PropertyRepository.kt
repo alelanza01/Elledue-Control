@@ -18,8 +18,12 @@ class PropertyRepository(private val database: AppDatabase,private val drafts:Dr
                 it.kind == "access" && it.language in listOf("it", "en")
             }
             dao.save(validated.copy(templates = validated.templates + retainedTemplates))
+            if(previous!=null && (previous.property.cleaningHourlyCents!=validated.property.cleaningHourlyCents || previous.property.laundrySetCents!=validated.property.laundrySetCents || previous.property.laundryGuestsPerSet!=validated.property.laundryGuestsPerSet))database.reportDao().bookings().filter{it.propertyId==draft.id}.forEach{StayCostRepository(database).update(it,validated.property)}
             if(previous!=null && (previous.property.touristTaxNightCents!=validated.property.touristTaxNightCents || previous.property.touristTaxMaxNights!=validated.property.touristTaxMaxNights || previous.property.touristTaxMinAge!=validated.property.touristTaxMinAge || previous.property.touristTaxExemptions!=validated.property.touristTaxExemptions)) {
-                database.reportDao().bookings().filter{it.propertyId==draft.id && it.status!="CANCELLED"}.forEach{TaxForecast.update(database,it,validated.property)}
+                database.reportDao().bookings().filter{it.propertyId==draft.id && it.status!="CANCELLED"}.forEach{
+                    val tax=database.accountingDao().assessment(it.id)
+                    if(tax?.consolidated!=true && tax?.correctionReason.isNullOrBlank() && database.accountingDao().movements().none{m->m.reservationId==it.id} && database.reportDao().allocation("BOOKING",it.id)==null)TaxForecast.update(database,it,validated.property)
+                }
             }
         }
         if(drafts?.load("property/new",PropertyDraft::class.java)?.id==draft.id)drafts.clear("property/new")

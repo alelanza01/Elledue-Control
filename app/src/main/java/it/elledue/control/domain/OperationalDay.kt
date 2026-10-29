@@ -6,6 +6,7 @@ object OperationalDay {
  fun events(day:Long,bookings:List<ReservationEntity>,activities:List<ActivityEntity>,issues:List<PropertyIssue>,now:Instant=Instant.now(),expenses:List<ExpenseEntity> = emptyList()):List<DayEvent> {
   val rows=mutableListOf<DayEvent>()
   bookings.filter{it.status!="CANCELLED"}.forEach{b->
+   if(day>b.checkInEpochDay && day<b.checkOutEpochDay)rows.add(DayEvent("stay:${b.id}",null,"Soggiorno · ${b.guestFirstName} ${b.guestLastName}",b.propertyId,"booking/${b.id}",false,"STAY"))
    if(b.checkInEpochDay==day)rows.add(DayEvent("in:${b.id}",b.actualArrivalTime ?: b.expectedArrivalTime,"Check-in · ${b.guestFirstName} ${b.guestLastName}",b.propertyId,"booking/${b.id}",b.actualArrivalTime!=null,"ARRIVAL"))
    if(b.checkOutEpochDay==day)rows.add(DayEvent("out:${b.id}",b.actualDepartureTime ?: b.expectedDepartureTime,"Check-out · ${b.guestFirstName} ${b.guestLastName}",b.propertyId,"booking/${b.id}",b.actualDepartureTime!=null,"DEPARTURE"))
   }

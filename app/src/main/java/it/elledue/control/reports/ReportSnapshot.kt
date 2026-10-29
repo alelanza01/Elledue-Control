@@ -16,8 +16,13 @@ data class ReportSnapshot(
     val excludedBookings:List<ReservationEntity>?=emptyList(),
     val bookingOptions:List<ReportBookingOption>?=emptyList(),
     val unconfirmedCosts:List<StayCostForecast>?=emptyList(),
+    val proposedExpenses:List<ExpenseEntity>?=emptyList(),
+    val relatedExpenses:List<ExpenseEntity>?=emptyList(),
+    val automationWarnings:List<String>?=emptyList(),
+    val approvalBatch:StandardApproval?=null,
 ) {
-    fun summary() = operationalSummary(month, property.id, bookings, expenses, taxes, movements)
+    fun effectiveExpenses()=expenses+(if(draft)proposedExpenses.orEmpty() else emptyList())
+    fun summary() = operationalSummary(month, property.id, bookings, effectiveExpenses(), taxes, movements)
     fun gross() = OperationalMoney.total(bookings.filter { it.status != "CANCELLED" }.map { it.grossCents })
     fun ota() = OperationalMoney.total(bookings.filter { it.status != "CANCELLED" }.map { it.otaCents })
     fun net() = OperationalMoney.total(bookings.filter { it.status != "CANCELLED" }.map { it.netCents })
@@ -25,6 +30,7 @@ data class ReportSnapshot(
         expenses.filter { !it.voided }.map { ReportAllocationEntity("EXPENSE", it.id, property.id, month) } +
         Ledger.active(movements).filter { it.competenceMonth == month && it.kind in listOf("COMPENSATION", "OWNER_PAYMENT") }.map { ReportAllocationEntity("MOVEMENT", it.id, property.id, month) }
     fun issues(): List<ReportIssue> = buildList {
+        automationWarnings.orEmpty().forEach{add(ReportIssue(false,it))}
         unconfirmedCosts.orEmpty().forEach{add(ReportIssue(false,"Consuntivo non confermato: ${if(it.kind=="CLEANING")"pulizia" else "lavanderia"}. La previsione è esclusa dalle spese sostenute."))}
         bookings.forEach { booking ->
             if (booking.propertyId != property.id || Competence.booking(booking.checkInEpochDay) != month) add(ReportIssue(true, "Prenotazione con competenza o immobile incoerente."))
@@ -37,6 +43,7 @@ data class ReportSnapshot(
                 if (tax?.needsReview == true) add(ReportIssue(true, "Conteggi fiscali da rivedere: ${booking.guestFirstName} ${booking.guestLastName}."))
             } else if (Ledger.total(movements.filter { it.reservationId == booking.id }, "COLLECTION") > 0) add(ReportIssue(false, "Prenotazione annullata con riscossioni da riconciliare: ${booking.guestFirstName} ${booking.guestLastName}."))
         }
+        if(draft)effectiveExpenses().filter{!it.voided && it.reservationId!=null && it.kind in listOf("CLEANING","LAUNDRY")}.groupBy{it.reservationId to it.kind}.filterValues{it.size>1}.forEach{(_,rows)->add(ReportIssue(true,"Più voci ${rows.first().category} per lo stesso soggiorno: rettifica e annulla il duplicato prima della conferma."))}
         expenses.forEach { if (it.propertyId != property.id || it.competenceMonth != month) add(ReportIssue(true, "Spesa con competenza o immobile incoerente.")) }
         if (allocations().map { it.kind to it.sourceId }.distinct().size != allocations().size) add(ReportIssue(true, "Voce duplicata nel rendiconto."))
         runCatching { summary(); gross(); ota(); net() }.onFailure { add(ReportIssue(true, "Importi non validi o oltre il limite contabile.")) }

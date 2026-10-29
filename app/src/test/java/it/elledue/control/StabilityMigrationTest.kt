@@ -52,8 +52,8 @@ class StabilityMigrationTest {
                 }
                 val setup=schema.getJSONArray("setupQueries");for(i in 0 until setup.length())sql.execSQL(setup.getString(i));sql.version=6
             }
-            Room.databaseBuilder(context,AppDatabase::class.java,name).addMigrations(DatabaseMigrations.MIGRATION_6_7,DatabaseMigrations.MIGRATION_7_8).build().withClosing {db ->
-                assertEquals(8,db.openHelper.readableDatabase.version)
+            Room.databaseBuilder(context,AppDatabase::class.java,name).addMigrations(DatabaseMigrations.MIGRATION_6_7,DatabaseMigrations.MIGRATION_7_8, DatabaseMigrations.MIGRATION_8_9).build().withClosing {db ->
+                assertEquals(9,db.openHelper.readableDatabase.version)
                 assertTrue(db.reportDao().bookings().all{it.appliedBusinessType=="MANAGED"})
                 assertEquals("MANAGED",db.propertyDao().get(snapshot.property.id)!!.property.businessType)
                 assertTrue(db.reportDao().taxes().all{it.consolidated})

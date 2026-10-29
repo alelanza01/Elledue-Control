@@ -105,7 +105,7 @@ fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewMo
         NavHost(navigation, startDestination = "dashboard", modifier = Modifier.fillMaxSize()) {
             composable("dashboard") {
                 BookingDataSurface(bookingState, state, { bookingsModel.retry(); propertiesModel.retry() }) {
-                    if(operational==null)LoadingScreen() else CommandHome(normalRecords, normalBookings, reports.filter{it.propertyId in normalIds}, normalAccounting, settings, normalActivities, jump,businessType)
+                    if(operational==null)LoadingScreen() else CommandHome(normalRecords, normalBookings, reports.filter{it.propertyId in normalIds}, normalAccounting, settings, normalActivities, jump,businessType,issues.filter{it.propertyId in normalIds},forecasts.filter{f->normalBookings.any{it.id==f.reservationId}})
                 }
             }
             composable("properties") {
@@ -192,7 +192,10 @@ fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewMo
                     val item = bookings.firstOrNull { it.id == destination.arguments?.getString("id") }
                     if (item == null) EmptyState("Prenotazione non trovata", "Torna al calendario.", "Calendario", { navigation.navigate("calendar") })
                     else BookingDetailScreen(item, records.firstOrNull { it.property.id == item.propertyId }?.property?.name ?: "Immobile", bookingBusy, bookingError,
-                        onBack = { navigation.popBackStack() }, onEdit = { bookingsModel.clearError(); navigation.navigate("booking/${item.id}/edit") }, onCancel = { bookingsModel.cancel(item.id) }, onDelete={jump("delete/booking/${item.id}")}, onTax = { accountingModel.clear(); navigation.navigate("tax/${item.id}") }, onExpense = { kind -> accountingModel.clear(); val existing=accountingData?.expenses?.firstOrNull{it.reservationId==item.id && it.kind==kind && !it.voided && kind!="OTHER"};navigation.navigate(existing?.let{"expense/${it.id}/edit"} ?: "expense/new/$kind?booking=${item.id}") }, onActivities = { jump("activities?booking=${item.id}") }, onMessages={jump("messages?booking=${item.id}")}, financialChanges = accountingData?.financialChanges.orEmpty(),operationalContent={StayOperationsPanel(item,forecasts,accountingData,issues,activities,app.stayCosts,jump)})
+                        onBack = { navigation.popBackStack() }, onEdit = { bookingsModel.clearError(); navigation.navigate("booking/${item.id}/edit") }, onCancel = { bookingsModel.cancel(item.id) }, onDelete={jump("delete/booking/${item.id}")}, onTax = { accountingModel.clear(); navigation.navigate("tax/${item.id}") }, onExpense = { kind -> accountingModel.clear(); val existing=accountingData?.expenses?.firstOrNull{it.reservationId==item.id && it.kind==kind && !it.voided && kind!="OTHER"};navigation.navigate(existing?.let{"expense/${it.id}/edit"} ?: "expense/new/$kind?booking=${item.id}") }, onActivities = { jump("activities?booking=${item.id}") }, onMessages={jump("messages?booking=${item.id}")}, financialChanges = accountingData?.financialChanges.orEmpty(),operationalContent={
+                            StayOperationsPanel(item,forecasts,accountingData,issues,activities,app.stayCosts,jump)
+                            reports.filter{it.propertyId==item.propertyId && it.yearMonth==item.competenceMonth}.maxByOrNull{it.version}?.let{report->OutlinedButton(onClick={jump("report/${report.id}")}){Text("Apri rendiconto · ${report.yearMonth}")}}
+                        })
                 }
             }
             composable("booking/{id}/edit") { destination ->
@@ -232,7 +235,7 @@ fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewMo
                     val linked = bookings.firstOrNull { it.id == destination.arguments?.getString("booking") }
                     val selectedProperty = records.firstOrNull { it.property.id == linked?.propertyId }?.property ?: normalRecords.firstOrNull { !it.property.archived }?.property
                     val category = accountingData!!.categories.firstOrNull { it.kind == kind && !it.archived }
-                    val initial by rememberSaveable(stateSaver = ExpenseDraftSaver) { mutableStateOf(app.drafts.load("expense/new/$kind?booking=${linked?.id ?: ""}",it.elledue.control.domain.ExpenseDraft::class.java) ?: it.elledue.control.domain.ExpenseDraft(id=if(linked!=null && kind in listOf("CLEANING","LAUNDRY"))it.elledue.control.data.StayCostRepository.expenseId(linked.id,kind) else java.util.UUID.randomUUID().toString(),propertyId = selectedProperty?.id ?: "", reservationId = linked?.id ?: "", categoryId = category?.id ?: "other", quantity = if(kind in listOf("CLEANING","LAUNDRY") && linked!=null)forecasts.firstOrNull{it.reservationId==linked.id && it.kind==kind}?.quantity ?: "1" else if(kind!="OTHER")"1" else "", unit = when (kind) { "CLEANING" -> it.elledue.control.domain.Amounts.editable(selectedProperty?.cleaningHourlyCents ?: 800); "LAUNDRY" -> it.elledue.control.domain.Amounts.editable(selectedProperty?.laundrySetCents ?: 500); else -> if(category?.id=="transport")selectedProperty?.habitualTransportCents?.let(it.elledue.control.domain.Amounts::editable) ?: "" else "" }, advanced=selectedProperty?.businessType!="OWNED", reimbursable=selectedProperty?.businessType!="OWNED")) }
+                    val initial by rememberSaveable(stateSaver = ExpenseDraftSaver) { mutableStateOf(app.drafts.load("expense/new/$kind?booking=${linked?.id ?: ""}",it.elledue.control.domain.ExpenseDraft::class.java) ?: it.elledue.control.domain.ExpenseDraft(id=if(linked!=null && kind in listOf("CLEANING","LAUNDRY"))it.elledue.control.data.StayCostRepository.expenseId(linked.id,kind) else java.util.UUID.randomUUID().toString(),propertyId = selectedProperty?.id ?: "", reservationId = linked?.id ?: "", categoryId = category?.id ?: "other",date=if(linked!=null && kind in listOf("CLEANING","LAUNDRY"))BookingDates.display(linked.checkOutEpochDay) else BookingDates.display(BookingDates.today().toEpochDay()),month=if(linked!=null && kind in listOf("CLEANING","LAUNDRY"))linked.competenceMonth else java.time.YearMonth.from(BookingDates.today()).toString(), quantity = if(kind in listOf("CLEANING","LAUNDRY") && linked!=null)forecasts.firstOrNull{it.reservationId==linked.id && it.kind==kind}?.quantity ?: "1" else if(kind!="OTHER")"1" else "", unit = when (kind) { "CLEANING" -> it.elledue.control.domain.Amounts.editable(selectedProperty?.cleaningHourlyCents ?: 800); "LAUNDRY" -> it.elledue.control.domain.Amounts.editable(selectedProperty?.laundrySetCents ?: 500); else -> if(category?.id=="transport")selectedProperty?.habitualTransportCents?.let(it.elledue.control.domain.Amounts::editable) ?: "" else "" }, advanced=selectedProperty?.businessType!="OWNED", reimbursable=selectedProperty?.businessType!="OWNED")) }
                     LaunchedEffect(accountingSaved) { accountingSaved?.takeIf { it == initial.id }?.let { accountingModel.clear(); navigation.popBackStack(); navigation.navigate("expense/$it") } }
                     ExpenseEditor(initial, records, bookings, accountingData.categories, accountingModel,draftRoute="expense/new/$kind?booking=${linked?.id ?: ""}") { navigation.popBackStack() }
                 }
@@ -280,6 +283,7 @@ fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewMo
                     report?.snapshotJson == null -> EmptyState("Documento non disponibile", "Riapri la bozza dai rendiconti.")
                     else -> {
                         val snapshot = remember(report.snapshotJson) { runCatching { it.elledue.control.reports.ReportCodec.decode(report.snapshotJson) }.getOrNull() }
+                        LaunchedEffect(report.id){if(report.status=="DRAFT")reportsModel.refresh(report.id)}
                         val owner = androidx.lifecycle.compose.LocalLifecycleOwner.current
                         DisposableEffect(report.id, report.status, owner) {
                             val observer = androidx.lifecycle.LifecycleEventObserver { _, event -> if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME && report.status == "DRAFT") reportsModel.refresh(report.id) }
@@ -293,7 +297,7 @@ fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewMo
                                 onBooking = { bookingsModel.clearError(); navigation.navigate("booking/$it/edit") },
                                 onExpense = { accountingModel.clear(); navigation.navigate("expense/$it/edit") },
                                 onTax = { accountingModel.clear(); navigation.navigate("tax/$it") },
-                                onEconomy = { navigation.navigate("accounting") })
+                                onEconomy = { navigation.navigate("accounting") }, onStandard={jump("booking/$it")})
                         }
                     }
                 }
@@ -377,7 +381,8 @@ fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewMo
                 "calendar" -> listOf("Nuova prenotazione" to "booking/new", "Nuova attività" to "activity/new")
                 else -> listOf("Nuova prenotazione" to "booking/new", "Nuova spesa" to "expense/new/OTHER", "Nuova attività" to "activity/new")
             }
-            actions.forEach { (label, target) -> OutlinedButton(onClick = { quick = false; propertiesModel.clearError(); bookingsModel.clearError(); accountingModel.clear(); jump(target) }, modifier = Modifier.fillMaxWidth()) { Text(label) } }
+            val completeActions=actions + ("Nuovo intervento / problema" to "issue-create")
+            completeActions.distinctBy{it.second}.forEach { (label, target) -> OutlinedButton(onClick = { quick = false; propertiesModel.clearError(); bookingsModel.clearError(); accountingModel.clear(); jump(target) }, modifier = Modifier.fillMaxWidth()) { Text(label) } }
             Spacer(Modifier.height(20.dp))
         }
     }

@@ -51,7 +51,7 @@ class ReservationUiTest {
         calendar(); fillNew()
         compose.onNodeWithTag("booking-fee").performScrollTo().assertTextEquals(Amounts.euro(16100))
         compose.onNodeWithTag("booking-check-in").performScrollTo()
-        compose.onNodeWithTag("booking-date-range").performScrollTo().performClick()
+        compose.onNodeWithTag("booking-check-in").performScrollTo().performClick()
         compose.onNodeWithText("Conferma soggiorno").performClick()
         compose.activityRule.scenario.recreate()
         compose.onNodeWithTag("booking-first-name").assertTextContains("Ospite")

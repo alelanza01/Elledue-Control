@@ -31,7 +31,7 @@ class OperationsUiTest {
         app.propertyRepository.save(PropertyDraft(id="op-q",ownerId="op-qo",name="Altro immobile",address="Test",ownerName="Test"))
         app.reservationRepository.save(BookingDraft(id="op-b",propertyId="op-p",firstName="Nicolò",lastName="D’Amico",guests="3",checkIn=BookingDates.display(today.toEpochDay()),checkOut=BookingDates.display(today.plusDays(4).toEpochDay()),gross="1000"))
     }
-    private fun waitTag(tag:String){try{compose.waitUntil(20000){compose.onAllNodes(hasTestTag(tag)).fetchSemanticsNodes().isNotEmpty()}}catch(e:Throwable){File("build/reports/049-failure-$tag.txt").writeText(compose.onRoot().printToString());shot("failure-$tag");throw e}}
+    private fun waitTag(tag:String){try{compose.waitUntil(20000){compose.onAllNodes(hasTestTag(tag)).fetchSemanticsNodes().isNotEmpty()}}catch(e:Throwable){File("build/reports/049-failure-$tag.txt").writeText(compose.onAllNodes(isRoot())[0].printToString());shot("failure-$tag");throw e}}
     private fun shot(name:String){compose.mainClock.advanceTimeBy(600);compose.waitForIdle();compose.runOnIdle {
         val view=compose.activity.window.decorView;val b=Bitmap.createBitmap(view.width,view.height,Bitmap.Config.ARGB_8888);view.draw(Canvas(b))
         File("build/reports/screenshots/047-$name.png").apply{parentFile!!.mkdirs()}.outputStream().use{b.compress(Bitmap.CompressFormat.PNG,100,it)};b.recycle()
@@ -107,8 +107,13 @@ class OperationsUiTest {
         compose.onNodeWithTag("booking-gross").performScrollTo().performTextReplacement("1000")
         compose.onNodeWithTag("booking-actual-ota").performScrollTo().performTextReplacement("100")
         compose.onNodeWithTag("booking-fee").performScrollTo().assertTextEquals(Amounts.euro(18000))
-        compose.onNodeWithTag("booking-check-in").performScrollTo().performTextReplacement(BookingDates.display(today.plusDays(10).toEpochDay()))
-        compose.onNodeWithTag("booking-check-out").performTextReplacement(BookingDates.display(today.plusDays(12).toEpochDay()))
+        compose.onNodeWithTag("booking-check-in").performScrollTo().performClick()
+        compose.onNodeWithContentDescription("Passa alla modalità di immissione testo").performClick()
+        val dateInputs=compose.onAllNodes(hasSetTextAction() and hasAnyAncestor(hasTestTag("stay-range-picker")))
+        dateInputs[1].performTextClearance()
+        dateInputs[0].performTextReplacement(today.plusDays(10).format(java.time.format.DateTimeFormatter.ofPattern("ddMMyyyy")))
+        dateInputs[1].performTextReplacement(today.plusDays(12).format(java.time.format.DateTimeFormatter.ofPattern("ddMMyyyy")))
+        compose.onNodeWithText("Conferma soggiorno").performClick()
         compose.onNodeWithTag("save-booking").performClick();waitTag("booking-status")
         val b=runBlocking{app.reservationRepository.reservations.first().first{it.guestFirstName=="Portale"}}
         assertEquals("Prenotazione diretta",b.platform);assertEquals(0,b.appliedOtaBasisPoints);assertEquals(10000L,b.actualOtaCents);assertEquals(18000L,b.managementCents)

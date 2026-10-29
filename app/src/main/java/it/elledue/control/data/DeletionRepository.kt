@@ -64,6 +64,7 @@ class DeletionRepository(private val db:AppDatabase,private val context:Context,
             val report=requireNotNull(db.reportDao().get(rid))
             sql.execSQL("DELETE FROM report_booking_options WHERE reportId=?",arrayOf(rid))
             sql.execSQL("DELETE FROM report_allocations WHERE propertyId=? AND yearMonth=?",arrayOf(propertyId,report.yearMonth))
+            sql.execSQL("DELETE FROM standard_approvals WHERE reportId=?",arrayOf(rid))
             sql.execSQL("DELETE FROM reports WHERE id=?",arrayOf(rid))
         }
         val bookings=if(plan.kind=="booking")listOf(plan.id) else db.reportDao().bookings().filter{it.propertyId==propertyId}.map{it.id}

@@ -34,6 +34,7 @@ data class MoneyMovementEntity(
     val kind: String, val amountCents: Long, val dateEpochDay: Long, val competenceMonth: String,
     val notes: String, val sourceId: String? = null, val reversesId: String? = null,
     val createdAt: Long = System.currentTimeMillis(),
+    @ColumnInfo(defaultValue="'ELLEDUE'") val collector:String="ELLEDUE",
 )
 
 @Entity(tableName = "booking_financial_changes", foreignKeys = [ForeignKey(entity = ReservationEntity::class, parentColumns = ["id"], childColumns = ["reservationId"], onDelete = ForeignKey.RESTRICT)], indices = [Index("reservationId")])

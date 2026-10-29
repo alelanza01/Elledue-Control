@@ -17,6 +17,7 @@ class ElledueApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         background.launch {
+            reconciliation.reconcile()
             database.invalidationTracker.createFlow("properties","owners","reservations","expenses","tax_assessments","money_movements","activities","property_issues","stay_cost_forecasts",emitInitialState=true)
                 .debounce(250).collect {
                     runCatching { reportRepository.refreshDrafts() }
@@ -28,13 +29,14 @@ class ElledueApplication : Application() {
     override fun onTerminate() { background.cancel();if(databaseInstance.isInitialized())database.close();super.onTerminate() }
 
     private val databaseInstance = lazy {
-        Room.databaseBuilder(this, AppDatabase::class.java, "elledue-control.db").addMigrations(it.elledue.control.data.DatabaseMigrations.MIGRATION_1_2, it.elledue.control.data.DatabaseMigrations.MIGRATION_2_3, it.elledue.control.data.DatabaseMigrations.MIGRATION_3_4, it.elledue.control.data.DatabaseMigrations.MIGRATION_4_5, it.elledue.control.data.DatabaseMigrations.MIGRATION_5_6, it.elledue.control.data.DatabaseMigrations.MIGRATION_6_7, it.elledue.control.data.DatabaseMigrations.MIGRATION_7_8).build()
+        Room.databaseBuilder(this, AppDatabase::class.java, "elledue-control.db").addMigrations(it.elledue.control.data.DatabaseMigrations.MIGRATION_1_2, it.elledue.control.data.DatabaseMigrations.MIGRATION_2_3, it.elledue.control.data.DatabaseMigrations.MIGRATION_3_4, it.elledue.control.data.DatabaseMigrations.MIGRATION_4_5, it.elledue.control.data.DatabaseMigrations.MIGRATION_5_6, it.elledue.control.data.DatabaseMigrations.MIGRATION_6_7, it.elledue.control.data.DatabaseMigrations.MIGRATION_7_8, it.elledue.control.data.DatabaseMigrations.MIGRATION_8_9).build()
     }
     private val database get()=databaseInstance.value
     val messageRepository by lazy { it.elledue.control.data.MessageRepository(database,drafts) }
     val drafts by lazy { it.elledue.control.data.DraftStore.get(this) }
     val deletionRepository by lazy { it.elledue.control.data.DeletionRepository(database,this) }
     val issueRepository by lazy { it.elledue.control.data.IssueRepository(database) }
+    val reconciliation by lazy { it.elledue.control.data.EconomicReconciliation(database) }
     val stayCosts by lazy { it.elledue.control.data.StayCostRepository(database) }
     val operations by lazy { it.elledue.control.data.OperationalRepository(database) }
     val activityRepository by lazy { it.elledue.control.data.ActivityRepository(database,drafts) }

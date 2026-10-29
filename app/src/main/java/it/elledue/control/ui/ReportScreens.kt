@@ -67,7 +67,7 @@ fun ReportsHome(reports: List<ReportEntity>, properties: List<PropertyWithOwner>
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReportDetail(report: ReportEntity, snapshot: ReportSnapshot, model: ReportViewModel, onBack: () -> Unit,
-                 onBooking: (String) -> Unit, onExpense: (String) -> Unit, onTax: (String) -> Unit, onEconomy: () -> Unit) {
+                 onBooking: (String) -> Unit, onExpense: (String) -> Unit, onTax: (String) -> Unit, onEconomy: () -> Unit, onStandard:(String)->Unit = {}) {
     var layout by rememberSaveable { mutableStateOf(ReportLayout.SUMMARY) }
     val exportPdf = rememberPdfExporter(snapshot, layout)
     var preview by remember { mutableStateOf(false) }
@@ -76,7 +76,7 @@ fun ReportDetail(report: ReportEntity, snapshot: ReportSnapshot, model: ReportVi
     var acknowledged by rememberSaveable(report.id, report.snapshotJson) { mutableStateOf(false) }
     var confirm by rememberSaveable { mutableStateOf(false) }; var revise by rememberSaveable { mutableStateOf(false) }; var reason by rememberPersistentDraft("report/${report.id}#reason", "")
     val busy by model.busy.collectAsStateWithLifecycle(); val error by model.error.collectAsStateWithLifecycle()
-    val total = snapshot.summary(); val issues = snapshot.issues(); val draft = report.status == "DRAFT"
+    val total = snapshot.summary(); val issues = snapshot.issues(); val proposed=snapshot.proposedExpenses.orEmpty(); val draft = report.status == "DRAFT"
     Scaffold(topBar = { TopAppBar(title = { Text("${report.yearMonth} · v${report.version}") }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Indietro documento") } }) }) { padding ->
         LazyColumn(Modifier.fillMaxSize().padding(padding).testTag("report-detail-scroll").semantics { stateDescription = report.status }, contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             item {
@@ -93,6 +93,12 @@ fun ReportDetail(report: ReportEntity, snapshot: ReportSnapshot, model: ReportVi
                     }
                 }
             }
+            if(draft && proposed.isNotEmpty())item {OutlinedCard(Modifier.fillMaxWidth()){Column(Modifier.padding(14.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){
+                Text("Costi standard proposti · ${it.elledue.control.domain.Amounts.euro(it.elledue.control.domain.OperationalMoney.total(proposed.map{it.actualCents}))}",style=MaterialTheme.typography.titleMedium)
+                Text("Già inclusi nella bozza. Alla conferma puoi approvarli tutti insieme; nessun pagamento è registrato automaticamente.",style=MaterialTheme.typography.bodySmall)
+                proposed.forEach{e->TextButton(onClick={e.reservationId?.let(onStandard)}){Text("${e.category} · ${e.quantity} × ${e.unitCents?.let(it.elledue.control.domain.Amounts::euro)} · ${it.elledue.control.domain.Amounts.euro(e.actualCents)}")}}
+            }}}
+            if(snapshot.relatedExpenses.orEmpty().isNotEmpty())item{Text("Costi collegati in altro periodo · esclusi dai totali correnti",style=MaterialTheme.typography.titleMedium);snapshot.relatedExpenses.orEmpty().forEach{e->TextButton(onClick={onExpense(e.id)}){Text("${e.category} · ${e.competenceMonth} · ${it.elledue.control.domain.Amounts.euro(e.actualCents)}")}}}
             item { Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 ConceptPill(layout == ReportLayout.SUMMARY, { layout = ReportLayout.SUMMARY }, label = { Text("Sintetico") }, modifier = Modifier.testTag("pdf-summary"))
                 ConceptPill(layout == ReportLayout.DETAILED, { layout = ReportLayout.DETAILED }, label = { Text("Dettagliato") }, modifier = Modifier.testTag("pdf-detailed"))
@@ -128,13 +134,13 @@ fun ReportDetail(report: ReportEntity, snapshot: ReportSnapshot, model: ReportVi
                 item { Text("Controllo prima della conferma", style = MaterialTheme.typography.titleMedium); Text("La bozza raccoglie tutte le voci registrate pertinenti. Verifica eventuali prenotazioni non ancora inserite e confronta le OTA con il portale.") }
                 items(issues) { issue -> Text(issue.message, color = if (issue.blocking) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant) }
                 if (issues.isEmpty()) item { Text("Nessuna criticità rilevata nei dati registrati.") }
-                if (draft && issues.any { !it.blocking }) item { Row { Checkbox(acknowledged, { acknowledged = it }, modifier = Modifier.testTag("ack-report-warnings")); Text("Ho verificato gli avvisi e accetto i dati indicati.", modifier = Modifier.weight(1f).padding(top = 10.dp)) } }
+                if (draft && (issues.any { !it.blocking } || proposed.isNotEmpty())) item { Row { Checkbox(acknowledged, { acknowledged = it }, modifier = Modifier.testTag("ack-report-warnings")); Text(if(proposed.isNotEmpty())"Ho verificato gli avvisi e approvo in blocco i costi standard proposti nel saldo. Non attesto pagamenti." else "Ho verificato gli avvisi e accetto i dati indicati.", modifier = Modifier.weight(1f).padding(top = 10.dp)) } }
                 item { AccountingField("Note del rendiconto", notes, "report-notes", draft && !busy) { notes = it } }
             }
             if (draft) {
                 item { OutlinedButton(onClick = exportPdf, modifier = Modifier.fillMaxWidth()) { Text("Esporta PDF della bozza") } }
-                item { Button(onClick = { model.refresh(report.id, notes) }, enabled = !busy, modifier = Modifier.fillMaxWidth().testTag("refresh-report")) { Text("Aggiorna bozza dai dati sorgente") } }
-                item { OutlinedButton(onClick = { tab = 2; confirm = true }, enabled = !busy && notes.trim() == report.notes && issues.none { it.blocking } && (issues.isEmpty() || acknowledged), modifier = Modifier.fillMaxWidth().testTag("confirm-report")) { Text("Conferma rendiconto") } }
+                item { Button(onClick = { model.refresh(report.id, notes) }, enabled = !busy, modifier = Modifier.fillMaxWidth().testTag("refresh-report")) { Text("Salva note · dati aggiornati automaticamente") } }
+                item { OutlinedButton(onClick = { tab = 2; confirm = true }, enabled = !busy && notes.trim() == report.notes && issues.none { it.blocking } && ((issues.isEmpty() && proposed.isEmpty()) || acknowledged), modifier = Modifier.fillMaxWidth().testTag("confirm-report")) { Text("Conferma rendiconto") } }
             } else {
                 item { Button(onClick = exportPdf, modifier = Modifier.fillMaxWidth().testTag("export-report-pdf")) { Text("Esporta / visualizza PDF confermato") } }
                 item { OutlinedButton(onClick = { revise = true }, enabled = !busy, modifier = Modifier.fillMaxWidth().testTag("revise-report")) { Text("Crea versione rettificativa") } }

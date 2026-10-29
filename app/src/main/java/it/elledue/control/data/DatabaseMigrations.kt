@@ -110,4 +110,18 @@ object DatabaseMigrations {
         }
     }
 
+    val MIGRATION_8_9=object:Migration(8,9) {
+        override fun migrate(db:SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE money_movements ADD COLUMN collector TEXT NOT NULL DEFAULT 'ELLEDUE'")
+            db.execSQL("ALTER TABLE expenses ADD COLUMN recognition TEXT NOT NULL DEFAULT 'ACTUAL'")
+            db.execSQL("ALTER TABLE expenses ADD COLUMN originKey TEXT")
+            db.execSQL("ALTER TABLE expenses ADD COLUMN approvalBatchId TEXT")
+            db.execSQL("ALTER TABLE expenses ADD COLUMN effectiveDateConfirmed INTEGER NOT NULL DEFAULT 1")
+            db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_expenses_originKey ON expenses(originKey)")
+            db.execSQL("CREATE TABLE IF NOT EXISTS maintenance_state (id TEXT NOT NULL PRIMARY KEY, completedAt INTEGER NOT NULL, resultJson TEXT NOT NULL)")
+            db.execSQL("CREATE TABLE IF NOT EXISTS standard_approvals (id TEXT NOT NULL PRIMARY KEY, reportId TEXT NOT NULL, approvedAt INTEGER NOT NULL, actor TEXT NOT NULL, sourcesJson TEXT NOT NULL, previewHash TEXT NOT NULL, FOREIGN KEY(reportId) REFERENCES reports(id) ON DELETE RESTRICT)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_standard_approvals_reportId ON standard_approvals(reportId)")
+        }
+    }
+
 }

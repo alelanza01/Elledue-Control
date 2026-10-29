@@ -121,34 +121,27 @@ fun ReservationsScreen(records: List<ReservationEntity>, properties: List<Proper
 
 @Composable
 private fun MonthGrid(month:YearMonth,selected:Long,today:Long,records:List<ReservationEntity>,singleProperty:Boolean,activities:List<ActivityEntity>,labels:Map<String,String>,select:(Long)->Unit) {
- val first=month.atDay(1).minusDays((month.atDay(1).dayOfWeek.value-1).toLong()).toEpochDay()
- val weeks=((month.atDay(1).dayOfWeek.value-1)+month.lengthOfMonth()+6)/7
- OutlinedCard(Modifier.fillMaxWidth()) {Column(Modifier.padding(10.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){
-  Row{listOf("Lun","Mar","Mer","Gio","Ven","Sab","Dom").forEach{Text(it,Modifier.weight(1f),style=MaterialTheme.typography.labelSmall,color=ConceptMuted)}}
-  repeat(weeks){w->
-   val start=first+w*7;val end=start+7
-   Column(verticalArrangement=Arrangement.spacedBy(5.dp)){
-    Row{repeat(7){offset->val day=start+offset;val date=LocalDate.ofEpochDay(day)
-     Box(Modifier.weight(1f).heightIn(min=48.dp).clip(MaterialTheme.shapes.small).background(if(day==selected)ElledueGold else Color.Transparent).clickable{select(day)}.testTag("calendar-day-$day").semantics{contentDescription=BookingDates.display(day)+", ${records.count{it.checkInEpochDay==day}} arrivi, ${records.count{it.checkOutEpochDay==day}} partenze, ${records.count{day>=it.checkInEpochDay && day<it.checkOutEpochDay}} soggiorni, apri giornata operativa"},contentAlignment=Alignment.Center){Text(date.dayOfMonth.toString(),color=if(day==selected)ElledueNight else if(date.month!=month.month)ConceptMuted.copy(.45f) else if(day==today)ElledueGold else MaterialTheme.colorScheme.onSurface)}
-    }}
-    val stays=records.filter{it.checkInEpochDay<end && it.checkOutEpochDay>=start}.sortedWith(compareBy<ReservationEntity>{it.propertyId}.thenBy{it.checkInEpochDay})
-    stays.take(5).forEach{b->
-     val from=maxOf(start,b.checkInEpochDay);val through=minOf(end-1,b.checkOutEpochDay);val width=(through-from+1).toInt()
-     Row(Modifier.fillMaxWidth()){
-      if(from>start)Spacer(Modifier.weight((from-start).toFloat()))
-      Column(Modifier.weight(width.toFloat()).clip(MaterialTheme.shapes.small).background(StayColor.copy(.16f)).clickable{select(from)}.padding(horizontal=5.dp,vertical=5.dp),verticalArrangement=Arrangement.spacedBy(3.dp)){
-       Row(horizontalArrangement=Arrangement.spacedBy(4.dp),verticalAlignment=Alignment.CenterVertically){Box(Modifier.size(6.dp).background(propertyColor(b.propertyId),CircleShape));Text(labels[b.propertyId] ?: "Immobile",style=MaterialTheme.typography.labelSmall,maxLines=1,overflow=androidx.compose.ui.text.style.TextOverflow.Ellipsis)}
-       Text((if(b.checkInEpochDay in start until end)"↘ ${b.expectedArrivalTime} · " else "Soggiorno · ")+b.guestLastName+(if(b.checkOutEpochDay in start until end)" · ↗ ${b.expectedDepartureTime}" else ""),color=if(b.checkInEpochDay in start until end)ArrivalColor else if(b.checkOutEpochDay in start until end)DepartureColor else StayColor,style=MaterialTheme.typography.labelSmall,maxLines=2,overflow=androidx.compose.ui.text.style.TextOverflow.Ellipsis)
-      }
-      if(through<end-1)Spacer(Modifier.weight((end-1-through).toFloat()))
+ val offset=month.atDay(1).dayOfWeek.value-1
+ val weeks=(offset+month.lengthOfMonth()+6)/7
+ OutlinedCard(Modifier.fillMaxWidth().testTag("compact-month-grid")) {Column(Modifier.padding(8.dp),verticalArrangement=Arrangement.spacedBy(2.dp)){
+  Row{listOf("L","M","M","G","V","S","D").forEach{Text(it,Modifier.weight(1f),style=MaterialTheme.typography.labelMedium,textAlign=androidx.compose.ui.text.style.TextAlign.Center)}}
+  repeat(weeks){w->Row{repeat(7){d->
+   val number=w*7+d-offset+1
+   if(number !in 1..month.lengthOfMonth())Spacer(Modifier.weight(1f).height(56.dp)) else {
+    val day=month.atDay(number).toEpochDay();val bookings=records.filter{day>=it.checkInEpochDay && day<=it.checkOutEpochDay}
+    val ins=bookings.count{it.checkInEpochDay==day};val outs=bookings.count{it.checkOutEpochDay==day};val stays=bookings.count{day<it.checkOutEpochDay}
+    val tasks=activities.count{it.dueEpochMillis?.let{at->Instant.ofEpochMilli(at).atZone(ZoneId.of(it.zoneId)).toLocalDate().toEpochDay()==day}==true}
+    Column(Modifier.weight(1f).height(56.dp).clip(MaterialTheme.shapes.small).background(if(day==selected)ElledueGold.copy(.2f) else Color.Transparent).clickable{select(day)}.testTag("calendar-day-$day").semantics{contentDescription="${BookingDates.display(day)}, $ins arrivi, $outs partenze, $stays soggiorni, $tasks attività, apri giornata operativa"},horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.Center){
+     Text(number.toString(),style=MaterialTheme.typography.labelLarge,color=if(day==selected || day==today)ElledueGold else MaterialTheme.colorScheme.onSurface,fontWeight=if(day==today)FontWeight.Bold else FontWeight.Normal)
+     Row(horizontalArrangement=Arrangement.spacedBy(2.dp)) {
+      if(ins>0)Text("↘",color=ArrivalColor,style=MaterialTheme.typography.labelSmall)
+      if(outs>0)Text("↗",color=DepartureColor,style=MaterialTheme.typography.labelSmall)
+      if(tasks>0)Text("•",color=TaskColor,style=MaterialTheme.typography.labelSmall)
      }
+     Row(horizontalArrangement=Arrangement.spacedBy(2.dp)){bookings.map{it.propertyId}.distinct().take(4).forEach{id->Box(Modifier.size(4.dp).background(propertyColor(id),CircleShape))}}
     }
-    if(stays.size>5)Text("+${stays.size-5} soggiorni · tocca una data per tutti i dettagli",style=MaterialTheme.typography.labelSmall)
-    val tasks=activities.filter{a->a.dueEpochMillis?.let{Instant.ofEpochMilli(it).atZone(ZoneId.of(a.zoneId)).toLocalDate().toEpochDay() in start until end}==true}
-    tasks.forEach{a->TextButton(onClick={select(Instant.ofEpochMilli(a.dueEpochMillis!!).atZone(ZoneId.of(a.zoneId)).toLocalDate().toEpochDay())},modifier=Modifier.heightIn(min=48.dp)){Text((if(a.kind=="CLEANING")"Pulizia" else if(a.kind=="MAINTENANCE")"Intervento" else "Attività")+" · "+a.title,style=MaterialTheme.typography.labelMedium,color=if(a.kind=="CLEANING")ElledueGold else TaskColor)}}
-    HorizontalDivider(color=ConceptBorder)
    }
-  }
+  }}}
  }}
 }
 
@@ -156,6 +149,7 @@ private fun MonthGrid(month:YearMonth,selected:Long,today:Long,records:List<Rese
 @Composable
 fun BookingDetailScreen(item: ReservationEntity, propertyName: String, busy: Boolean, error: String?, onBack: () -> Unit, onEdit: () -> Unit, onCancel: () -> Unit, onDelete:()->Unit = {}, onTax: () -> Unit = {}, onExpense: (String) -> Unit = {}, onActivities: () -> Unit = {}, onMessages: () -> Unit = {}, financialChanges: List<it.elledue.control.data.BookingFinancialChangeEntity> = emptyList(), operationalContent:@Composable ()->Unit = {}) {
     var confirm by rememberSaveable { mutableStateOf(false) }
+    var showTimes by rememberSaveable{mutableStateOf(false)}
     Scaffold(topBar = { TopAppBar(title = { Text("Riepilogo soggiorno") }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Indietro") } }, actions = { TextButton(onClick = onEdit, enabled = !busy) { Text("Modifica") } }) }) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
             Text("${item.guestFirstName} ${item.guestLastName}", style = MaterialTheme.typography.headlineLarge)
@@ -163,6 +157,8 @@ fun BookingDetailScreen(item: ReservationEntity, propertyName: String, busy: Boo
             Text(StayStatus.label(item), modifier = Modifier.testTag("booking-status"))
             Text("${BookingDates.display(item.checkInEpochDay)} → ${BookingDates.display(item.checkOutEpochDay)} · ${item.checkOutEpochDay - item.checkInEpochDay} notti")
             Text("${item.guestCount} ospiti · ${item.platform}")
+            TextButton(onClick={showTimes=!showTimes}){Text(if(showTimes)"Nascondi orari" else "Orari del soggiorno")}
+            if(showTimes)
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer), modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text("Arrivo previsto: ${item.expectedArrivalTime}")
@@ -178,8 +174,8 @@ fun BookingDetailScreen(item: ReservationEntity, propertyName: String, busy: Boo
                 OutlinedButton(onClick = onActivities) { Text("Attività") }
                 OutlinedButton(onClick = onMessages,modifier=Modifier.testTag("booking-messages")){Text("Messaggi IT/EN")}
             }
-            operationalContent()
             FinanceCard(item.grossCents, BookingTotals(item.otaCents, item.netCents, item.managementCents), actualOta = item.actualOtaCents != null)
+            operationalContent()
             Text("OTA ${Amounts.editable(item.appliedOtaBasisPoints.toLong())}% · Elledue ${Amounts.editable(item.appliedManagementBasisPoints.toLong())}% sul netto. Parametri storici conservati.", style = MaterialTheme.typography.bodySmall)
             financialChanges.filter { it.reservationId == item.id }.forEach { change ->
                 val before = org.json.JSONObject(change.previousJson); val after = org.json.JSONObject(change.currentJson)

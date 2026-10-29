@@ -4,6 +4,7 @@ import androidx.room.withTransaction
 import it.elledue.control.domain.*
 import org.json.JSONObject
 import java.util.UUID
+import kotlinx.coroutines.flow.first
 
 class AccountingRepository(private val db: AppDatabase,private val drafts:DraftStore?=null) {
     private val dao = db.accountingDao()
@@ -30,7 +31,8 @@ class AccountingRepository(private val db: AppDatabase,private val drafts:DraftS
             require(!category.archived || old?.categoryId == category.id) { "La categoria è archiviata." }
             if (draft.reservationId.isNotBlank()) require(db.reservationDao().get(draft.reservationId)?.propertyId == draft.propertyId) { "La prenotazione deve appartenere allo stesso immobile." }
             require(old == null || draft.reason.isNotBlank()) { "Motiva la rettifica della spesa." }
-            val item = draft.record(category)
+            if(old==null && draft.reservationId.isNotBlank() && category.kind in listOf("CLEANING","LAUNDRY"))require(dao.observeExpenses().first().none{it.reservationId==draft.reservationId && it.kind==category.kind && !it.voided}){"Intervento già registrato: modifica la voce esistente, senza aggiungere una seconda spesa."}
+            val item = draft.record(category).copy(recognition="ACTUAL",originKey=old?.originKey,approvalBatchId=old?.approvalBatchId,effectiveDateConfirmed=true)
             ReportGuard.allow(db, "EXPENSE", draft.id, item.propertyId, item.competenceMonth)
             // Preserve the original v1/v2 foundational row before its first rectification.
             if (old != null && dao.expenseHistory(old.id).isEmpty()) dao.insertExpenseRevision(ExpenseRevisionEntity(UUID.randomUUID().toString(), old.id, old.revision, snapshot(old), "Valore precedente alla rettifica", old.updatedAt))
@@ -76,6 +78,7 @@ class AccountingRepository(private val db: AppDatabase,private val drafts:DraftS
                 require(existing.copy(createdAt = item.createdAt) == item) { "Identificativo già usato per un movimento diverso." }
                 return@withTransaction existing.id
             }
+            require(item.collector in listOf("ELLEDUE","OWNER","PORTAL","OTHER"))
             require(item.amountCents > 0) { "Inserisci un importo maggiore di zero." }
             Competence.month(item.competenceMonth)
             java.time.LocalDate.ofEpochDay(item.dateEpochDay)
@@ -100,6 +103,11 @@ class AccountingRepository(private val db: AppDatabase,private val drafts:DraftS
                     } else {
                         require(item.kind!="COMPENSATION" || booking.appliedBusinessType!="OWNED"){"Per gli immobili propri la tassa non è un anticipo a un proprietario esterno."}
                         val source = requireNotNull(active.firstOrNull { it.id == item.sourceId && it.kind == "COLLECTION" && it.reservationId == booking.id }) { "Seleziona una riscossione attiva della prenotazione." }
+                        if(item.kind=="COMPENSATION") {
+                            val versions=db.reportDao().period(item.propertyId,item.competenceMonth)
+                            require(versions.none{it.status=="CONFIRMED"} || versions.any{it.status=="DRAFT" && it.previousId!=null}){"Apri una versione rettificativa per riconoscere anticipi nel periodo già confermato."}
+                        }
+                        require(item.kind!="COMPENSATION" || source.collector=="ELLEDUE"){"Solo una riscossione Elledue può essere compensata."}
                         val used = OperationalMoney.total(active.filter { it.kind == item.kind && it.sourceId == source.id }.map { it.amountCents })
                         require(item.amountCents <= source.amountCents - used) { "Importo già riconosciuto o superiore alla riscossione disponibile." }
                         if (item.kind == "REMITTANCE") require(tax.remittanceResponsible != "UNDEFINED") { "Configura separatamente il soggetto del riversamento." }
@@ -125,6 +133,16 @@ class AccountingRepository(private val db: AppDatabase,private val drafts:DraftS
         }
         drafts?.routes()?.filter{it.startsWith("movement/new?") && drafts.load("$it#id",String::class.java)==item.id}?.forEach(drafts::clear)
         return result
+    }
+    suspend fun collectTax(bookingId:String,amountCents:Long,collector:String,compensate:Boolean,requestId:String,date:Long=BookingDates.today().toEpochDay()):Unit=db.withTransaction {
+        require(collector in listOf("ELLEDUE","OWNER","PORTAL","OTHER"))
+        require(!compensate || collector=="ELLEDUE"){"La compensazione richiede una riscossione Elledue."}
+        val b=requireNotNull(db.reservationDao().get(bookingId))
+        require(!compensate || b.appliedBusinessType=="MANAGED"){"Per gli immobili propri non esiste un saldo con un proprietario esterno."}
+        val note="Riscossione confermata · $collector · compensazione ${if(compensate)"sì" else "no"}"
+        val collection=MoneyMovementEntity("quick-tax:$requestId",b.propertyId,b.id,"COLLECTION",amountCents,date,b.competenceMonth,note,collector=collector)
+        post(collection)
+        if(compensate)post(collection.copy(id="quick-tax-comp:$requestId",kind="COMPENSATION",sourceId=collection.id))
     }
     companion object {
         internal fun snapshot(item: Any): String = JSONObject().apply {

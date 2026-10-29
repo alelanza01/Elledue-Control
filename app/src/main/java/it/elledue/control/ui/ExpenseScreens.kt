@@ -23,6 +23,7 @@ import java.util.UUID
 fun ExpenseEditor(initial: ExpenseDraft, properties: List<PropertyWithOwner>, bookings: List<ReservationEntity>, categories: List<ExpenseCategoryEntity>, model: AccountingViewModel, draftRoute:String?=null, onBack: () -> Unit) {
     val draftKey=draftRoute ?: if(initial.revision==0)"expense/new/OTHER?booking=${initial.reservationId}" else "expense/${initial.id}/edit"
     var draft by rememberPersistentDraft(draftKey,initial)
+    var details by rememberSaveable{mutableStateOf(initial.revision>0)}
     var exit by rememberSaveable { mutableStateOf(false) }
     val busy by model.busy.collectAsStateWithLifecycle(); val error by model.error.collectAsStateWithLifecycle()
     val editorScroll=rememberScrollState()
@@ -36,7 +37,7 @@ fun ExpenseEditor(initial: ExpenseDraft, properties: List<PropertyWithOwner>, bo
         return draft.copy(categoryId = id, quantity = if(id=="transport" && p?.habitualTransportCents!=null)"1" else if (c?.kind == "OTHER") "" else draft.quantity.ifBlank { "1" }, unit = when (c?.kind) { "CLEANING" -> Amounts.editable(p?.cleaningHourlyCents ?: 800); "LAUNDRY" -> Amounts.editable(p?.laundrySetCents ?: 500); else -> if(id=="transport")p?.habitualTransportCents?.let(Amounts::editable) ?: "" else "" })
     }
     Scaffold(topBar = { TopAppBar(title = { Text(if (initial.revision == 0) "Nuova spesa" else "Rettifica spesa") }, navigationIcon = { IconButton(onClick = back) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Indietro spesa") } }, actions = { TextButton(onClick = { model.saveExpense(draft) }, enabled = !busy, modifier = Modifier.testTag("save-expense")) { Text("Salva") } }) }) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding).verticalScroll(editorScroll).padding(20.dp).testTag("expense-editor"), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        Column(Modifier.fillMaxSize().padding(padding).imePadding().verticalScroll(editorScroll).padding(20.dp).testTag("expense-editor"), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             DraftBanner(draftKey){draft=initial}
             error?.let { Text(it,color=MaterialTheme.colorScheme.error) }
             PropertySelector(properties.filter { !it.property.archived || it.property.id == initial.propertyId }, draft.propertyId, enabled = !busy) { id ->
@@ -48,7 +49,7 @@ fun ExpenseEditor(initial: ExpenseDraft, properties: List<PropertyWithOwner>, bo
                 AccountingField(if (category?.kind == "CLEANING") "Ore lavorate" else "Numero set", draft.quantity, "expense-quantity", !busy) { draft = draft.copy(quantity = it) }
                 AccountingField(if (category?.kind == "CLEANING") "Tariffa oraria €" else "Tariffa per set €", draft.unit, "expense-unit", !busy) { draft = draft.copy(unit = it) }
                 calculated?.let { Text("Costo calcolato ${Amounts.euro(it)}", style = MaterialTheme.typography.titleMedium, modifier = Modifier.testTag("expense-calculated")) }
-                if (category?.kind == "LAUNDRY") AccountingField("Definizione set", draft.setDefinition, enabled = !busy) { draft = draft.copy(setDefinition = it) }
+                if (details && category?.kind == "LAUNDRY") AccountingField("Definizione set", draft.setDefinition, enabled = !busy) { draft = draft.copy(setDefinition = it) }
             }
             AccountingField(if (category?.kind == "OTHER") "Importo €" else "Importo effettivo € (facoltativo)", draft.amount, "expense-amount", !busy) { draft = draft.copy(amount = it) }
             if (category?.kind != "OTHER") Text("Se inserito, l’importo effettivo prevale sul calcolo. L’intervento è una sola spesa.", style = MaterialTheme.typography.bodySmall)
@@ -57,8 +58,12 @@ fun ExpenseEditor(initial: ExpenseDraft, properties: List<PropertyWithOwner>, bo
                 val defaultMonth = runCatching { Competence.booking(BookingDates.parse(draft.date).toEpochDay()) }.getOrNull()
                 draft = draft.copy(date = value, month = if (draft.month == defaultMonth) runCatching { Competence.booking(BookingDates.parse(value).toEpochDay()) }.getOrDefault(draft.month) else draft.month)
             }
-            AccountingField("Competenza AAAA-MM", draft.month, "expense-month", !busy) { draft = draft.copy(month = it) }
             ChoiceField("Prenotazione collegata", draft.reservationId, listOf("" to "Nessuna") + bookings.filter { it.propertyId == draft.propertyId }.map { it.id to "${it.guestFirstName} ${it.guestLastName} · ${BookingDates.display(it.checkInEpochDay)}" }, !busy) { draft = draft.copy(reservationId = it) }
+            ChoiceField("Chi ha pagato",if(draft.advanced)"ELLEDUE" else "OWNER",listOf("ELLEDUE" to "Elledue","OWNER" to "Proprietario / altro"),!busy){draft=draft.copy(advanced=it=="ELLEDUE")}
+            TextButton(onClick={details=!details},modifier=Modifier.testTag("expense-more-details")){Text(if(details)"Nascondi dettagli" else "Altri dettagli")}
+            if(details) {
+            AccountingField("Competenza AAAA-MM", draft.month, "expense-month", !busy) { draft = draft.copy(month = it) }
+
             Row { Checkbox(draft.advanced, { draft = draft.copy(advanced = it) }, enabled = !busy); Text("Anticipata da Elledue", modifier = Modifier.padding(top = 12.dp)) }
             Row { Checkbox(draft.reimbursable, { draft = draft.copy(reimbursable = it) }, enabled = !busy && (initial.revision>0 || properties.firstOrNull{it.property.id==draft.propertyId}?.property?.businessType!="OWNED")); Text("Rimborsabile dal proprietario", modifier = Modifier.padding(top = 12.dp)) }
             if (category?.kind == "OTHER") {
@@ -67,7 +72,7 @@ fun ExpenseEditor(initial: ExpenseDraft, properties: List<PropertyWithOwner>, bo
             }
             AccountingField("Note", draft.notes, enabled = !busy) { draft = draft.copy(notes = it) }
             if (initial.revision > 0) AccountingField("Motivo della rettifica", draft.reason, "expense-reason", !busy) { draft = draft.copy(reason = it) }
-            Text("Allegati/scontrini non ancora disponibili: non vengono richiesti permessi o copie non protette.", style = MaterialTheme.typography.bodySmall)
+            }
             if (busy) CircularProgressIndicator()
         }
     }

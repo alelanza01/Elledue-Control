@@ -121,7 +121,7 @@ private fun HomeMetric(label: String, value: String, detail: String, icon: andro
 }
 
 @Composable
-fun CommandHome(properties: List<PropertyWithOwner>, bookings: List<ReservationEntity>, reports: List<ReportEntity>, accounting: AccountingData?, settings: AppSettings?, activities: List<ActivityEntity>, navigate: (String) -> Unit,businessType:String="MANAGED") {
+fun CommandHome(properties: List<PropertyWithOwner>, bookings: List<ReservationEntity>, reports: List<ReportEntity>, accounting: AccountingData?, settings: AppSettings?, activities: List<ActivityEntity>, navigate: (String) -> Unit,businessType:String="MANAGED",issues:List<PropertyIssue> = emptyList(),forecasts:List<StayCostForecast> = emptyList()) {
     val today = BookingDates.today().toEpochDay(); val month = java.time.YearMonth.from(BookingDates.today())
     val active = bookings.filter { it.status != "CANCELLED" }
     val arrivals = active.filter { it.checkInEpochDay == today }; val departures = active.filter { it.checkOutEpochDay == today }
@@ -191,6 +191,14 @@ fun CommandHome(properties: List<PropertyWithOwner>, bookings: List<ReservationE
         val upcoming=active.filter { it.checkInEpochDay>today }.sortedBy { it.checkInEpochDay }.take(3)
         if(upcoming.isNotEmpty()) item { Text("Prossimi soggiorni",style=MaterialTheme.typography.titleLarge) }
         upcoming.forEach { b -> item(key="next-${b.id}") { ConceptTimelineRow(BookingDates.display(b.checkInEpochDay).take(5),"${b.guestFirstName} ${b.guestLastName}",properties.firstOrNull { it.property.id==b.propertyId }?.property?.name ?: "Immobile",Icons.Outlined.Apartment,StayColor) { navigate("booking/${b.id}") } } }
+        val leaving=active.filter{it.checkOutEpochDay>today}.sortedBy{it.checkOutEpochDay}.take(3)
+        if(leaving.isNotEmpty())item{Text("Prossime partenze",style=MaterialTheme.typography.titleLarge)}
+        leaving.forEach{b->item(key="departure-${b.id}"){ConceptTimelineRow(BookingDates.display(b.checkOutEpochDay).take(5),"Check-out · ${b.guestLastName}",properties.firstOrNull{it.property.id==b.propertyId}?.property?.name ?: "Immobile",Icons.Outlined.CalendarMonth,DepartureColor){navigate("booking/${b.id}")}}}
+        activities.filter{!it.completed}.take(3).forEach{a->item(key="pending-${a.id}"){TextButton(onClick={navigate("activity/${a.id}")}){Text("Da completare · ${a.title}")}}}
+        issues.filter{IssueRepository.open(it)}.sortedBy{if(it.priority=="URGENT")0 else 1}.take(3).forEach{i->item(key="issue-${i.id}"){TextButton(onClick={navigate("issue/${i.id}")}){Text("Problema aperto · ${i.title}")}}}
+        active.filter{b->accounting?.taxes?.firstOrNull{it.reservationId==b.id}?.expectedCents?.let{it>b.collectedTaxCents}==true}.take(3).forEach{b->item(key="tax-${b.id}"){TextButton(onClick={navigate("booking/${b.id}")}){Text("Tassa da riscuotere · ${b.guestLastName}")}}}
+        forecasts.filter{it.manual}.map{it.reservationId}.distinct().take(3).forEach{id->item(key="exception-$id"){TextButton(onClick={navigate("booking/$id")}){Text("Costi personalizzati da verificare · ${bookings.firstOrNull{it.id==id}?.guestLastName ?: "Soggiorno"}")}}}
+        reports.filter{it.status=="DRAFT"}.take(3).forEach{report->item(key="report-${report.id}"){TextButton(onClick={navigate("report/${report.id}")}){Text("Rendiconto da verificare · ${report.yearMonth}")}}}
         item { Text("Il tuo portfolio",style=MaterialTheme.typography.titleLarge) }
         portfolio.take(2).forEach { p -> item(key="property-${p.property.id}") { PortfolioTile(p) { navigate("property/${p.property.id}") } } }
         if(properties.isEmpty()) item { EmptyState("Pronto per il primo immobile","Aggiungi la copertina e costruisci il tuo portfolio.","Aggiungi un immobile",{navigate("property/new")}) }

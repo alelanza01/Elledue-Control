@@ -48,7 +48,7 @@ data class ReservationEntity(
     ForeignKey(entity = ExpenseCategoryEntity::class, parentColumns = ["id"], childColumns = ["categoryId"], onDelete = ForeignKey.RESTRICT),
     ForeignKey(entity = PropertyEntity::class, parentColumns = ["id"], childColumns = ["propertyId"], onDelete = ForeignKey.RESTRICT),
     ForeignKey(entity = ReservationEntity::class, parentColumns = ["id"], childColumns = ["reservationId"], onDelete = ForeignKey.RESTRICT),
-], indices = [Index("propertyId"), Index("reservationId"), Index("categoryId")])
+], indices = [Index("propertyId"), Index("reservationId"), Index("categoryId"),Index(value=["originKey"],unique=true)])
 data class ExpenseEntity(
     @PrimaryKey val id: String,
     val propertyId: String,
@@ -71,6 +71,10 @@ data class ExpenseEntity(
     @ColumnInfo(defaultValue = "1") val revision: Int = 1,
     @ColumnInfo(defaultValue = "0") val updatedAt: Long = 0,
     val accountingAllocationId: String? = null,
+    @ColumnInfo(defaultValue="'ACTUAL'") val recognition:String="ACTUAL",
+    val originKey:String?=null,
+    val approvalBatchId:String?=null,
+    @ColumnInfo(defaultValue="1") val effectiveDateConfirmed:Boolean=true,
 )
 
 @Entity(tableName = "activities", foreignKeys = [

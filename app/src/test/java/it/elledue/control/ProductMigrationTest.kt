@@ -53,8 +53,8 @@ class ProductMigrationTest {
                 }
                 val setup = schema.getJSONArray("setupQueries"); for (i in 0 until setup.length()) sqlite.execSQL(setup.getString(i)); sqlite.version = 4
             }
-            Room.databaseBuilder(context, AppDatabase::class.java, name).addMigrations(DatabaseMigrations.MIGRATION_3_4, DatabaseMigrations.MIGRATION_4_5, DatabaseMigrations.MIGRATION_5_6, DatabaseMigrations.MIGRATION_6_7,DatabaseMigrations.MIGRATION_7_8).build().withClosing { db ->
-                assertEquals(8, db.openHelper.readableDatabase.version); assertEquals("2026-12", db.reservationDao().get("b")!!.competenceMonth)
+            Room.databaseBuilder(context, AppDatabase::class.java, name).addMigrations(DatabaseMigrations.MIGRATION_3_4, DatabaseMigrations.MIGRATION_4_5, DatabaseMigrations.MIGRATION_5_6, DatabaseMigrations.MIGRATION_6_7,DatabaseMigrations.MIGRATION_7_8, DatabaseMigrations.MIGRATION_8_9).build().withClosing { db ->
+                assertEquals(9, db.openHelper.readableDatabase.version); assertEquals("2026-12", db.reservationDao().get("b")!!.competenceMonth)
                 assertEquals(3000L, db.reservationDao().get("b")!!.collectedTaxCents); assertEquals(500L, db.accountingDao().expense("e")!!.actualCents)
                 assertEquals(2, db.accountingDao().movements().size); assertEquals(1, db.accountingDao().expenseHistory("e").size); assertEquals(1, db.accountingDao().taxHistory("b").size)
                 assertEquals(1, db.accountingDao().observeFinancialChanges().first().size); assertTrue(db.reportDao().allocations().isEmpty())

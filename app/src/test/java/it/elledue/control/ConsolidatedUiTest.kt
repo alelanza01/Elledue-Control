@@ -42,8 +42,8 @@ class ConsolidatedUiTest {
   route("booking/new");waitTag("booking-property-selector");compose.onNodeWithTag("booking-property-selector").assertTextContains("Seleziona appartamento")
   capture("new-reservation")
   compose.onNodeWithTag("booking-property-selector").performClick();compose.onNodeWithTag("select-property-049-p").performClick()
-  compose.onNodeWithTag("booking-date-range").performScrollTo().performClick();waitTag("stay-range-picker");capture("date-range-picker")
-  compose.onNodeWithText("Conferma soggiorno").performClick();compose.onNodeWithTag("booking-check-in").assertTextContains(BookingDates.display(day))
+  compose.onNodeWithTag("booking-check-in").performScrollTo().performClick();waitTag("stay-range-picker");capture("date-range-picker")
+  compose.onNodeWithText("Conferma soggiorno").performClick();compose.onNodeWithTag("booking-check-in").assertContentDescriptionContains(BookingDates.display(day),substring=true)
  }
  @Test fun calendarTapOpensChronologicalOperationalDayAndIssueDetail(){
   route("calendar");waitTag("calendar-day-$day");capture("monthly-calendar")

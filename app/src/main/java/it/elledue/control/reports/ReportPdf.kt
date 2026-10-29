@@ -136,29 +136,39 @@ class ReportPdf(private val context: Context) {
             }
             if(value.hiddenBookingIds.orEmpty().isNotEmpty()) paragraph("${value.hiddenBookingIds.orEmpty().size} prenotazioni non dettagliate: gli importi sono inclusi negli aggregati del rendiconto.",8f)
             val totals = value.summary()
+            if(value.draft && value.proposedExpenses.orEmpty().isNotEmpty())paragraph("COSTI STANDARD PROPOSTI: inclusi nella bozza, da approvare in blocco. Non attestano pagamenti.",9f,true)
             section("Resoconto compenso gestione")
             amount("Lordo prenotazioni (tassa esclusa)", value.gross()); amount("Commissioni OTA", value.ota()); amount("Netto dopo OTA al proprietario", value.net())
             paragraph("Percentuali di gestione applicate: "+value.bookings.filter{it.status!="CANCELLED"}.map{Amounts.editable(it.appliedManagementBasisPoints.toLong())+"%"}.distinct().joinToString(" · "),8f)
             if (layout == ReportLayout.DETAILED) amount("Compenso di gestione Elledue", totals.fees)
+            if(value.effectiveExpenses().any{it.recognition=="STANDARD_APPROVED"})paragraph("Costi standard approvati nel saldo: l’approvazione non attesta un pagamento. Le date indicate come previste non sono consuntivi dell’intervento.",8f)
             if (layout == ReportLayout.DETAILED) {
             section("02  Pulizie")
             fun bookingName(id: String?) = if(id in value.hiddenBookingIds.orEmpty()) "Prenotazione non dettagliata" else (value.bookings + value.linkedBookings.orEmpty()).firstOrNull { it.id == id }?.let { "${it.guestFirstName} ${it.guestLastName}" } ?: if (id == null) "Non collegata" else "Collegamento storico"
-            table(listOf("Data / prenotazione", "Intervento", "Ore", "Tariffa", "Costo effettivo"), listOf(126f, 177f, 50f, 73f, 89f), value.expenses.filter { it.kind == "CLEANING" }.map { listOf("${BookingDates.display(it.dateEpochDay)}\n${bookingName(it.reservationId)}", it.description, it.quantity ?: "—", it.unitCents?.let(Amounts::euro) ?: "—", Amounts.euro(it.actualCents)) })
+            table(listOf("Data / prenotazione", "Intervento", "Ore", "Tariffa", "Costo effettivo"), listOf(126f, 177f, 50f, 73f, 89f), value.effectiveExpenses().filter { it.kind == "CLEANING" }.map { listOf("${BookingDates.display(it.dateEpochDay)}${if(!it.effectiveDateConfirmed)" (prevista)" else ""}\n${bookingName(it.reservationId)}", it.description+" · "+when(it.recognition){"PROPOSED"->"Standard proposto";"STANDARD_APPROVED"->"Standard approvato · pagamento non attestato";else->"Consuntivo"}, it.quantity ?: "—", it.unitCents?.let(Amounts::euro) ?: "—", Amounts.euro(it.actualCents)) })
             amount("Totale pulizie", totals.cleaning)
             section("03  Lavanderia")
-            table(listOf("Data", "Tipologia set", "Quantità", "Tariffa", "Costo effettivo"), listOf(80f, 223f, 50f, 73f, 89f), value.expenses.filter { it.kind == "LAUNDRY" }.map { listOf(BookingDates.display(it.dateEpochDay), it.setDefinition, it.quantity ?: "—", it.unitCents?.let(Amounts::euro) ?: "—", Amounts.euro(it.actualCents)) })
+            table(listOf("Data", "Tipologia set", "Quantità", "Tariffa", "Costo effettivo"), listOf(80f, 223f, 50f, 73f, 89f), value.effectiveExpenses().filter { it.kind == "LAUNDRY" }.map { listOf(BookingDates.display(it.dateEpochDay)+(if(!it.effectiveDateConfirmed)" (prevista)" else ""), it.setDefinition+" · "+when(it.recognition){"PROPOSED"->"Standard proposto";"STANDARD_APPROVED"->"Standard approvato";else->"Consuntivo"}, it.quantity ?: "—", it.unitCents?.let(Amounts::euro) ?: "—", Amounts.euro(it.actualCents)) })
             amount("Totale lavanderia", totals.laundry)
             section("04  Altre spese")
-            table(listOf("Data / categoria", "Descrizione / note", "Rimborso", "Importo"), listOf(127f, 223f, 76f, 89f), value.expenses.filter { it.kind == "OTHER" }.map { listOf("${BookingDates.display(it.dateEpochDay)}\n${it.category}", "${it.description}\n${it.notes}", if (it.advancedByElledue && it.reimbursable) "Sì" else "No", Amounts.euro(it.actualCents)) })
+            table(listOf("Data / categoria", "Descrizione / note", "Rimborso", "Importo"), listOf(127f, 223f, 76f, 89f), value.effectiveExpenses().filter { it.kind == "OTHER" }.map { listOf("${BookingDates.display(it.dateEpochDay)}\n${it.category}", "${it.description}\n${it.notes}", if (it.advancedByElledue && it.reimbursable) "Sì" else "No", Amounts.euro(it.actualCents)) })
             amount("Spese complessive", totals.expenses); amount("Spese anticipate da Elledue", totals.advanced); amount("Spese anticipate e rimborsabili", totals.reimbursable)
             paragraph("Le tariffe e i costi effettivi degli interventi sono storici. Nel saldo entrano soltanto spese anticipate da Elledue e rimborsabili dal proprietario.", 8f)
             } else {
                 section("02  Spese rimborsabili")
-                table(listOf("Rimborso dovuto", "Importo"), listOf(426f, 89f), value.expenses.filter{!it.voided && it.advancedByElledue && it.reimbursable}.groupBy{it.category}.toSortedMap().map{(category,rows)->listOf(category,Amounts.euro(OperationalMoney.total(rows.map{it.actualCents})))} )
+                table(listOf("Rimborso dovuto", "Importo"), listOf(426f, 89f), value.effectiveExpenses().filter{!it.voided && it.advancedByElledue && it.reimbursable}.groupBy{it.category}.toSortedMap().map{(category,rows)->listOf(category,Amounts.euro(OperationalMoney.total(rows.map{it.actualCents})))} )
                 amount("Totale rimborsi effettivamente dovuti",totals.reimbursable)
             }
+            if(value.relatedExpenses.orEmpty().isNotEmpty()) {
+                section("Costi del soggiorno in altro periodo")
+                paragraph("Collegamenti informativi: esclusi dai totali di questo documento per evitare duplicazioni.",8f)
+                table(listOf("Voce", "Data intervento", "Competenza", "Importo"),listOf(190f,120f,105f,100f),value.relatedExpenses.orEmpty().map{listOf(it.category,BookingDates.display(it.dateEpochDay),it.competenceMonth,Amounts.euro(it.actualCents))})
+            }
             section("Tassa di soggiorno e anticipi")
+            amount("Tassa prevista",totals.expectedTax)
             amount("Tassa di soggiorno riscossa", totals.collectedTax)
+            amount("Tassa ancora da riscuotere",totals.residualTax)
+            amount("Tassa riconosciuta in compensazione",totals.compensated)
             if(layout==ReportLayout.DETAILED || totals.payments!=0L) amount("Altri anticipi", totals.payments)
             if (totals.collectedTax != totals.compensated) paragraph("Nel saldo sono riconosciuti ${Amounts.euro(totals.compensated)} di tassa, a fronte di ${Amounts.euro(totals.collectedTax)} riscossi. Riscossione e compensazione sono registrazioni distinte; possono riferirsi a periodi differenti.", 8f)
             if (value.notes.isNotBlank()) { section("Note"); paragraph(value.notes) }

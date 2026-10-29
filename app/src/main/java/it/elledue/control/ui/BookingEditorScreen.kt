@@ -2,6 +2,8 @@ package it.elledue.control.ui
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.semantics.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -78,10 +80,6 @@ fun BookingEditorScreen(initial: BookingDraft, properties: List<PropertyWithOwne
             }
             if(isNew && draft.otaPercent.isBlank()) Text("Percentuale del portale non configurata. Inseriscila qui oppure nelle commissioni dell’immobile; puoi usare l’importo OTA effettivo.",color=ElledueGold)
             StayRangeField(draft.checkIn,draft.checkOut,enabled){start,end->draft=draft.copy(checkIn=start,checkOut=end)}
-            Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
-                BookingField("Check-in",draft.checkIn,enabled,tag="booking-check-in",modifier=Modifier.weight(1f)){draft=draft.copy(checkIn=it)}
-                BookingField("Check-out",draft.checkOut,enabled,tag="booking-check-out",modifier=Modifier.weight(1f)){draft=draft.copy(checkOut=it)}
-            }
             val nights = runCatching { BookingDates.parse(draft.checkOut).toEpochDay() - BookingDates.parse(draft.checkIn).toEpochDay() }.getOrNull()
             if (nights != null && nights > 0) Text("$nights notti" + if (nights < 2) " · soggiorno breve rispetto al riferimento di 2 notti" else "", style = MaterialTheme.typography.labelMedium)
             Text("Orari", style = MaterialTheme.typography.titleMedium)
@@ -176,8 +174,15 @@ fun FinanceCard(gross: Long, totals: BookingTotals, title: String = "Riepilogo e
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable fun StayRangeField(start:String,end:String,enabled:Boolean,onChange:(String,String)->Unit) {
  var show by rememberSaveable{mutableStateOf(false)}
- OutlinedButton(onClick={show=true},enabled=enabled,modifier=Modifier.fillMaxWidth().testTag("booking-date-range")) {
-  Icon(Icons.Outlined.CalendarMonth,null);Spacer(Modifier.width(8.dp));Text("$start → $end")
+ val focus=androidx.compose.ui.platform.LocalFocusManager.current
+ val keyboard=androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
+ Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(10.dp)) {
+  listOf("Check-in" to start,"Check-out" to end).forEachIndexed{i,(label,value)->
+   Box(Modifier.weight(1f).heightIn(min=56.dp)) {
+    OutlinedTextField(value,{},readOnly=true,label={Text(label)},singleLine=true,modifier=Modifier.fillMaxWidth())
+    Box(Modifier.matchParentSize().clickable(enabled=enabled){focus.clearFocus();keyboard?.hide();show=true}.testTag(if(i==0)"booking-check-in" else "booking-check-out").semantics(mergeDescendants=true){contentDescription="Seleziona $label · $value";role=Role.Button})
+   }
+  }
  }
  if(show) {
   val picker=rememberDateRangePickerState(
