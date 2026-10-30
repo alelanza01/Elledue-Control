@@ -1,0 +1,1323 @@
+{
+  "tests": 263,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "cases": [
+    {
+      "class": "it.elledue.control.ReservationRepositoryTest",
+      "name": "conflictNeedsExplicitCurrentApprovalAndCancellationReleasesDates",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.ReservationRepositoryTest",
+      "name": "differentPropertiesCanHaveSameDates",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.ReservationRepositoryTest",
+      "name": "defaultsUsePlatformRateButHistoricalBookingAndEditingKeepSnapshots",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.ReservationRepositoryTest",
+      "name": "archivedPropertyKeepsExistingBookingsButRejectsNewOnes",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.ReservationRepositoryTest",
+      "name": "oneNightStayIsPossibleWithoutStructuralTwoNightRestriction",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.ReservationRepositoryTest",
+      "name": "checkOutAndNextCheckInOnSameDayAreAllowed",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.ReservationRepositoryTest",
+      "name": "savedBookingAndRatesPersistAfterDatabaseReopening",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.ReservationRepositoryTest",
+      "name": "createEditAndCancelKeepIdAndEconomicHistory",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.ReservationRepositoryTest",
+      "name": "changingAConflictInvalidatesAnOldApproval",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.ReservationRepositoryTest",
+      "name": "invalidDatesGuestCountsTimesAndUnknownPropertiesAreRejected",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.ConsolidatedUiTest",
+      "name": "notificationOpensContextualGuestTemplateWithEditableTextAndManualHandledState",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.ConsolidatedUiTest",
+      "name": "compactIssueAndDayRemainScrollable",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.ConsolidatedUiTest",
+      "name": "operationalDayGuestReminderOpensTheRelevantMessage",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.ConsolidatedUiTest",
+      "name": "newReservationHasNoPropertyAndOneRangePickerPreservesBothDates",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.ConsolidatedUiTest",
+      "name": "calendarTapOpensChronologicalOperationalDayAndIssueDetail",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.ConsolidatedUiTest",
+      "name": "reportLayoutsAndProtectedAccessScreensAreCaptured",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.ConsolidatedUiTest",
+      "name": "issuesStaySummaryExpensesAndAnalyticsAreNavigableUsingRealPersistedFixtures",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.BookingDatesTest",
+      "name": "sameDayTurnoverDoesNotOverlapButActualIntersectionsDo",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.BookingDatesTest",
+      "name": "datePickerUsesUtcDateWithoutRomeOffsetDriftAcrossDst",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.BookingDatesTest",
+      "name": "todayUsesRomeRatherThanHostUtc",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.BookingDatesTest",
+      "name": "impossibleDatesAreNotNormalized",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.FinalNotificationTest",
+      "name": "realAlarmBroadcastRunsReceiverAndRejectsPrematureOrStaleDelivery",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.FinalNotificationTest",
+      "name": "taxConventionDoesNotCreateRoutineCollectionPromptsAndQuietDstStayLocal",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.FinalNotificationTest",
+      "name": "disabledRemindersRejectScheduledProbeAndRemoveAllAcceptedJobs",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.FinalNotificationTest",
+      "name": "modificationDeletionAndForceRepairUseCurrentAlarmsOnly",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.FinalNotificationTest",
+      "name": "immediateProbeReportsPermissionAndChannelFailuresRatherThanFalseSuccess",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.FinalNotificationTest",
+      "name": "scheduledProbePersistsAcceptedAlarmDeliversAndDeduplicatesWithoutAnyBusinessRecord",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.FinalNotificationTest",
+      "name": "actualBootReceiverRebuildsPersistedFutureTestAndRecordsTheBroadcast",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.BackupServiceTest",
+      "name": "exportRestoreIncludesConfirmedSnapshotsLedgerAuditsAndIds",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.BackupServiceTest",
+      "name": "checksummedButBrokenRelationshipsAndInvalidMoneyAreRejected",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.BackupServiceTest",
+      "name": "missingReportAllocationsAreRejectedEvenWithCorrectChecksum",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.BackupServiceTest",
+      "name": "malformedChecksumUnsupportedVersionAndMissingTablesDoNotAlterCurrentData",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.BackupServiceTest",
+      "name": "restoredDataPersistsAfterFileDatabaseReopening",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.BackupServiceTest",
+      "name": "restoreOverPopulatedLedgerIsAtomicAndRequiresExplicitConfirmation",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.StabilityUiTest",
+      "name": "fivePlusEditedFieldsAndFinancialReasonSurviveClosingAllActivitiesAndResumingADurableDraft",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.StabilityUiTest",
+      "name": "financialChangesAskForVisibleReasonAndConfirmOnlyAfterTheActualUpdate",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.ProductUiTest",
+      "name": "localProfileEditsPersistAndKeyboardCanBeDismissed",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.ProductUiTest",
+      "name": "phonePhotoSelectionReplacementRemovalAndRecreationUseOwnedBytes",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.ProductUiTest",
+      "name": "smallScreenLargeFontsKeepPrimaryActionsAndEmptyStatesAccessible",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.ProductUiTest",
+      "name": "lightThemeUsesSameNativeNavigationAndPortfolio",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.ProductUiTest",
+      "name": "operationalJourneyPreservesLinksAndExposesAllDestinationsAndRealPdfPreview",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.ReportMigrationTest",
+      "name": "publishedSchemaThreeUpgradesWithoutLosingAccountingAndAudit",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.ReservationUiTest",
+      "name": "overlappingSaveRequiresUserConfirmation",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.ReservationUiTest",
+      "name": "calendarDistinguishesTurnoverAndPropertyFilterAndOpensBooking",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.ReservationUiTest",
+      "name": "userCreatesWithPickerEditsActualOtaAndCancelsWithoutLosingHistory",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.BookingFinanceTest",
+      "name": "largestLongDoesNotOverflowDuringPercentageMultiplication",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.BookingFinanceTest",
+      "name": "requiredExampleUsesNetAsFeeBase",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.BookingFinanceTest",
+      "name": "outOfRangeAmountsAndPercentagesAreRejected",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.BookingFinanceTest",
+      "name": "zeroAndFullCommissionsAreValid",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.BookingFinanceTest",
+      "name": "eachCommissionRoundsHalfUpToTheCent",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.BookingFinanceTest",
+      "name": "actualOtaOverridesPercentageIncludingZero",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.ConsolidatedDataTest",
+      "name": "forecastsAreNotCostsAndCleaningConfirmationIsOneExpenseWithActualOverride",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.ConsolidatedDataTest",
+      "name": "copiedCalendarIncludesDeparturesTodayAndAllFutureWithoutChangingDates",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.ConsolidatedDataTest",
+      "name": "collectedTaxRemovesOnlyTaxPromptFromContextualTemplate",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.ConsolidatedDataTest",
+      "name": "portalDefaultsAndManualOverrideUseExactCentsAndPropertyTakesPrecedence",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.ConsolidatedDataTest",
+      "name": "scheduledInterventionAndTurnoverAreSortedWithTimelessActivitiesLast",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.ConsolidatedDataTest",
+      "name": "issueSurvivesEndedBookingReopensAndKeepsStatusHistoryAndSingleLinkedCost",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.ConsolidatedDataTest",
+      "name": "guestChangesRecalculateLaundryUntilOverrideWithoutChangingConfirmedCosts",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.ConsolidatedDataTest",
+      "name": "versionSevenBackupRestoresAndPreservesHistoricalReportBytes",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.ConsolidatedDataTest",
+      "name": "ownPropertyHasTransportAndPrivateLaundryWithoutManagementOrAutomaticCleaning",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.ConsolidatedDataTest",
+      "name": "taxThirtySixIsForecastNotCollectionAndPartialCollectionKeepsCorrectResidual",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.ConsolidatedDataTest",
+      "name": "occupancyClipsMonthsYearsLeapDaysAndDeduplicatesOverlapsWithoutChangingCompetence",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.ConsolidatedDataTest",
+      "name": "ownerExclusionRequiresReasonKeepsInternalOccupancyAndFrozenOriginalUnchanged",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.ConsolidatedDataTest",
+      "name": "bookingDeletionDetachesIssueInsteadOfRemovingItAndBackupRoundTripsAllNewData",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.GuestTextTest",
+      "name": "englishAndItalianVariablesResolveWithoutInventedValues",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.GuestTextTest",
+      "name": "missingTimesAccentsAndMultipleGuests",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.GuestTextTest",
+      "name": "inclusiveCustomEndKeepsRealDatesWithoutTruncation",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.GuestTextTest",
+      "name": "stableChronologicalOrderAndTurnoverIncludesBothStaysWhenTheyOverlapPeriod",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.GuestTextTest",
+      "name": "overlapIncludesPreviousMonthAndYearButNotCancelledOrOtherProperty",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.GuestTextTest",
+      "name": "invalidCustomRangeIsRejected",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.GuestTextTest",
+      "name": "emptyPeriodHasNoInventedBookingAndTextsNeverContainAccounting",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.GuestTextTest",
+      "name": "independentPropertiesNeverMixGuests",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.AccountingRepositoryTest",
+      "name": "expensesTaxAndMovementsPersistAfterClosingAndReopeningFileDatabase",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.AccountingRepositoryTest",
+      "name": "movingAnUncollectedBookingRequiresNewPropertyTaxRulesAfterReview",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.AccountingRepositoryTest",
+      "name": "ownerPaymentsAndNegativeBalancesAreExplicitAndReversible",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.AccountingRepositoryTest",
+      "name": "expensesSeparatePropertiesAndRejectBookingFromOtherProperty",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.AccountingRepositoryTest",
+      "name": "categoriesAreEditableAndSeedDoesNotOverwriteCustomization",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.AccountingRepositoryTest",
+      "name": "remittanceHasSeparateResponsibleAndDoesNotDoubleDeductBalance",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.AccountingRepositoryTest",
+      "name": "reimbursementsRequireBothAdvancedAndReimbursableFlags",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.AccountingRepositoryTest",
+      "name": "expenseCorrectionsKeepSnapshotsAndVoidingExcludesWithoutDeleting",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.AccountingRepositoryTest",
+      "name": "cleaningLaundryAreSingleRowsWithEffectiveCostAndHistoricalUnitRate",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.AccountingRepositoryTest",
+      "name": "collectionIsIdempotentAndCompensationCannotExceedSourceOrBeDuplicated",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.AccountingRepositoryTest",
+      "name": "bookingChangesRequireTaxReviewAndCannotMoveCollectedTaxToAnotherProperty",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.AccountingRepositoryTest",
+      "name": "reversalRequiresReasonAndDependentCompensationsMustBeReversedFirst",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.AccountingRepositoryTest",
+      "name": "financialCorrectionRequiresReasonAndPreservesBothSnapshots",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.AccountingRepositoryTest",
+      "name": "partialAndFullCollectionsAreManualEvenAfterCheckoutAndCancellationPreservesHistory",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.FinalSafetyTest",
+      "name": "abandoningARevisionPreservesOriginalConfirmedSnapshotAllocationsAndExpenses",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.FinalSafetyTest",
+      "name": "proposedForecastCanBeExcludedWithoutPostingAnExpenseAndRestoredOnce",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.FinalSafetyTest",
+      "name": "generatedActivityIdAloneDoesNotPretendToBeAnEditedLocalDraft",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.FinalSafetyTest",
+      "name": "failedDeletionRollsBackAllRowsEvenWithValidSimpleConfirmation",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.FinalSafetyTest",
+      "name": "unreportedExpenseVoidIsIdempotentAndConfirmedOneNeedsExplicitRevision",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.FinalSafetyTest",
+      "name": "deletionAcceptsOnlySimpleWordNormalizedAndStillVerifiesBackupAndDependencies",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.FinalSafetyTest",
+      "name": "localDiscardAllNeverDeletesActualRecordsOrDatabaseDraftReports",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.FinalSafetyTest",
+      "name": "protectedPropertyHasArchiveAlternativeAndFrozenReportIsUnchanged",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.SettingsViewModelTest",
+      "name": "databaseReadFailureIsExposedWithoutInventingDefaultData",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.ProductArchiveTest",
+      "name": "publishedV4BackupImportsWithEmptyNewFieldsAndSameFrozenSnapshot",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.ProductArchiveTest",
+      "name": "destructiveDeleteIsBlockedForHistoryButEmptyPropertyCanBeDeletedAndArchivedRecovered",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.ProductArchiveTest",
+      "name": "analyticsSeparateCheckinCompetenceFromCalendarOccupancyAndDeduplicateOverlaps",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.ProductArchiveTest",
+      "name": "bothLayoutsRenderAllPagesUsingRealPdfRendererOnAndroidBitmapsAndKeepSameBalance",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.ProductArchiveTest",
+      "name": "coverAndProfileSurviveBackupRestoreReopenAndPropertyEdits",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.ProductArchiveTest",
+      "name": "invalidPhotoCannotReplaceArchiveEvenWithRecalculatedChecksum",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.PropertyDraftTest",
+      "name": "defaultsMatchOperationalBrief",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.PropertyDraftTest",
+      "name": "completeDraftRoundTripsWithoutLosingRatesOrTemplates",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.PropertyDraftTest",
+      "name": "requiredAndInvalidFieldsAreRejected",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.AccountingUiTest",
+      "name": "customCategoryAndQuickExpenseAreUsable",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.AccountingUiTest",
+      "name": "cleaningIsSavedOnceRectifiedWithReasonAndVoidedWithAuditHistory",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.AccountingUiTest",
+      "name": "taxIsConfiguredCollectedPartiallyAndCompensatedOnlyOnExplicitConfirmation",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.BrandAssetTest",
+      "name": "horizontalLogoPreservesOriginalAspectAndAlphaWithRequestedOfficialGold",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.BrandAssetTest",
+      "name": "adaptiveIconUsesNightBackgroundAndAuthenticGoldSymbolInsideMask",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.BrandAssetTest",
+      "name": "minimumAndroidVersionInflatesAdaptiveIconWithOptionalMonochromeTag",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.BrandAssetTest",
+      "name": "circularAndSquircleMasksRetainEntireGoldSymbolAndMonochromeLayer",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.VisibilityPdfTest",
+      "name": "hiddenNominalBookingIsAbsentFromBothActualPdfLayoutsWhileTotalsAndFrozenOriginalRemain",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.AmountsTest",
+      "name": "invalidInputsAreRejected",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.AmountsTest",
+      "name": "halfCentRoundsUp",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.AmountsTest",
+      "name": "decimalParsingKeepsCentsExact",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.AmountsTest",
+      "name": "briefCommissionExampleIsExact",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.FeedbackMigrationTest",
+      "name": "publishedNineMigratesToTenAndBackfillPreservesConfirmedSnapshotByteForByte",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.BusinessModelTest",
+      "name": "ownershipDoesNotInventManagementFeesOwnersOrPartnerSharesAndArchivesAreExcludedBySql",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.BusinessModelTest",
+      "name": "privateDraftsAreIncludedInBackupAndNoOtherDataIsFinalized",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.BusinessModelTest",
+      "name": "taxProposalUsesKnownSubjectsNightsCapsAndChangesOnlyUntilConsolidated",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.BusinessModelTest",
+      "name": "hiddenIsDifferentFromExcludedAndConfirmedDocumentsRequireVersioning",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.ReminderEngineTest",
+      "name": "actualAndroidAlarmNotificationPermissionDeepLinkAndDeduplicationAreIntegrated",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.ReminderEngineTest",
+      "name": "deniedRuntimePermissionLeavesNoScheduledAlarmAndTestNotificationCannotPretendSuccess",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.ReportRepositoryTest",
+      "name": "monthAndYearBoundariesNeverAllocateBookingTwice",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.ReportRepositoryTest",
+      "name": "estimatedOtaWarningsRequireAcknowledgmentAndZeroActualPrevails",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.ReportRepositoryTest",
+      "name": "immutableSnapshotAndRevisionKeepOneEconomicAllocation",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.ReportRepositoryTest",
+      "name": "cancelledBookingKeepsHistoricalCashAndForeignExpenseCompetenceRemainsSeparate",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.ReportRepositoryTest",
+      "name": "sourceEditsRefreshDraftAndStalePreviewCannotBeConfirmed",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.ReportRepositoryTest",
+      "name": "allocatedExpenseCorrectionsRequireRevisionAndCannotChangePeriod",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.ReportRepositoryTest",
+      "name": "recognizedOwnerPaymentProducesCreditWithoutNegativeTransfer",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.ReportRepositoryTest",
+      "name": "generationReusesDraftAndRefusesSecondConfirmedDocumentForSamePeriod",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.ReportRepositoryTest",
+      "name": "inconsistentEconomicRowsAndPendingTaxReviewBlockConfirmation",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.ReportRepositoryTest",
+      "name": "crossMonthExpenseAndCompensationKeepBookingReferenceWithoutCountingFeeAgain",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.ReportRepositoryTest",
+      "name": "draftUsesActualRowsAndMandatoryFinalExampleIs170",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.ReportRepositoryTest",
+      "name": "perBookingRoundingIsSummedRatherThanRoundingMonthlyNetAgain",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.ReportRepositoryTest",
+      "name": "collectionAfterConfirmationIsAllowedButAllocatedCompensationReversalRequiresRevision",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.ProductMigrationTest",
+      "name": "publishedSchemaFourUpgradesWithoutLosingAccountingAndAudit",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.OperationsMigrationTest",
+      "name": "publishedFiveMigratesToSixPreservingConfirmedSnapshotAllocationsCashAndActivities",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.OperationsPdfTest",
+      "name": "compactPdfSeparatesActualReimbursementsWithoutCountingOtherCleaningCosts",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.AppNavigationTest",
+      "name": "darkThemeRendersWithOfficialNightBackground",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.AppNavigationTest",
+      "name": "propertyCanBeCreatedEditedArchivedAndReactivatedThroughUi",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.AppNavigationTest",
+      "name": "allMainSectionsAndSettingsAreAccessible",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.DeviceVisualUiTest",
+      "name": "nativeNotificationSettingsOwnedPropertyAndVerifiedSafDeletionAreUsable",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.Automation0410UiTest",
+      "name": "quickTaxRecordsPartialReceiptAndRecognitionTogetherWithVisibleFeedback",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.Automation0410UiTest",
+      "name": "centralPlusKeepsAllCoreActionsAvailableFromEconomy",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.Automation0410UiTest",
+      "name": "dateFieldsOpenTheSameRangePickerAndThereIsNoThirdButton",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.Automation0410UiTest",
+      "name": "ordinaryExpenseUsesShortFormPrefilledStayAndExpandableDetails",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.Automation0410UiTest",
+      "name": "standardExceptionEditsQuantityRateAndAmountWithoutLosingIntentionalOverride",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.Automation0410UiTest",
+      "name": "compactMonthIsBoundedWithLargeTextAndDayOpens",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.Automation0410UiTest",
+      "name": "draftIncludesAutomaticCostsAndOneApprovalCreatesTheDefinitiveRows",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.ReminderPlannerTest",
+      "name": "settingsAndDeliveredMarkersSurviveANewStoreAndLockCannotBypassColdStartOrTimeout",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.ReminderPlannerTest",
+      "name": "remindersHonorRomeDaylightSavingAndQuietHoursAndUnknownTaxNeverBecomesCash",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.ReminderPlannerTest",
+      "name": "cancelledArchivedCompletedAndCollectedEventsAreRemovedAndUpdatesHaveNewIdentity",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.ReminderPlannerTest",
+      "name": "actualScheduledCleaningAndDateOnlyTasksNotifyButCompletedOrUnscheduledNeverDo",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.AccessUiTest",
+      "name": "unavailableCredentialAndCancelledAuthenticationNeverUnlockOrRemoveStoredData",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.ReportUiTest",
+      "name": "userGeneratesChecksAndConfirmsThenRevisesSourceWithoutOverwritingHistory",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.ReportUiTest",
+      "name": "settingsExposeManualBackupAndOriginalLogoIsDisplayed",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.StabilityMigrationTest",
+      "name": "publishedSixMigratesToSevenWithoutRecalculationOrLossOfConfirmedReports",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.AutomationMigrationTest",
+      "name": "publishedEightMigratesToNineWithoutRecalculationOrLossOfConfirmedReports",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.Feedback0411Test",
+      "name": "requiredFinalBalanceAndPerStayLaundryAggregationAgreeInBothPdfs",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.Feedback0411Test",
+      "name": "differentManagementRatesRemainPropertySpecificInReportsAndAnalytics",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.Feedback0411Test",
+      "name": "portalOverridesAndDirectDefaultsAreAppliedAndSnapshotted",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.Feedback0411Test",
+      "name": "otherOwnerPaymentsJoinAlreadySettledAndNegativePdfShowsAnExplicitCredit",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.Feedback0411Test",
+      "name": "ownerPortalAndExplicitExceptionsDoNotInventCashOrAutomaticCredit",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.Feedback0411Test",
+      "name": "backfillIsIdempotentSkipsConfirmedAndManualOtaAndKeepsOverrides",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.Feedback0411Test",
+      "name": "actualInclusiveIsNeverUpliftedAgainAndActualBaseOverridesPercent",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.Feedback0411Test",
+      "name": "previousFormDraftsGainOnlyMissingFieldsAndKeepEveryEditedValue",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.Feedback0411Test",
+      "name": "threeSeparateStaysAggregateThreeSetsAndSixHoursInBothLayouts",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.Feedback0411Test",
+      "name": "automaticTaxNeedsOnlyCountsAndDatesAndNeverPostsCash",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.Feedback0411Test",
+      "name": "backupTenAndLegacyNineRestoreWithoutLosingNewRulesOrFrozenSnapshots",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.Feedback0411Test",
+      "name": "partialAndExistingCompensationsAreRecognizedOnceIncludingOtherPeriods",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.Feedback0411Test",
+      "name": "confirmedReportsAreImmutableWhileBothOfficialPdfLayoutsHaveNoDraftOrTechnicalLabels",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.Feedback0411Test",
+      "name": "manualTaxAndCancelledBookingsAndOwnPropertiesArePreserved",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.Feedback0411Test",
+      "name": "otaBaseAndVatAreRoundedOnCommissionOnlyAndManagementUsesFullNet",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.AccountingMigrationTest",
+      "name": "publishedVersionTwoMigratesWithBookingExpenseAndAllHistoricalSettingsIntact",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.FinalFlowsUiTest",
+      "name": "reportedExpenseExplainsItsProtectionAndOffersTheReportRevision",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.FinalFlowsUiTest",
+      "name": "unreportedExpenseCanBeVoidedWithoutAnExtraTechnicalReasonAndThenCannotRepeat",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.FinalFlowsUiTest",
+      "name": "diagnosticsShowsActualSettingsAndBothNotificationTestsCanBeInvoked",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.FinalFlowsUiTest",
+      "name": "discardAllLocalChangesHasConfirmationAndDoesNotRemoveDatabaseReportDraft",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.FinalFlowsUiTest",
+      "name": "reportDraftCanBeAbandonedWithoutDeletingItsSources",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.FinalFlowsUiTest",
+      "name": "expenseAndActivityLocalEditsCanBeKeptDiscardedAndSaved",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.FinalFlowsUiTest",
+      "name": "protectedDeletionShowsArchiveAndPreservesTheConfirmedDocument",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.FinalFlowsUiTest",
+      "name": "bookingExitKeepsDiscardsOrSavesWithoutEverDeletingTheOriginalRecord",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.ConceptVisualTest",
+      "name": "richNativeScreensFollowConceptAndPdfPreviewRemainsReal",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.ConceptVisualTest",
+      "name": "darkPrimaryThemeAndAccessibleNavigationRemainOnSmallLightSystemPhone",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.BookingUxTest",
+      "name": "turnoverUsesHalfDayEndpointsAndSameLaneWithoutHidingEitherGuest",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.BookingUxTest",
+      "name": "realOverlapsUseSeparateLanesAndCancelledNeverOccupies",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.BookingUxTest",
+      "name": "longStaysContinueAcrossWeeksAndMonthBoundariesWithoutLostDeparture",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.BookingUxTest",
+      "name": "searchFindsHistoricalGuestsIndependentOfCalendarAndIgnoresAccents",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.BookingUxTest",
+      "name": "propertyRangeAndMonthAreExplicitIntersectingFiltersAndOrderIsStable",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.BookingUxTest",
+      "name": "statesRespectActualTimesAndCancellationsAndExplicitCompleted",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.OperationsRepositoryTest",
+      "name": "messageCrudCategoriesAndScopedBackupRoundTrip",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.OperationsRepositoryTest",
+      "name": "v5BackupUpgradesAndDoesNotInventNewData",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.OperationsRepositoryTest",
+      "name": "removedDefaultMessageCategoryDoesNotReappearOnReopeningLibrary",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.OperationsRepositoryTest",
+      "name": "titleOnlyTaskCrudIsIdempotentAndCannotDeleteAccounting",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.OperationsRepositoryTest",
+      "name": "linkedTaskFollowsLegitimateBookingMoveAndBackupRemainsRestorable",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.OperationsRepositoryTest",
+      "name": "portalRatesAreExplicitDirectZeroActualWinsAndSnapshotsNeverRefresh",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.FeedbackUxUiTest",
+      "name": "onePropertyShowsConnectedIntervalsAndBarOpensTheStay",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.FeedbackUxUiTest",
+      "name": "economyHasPracticalExpenseAndPaymentRoutesAndAdvancedLedgerStillExists",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.FeedbackUxUiTest",
+      "name": "archivedPropertiesAreExcludedUntilHistoryIsRequestedExplicitly",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.FeedbackUxUiTest",
+      "name": "emptyMonthKeepsReadableDaysAndExplicitEmptyState",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.FeedbackUxUiTest",
+      "name": "browserPropertyAndMonthFiltersAndCreationAreIndependentOfCalendar",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.FeedbackUxUiTest",
+      "name": "threePropertiesAndSameDayTurnoverOpenCompleteDayWithCleaningAndGuestDetails",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.FeedbackUxUiTest",
+      "name": "maintenanceHasContextAndLinksAnExistingExpenseWithoutCreatingAnother",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.FeedbackUxUiTest",
+      "name": "multiPropertyMonthAndDayRemainScrollableAt320WithLargeType",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.FeedbackUxUiTest",
+      "name": "homeOpensIndependentHistoricalSearchCancelledFilterAndDetail",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.FeedbackUxUiTest",
+      "name": "homeHierarchyAndTaxAlertsDistinguishAnAutomaticAdvanceFromARealException",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.DatabaseMigrationTest",
+      "name": "publishedVersionOneUpgradesAndPreservesPropertyOwnerSettingsAndBooking",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.OwnershipUiTest",
+      "name": "explicitBusinessScopesKeepOwnProfitSeparateAndExternalReportsDisabled",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.StabilityDataTest",
+      "name": "durableDraftsAreIsolatedClearOnlyAfterSuccessAndRejectStaleOverwrite",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.StabilityDataTest",
+      "name": "changedDataRequiresFreshBackupAndStrongConfirmation",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.StabilityDataTest",
+      "name": "fivePlusBookingFieldsReallyPersistAcrossDatabaseCloseReopenAndFeedProjections",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.StabilityDataTest",
+      "name": "deleteBookingWithConfirmedReportIsRejectedAndIndependentCostsAndDocumentsSurvive",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.StabilityDataTest",
+      "name": "deletePropertyWithConfirmedReportIsBlockedAndArchiveKeepsAllRelations",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.StabilityDataTest",
+      "name": "deletionRequiresTheSafetyBackupStillToExistAndDraftCleanupMatchesIdsPrecisely",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.Automation0410Test",
+      "name": "unknownHistoricalExemptionsRemainUnknownAndConsolidatedTaxIsUntouched",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.Automation0410Test",
+      "name": "approvedBatchAndProposalsSurviveVerifiedBackupRestore",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.Automation0410Test",
+      "name": "changingAnApprovedStandardDoesNotAttestActualServiceWithoutExplicitConfirmation",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.Automation0410Test",
+      "name": "laundryOneThroughTenGuestsAndCustomGroupingUseExactIntegerCents",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.Automation0410Test",
+      "name": "oldConfirmedSourcesAreNotBackfilledOrRewritten",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.Automation0410Test",
+      "name": "aManualServiceCannotBeAddedAgainAfterStandardApproval",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.Automation0410Test",
+      "name": "cancelledOwnedManualOverridesAndActualCostsSurviveRepeatedReconciliation",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.Automation0410Test",
+      "name": "failedBulkApprovalRollsBackEveryCostAndItsAuditThenCanBeRetried",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.Automation0410Test",
+      "name": "legacyEightBackupBackfillsMissingRowsAndPreservesManualCostOnRestore",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.Automation0410Test",
+      "name": "quickCollectionAndCompensationAreAtomicIdempotentAndReversible",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.Automation0410Test",
+      "name": "proposalsAreInBothDraftPdfsButNotPostedUntilExplicitBulkApproval",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.Automation0410Test",
+      "name": "retroactiveBackfillIsIdempotentTransactionalAndCreatesNoExpensesOrCash",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.Automation0410Test",
+      "name": "manualUnlinkedCostsAreFlaggedRatherThanGuessedOrDuplicated",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.Automation0410Test",
+      "name": "approvalUsesBookingCompetenceAndKeepsExpectedInterventionDateThenAllowsRevision",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.Automation0410Test",
+      "name": "taxMatrixCapsNightsPerGuestAndPreservesAllExemptionsAndCustomRates",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.Automation0410Test",
+      "name": "configurationChangesUpdateAutomaticEstimatesButNeverConsolidatedTaxOrManualOverrides",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.Automation0410Test",
+      "name": "ownerOrPortalCollectionCannotCreateElledueAdvance",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.Automation0410Test",
+      "name": "actualDecemberCostAppearsAsLinkedInformationInNovemberWithoutDoubleCounting",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.OperationalAccountingTest",
+      "name": "taxCountsExemptionsNightsLimitAndSixteenYearCriterion",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.OperationalAccountingTest",
+      "name": "manualTaxOverrideRequiresReasonAndSnapshotsRemainHistorical",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.OperationalAccountingTest",
+      "name": "expenseCompetenceCanDifferFromActualDateAndActualAmountPrevails",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.OperationalAccountingTest",
+      "name": "staysCrossingYearsBelongToDecemberOfPreviousYear",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.OperationalAccountingTest",
+      "name": "staysCrossingMonthsBelongEntirelyToCheckInMonth",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.OperationalAccountingTest",
+      "name": "cancelledFeesVoidedExpensesAndReversedMoneyDoNotInflateTotals",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.OperationalAccountingTest",
+      "name": "summaryUsesOneExpensePerInterventionAndSeparateCompensation",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.OperationalAccountingTest",
+      "name": "quantitiesUseExactCentsHalfUpAndRejectOverflowOrInvalidValues",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.OperationalAccountingTest",
+      "name": "cancelledStayDoesNotRequestTaxButCashIsStillVisibleForReconciliation",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.PropertyRepositoryTest",
+      "name": "editingAccessInstructionsPreservesUnrelatedFutureTemplates",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.PropertyRepositoryTest",
+      "name": "createEditArchiveAndReactivateKeepIdentityAndHistory",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.PropertyRepositoryTest",
+      "name": "futureReservationCannotBeOrphanedAndSurvivesArchiving",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.PropertyRepositoryTest",
+      "name": "rejectedEditKeepsPreviouslySavedRecord",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.PropertyRepositoryTest",
+      "name": "settingsAndAllRelationsSurviveFileDatabaseReopening",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.SettingsRepositoryTest",
+      "name": "emptyDatabaseProvidesDefaults",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.SettingsRepositoryTest",
+      "name": "savingReplacesTheSingletonAndTrimsWhitespace",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.SettingsRepositoryTest",
+      "name": "blankNameDoesNotOverwriteSavedSettings",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.SettingsRepositoryTest",
+      "name": "savedSettingsSurviveDatabaseReopening",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.OperationsUiTest",
+      "name": "copyCalendarRemainsScrollableAndCopyableInLandscapeWithLargeText",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.OperationsUiTest",
+      "name": "directTaskFormDateCalendarEditCompleteReopenDeleteAndPersistence",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.OperationsUiTest",
+      "name": "bilingualMessageLibraryPreviewCopyAndAppearancePersist",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.OperationsUiTest",
+      "name": "analysisUsesRealFeesExpensesAndEmptyPeriodWithoutInventedPercentages",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.OperationsUiTest",
+      "name": "fourPortalBadgesApplyConfiguredRatesAndActualOtaIsSaved",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.OperationsUiTest",
+      "name": "calendarPreviewCopiesExactSinglePropertyTextToAndroidClipboard",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.OperationsUiTest",
+      "name": "centralPlusCreatesTitleOnlyGeneralTaskWithoutAnyActiveProperty",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.ReportPdfTest",
+      "name": "largeMultipageReportWrapsVeryLongGuestNamesSetDefinitionsAndNotes",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.ReportPdfTest",
+      "name": "realPdfWithSyntheticDataShows170AndHistoricalRegenerationUsesFrozenRows",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.ConsolidatedMigrationTest",
+      "name": "publishedSevenMigratesToEightWithoutRecalculationOrLossOfConfirmedReports",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.ConsolidatedReminderTest",
+      "name": "scheduledPendingIntentReallyRunsReceiverAndPublishesNotificationWithoutCallingTestButton",
+      "result": "PASS"
+    },
+    {
+      "class": "it.elledue.control.ConsolidatedReminderTest",
+      "name": "delayedScheduledJobIsRecoveredOnceAndProtectedNotificationContainsNoPrivateText",
+      "result": "PASS"
+    }
+  ]
+}

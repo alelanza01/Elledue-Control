@@ -1,12 +1,18 @@
 # Elledue Control
 
+## 0.4.11 — consegna finale dei tre interventi
+
+APK debug verificato,263test PASS, schema Room10 e firma precedente conservati. Eliminazioni comprensibili, bozze separate e diagnostica delle notifiche con prova programmata. La ricezione su telefono resta da verificare: non viene dichiarata risolta dai soli test Robolectric.
+
+[APK, SHA, aggiornamento e consegna](docs/0.4.11/DELIVERY.md) · [QA finale](docs/0.4.11/intervento-3/QA.md) · [Checklist notifiche sul telefono](docs/0.4.11/intervento-3/NOTIFICHE-TELEFONO.md) · [PR pronta per revisione](docs/0.4.11/PR.md)
+
 ## 0.4.11 — intervento 2/3: calendario e navigazione operativa
 
 Sul medesimo branch `feature/0.4.11-user-feedback`, dalla consegna `df8a67e`: calendario con barre per immobile e cambi ospiti espliciti, Prenotazioni con ricerca storica e filtri indipendenti, Home con portafoglio e Da fare, Economia con Spese/Rendiconti/Pagamenti e registro Manutenzioni semplificato. Motore economico, PDF e schema Room10 dell'intervento1 conservati.
 
 [Brief](docs/0.4.11/intervento-2/BRIEF.md) · [Scelte UX](docs/0.4.11/intervento-2/UX.md) · [Consegna, test e screenshot](docs/0.4.11/intervento-2/DELIVERY.md)
 
-L'intervento3/3 seguirà sullo stesso branch per bug, notifiche e consegna dell'APK. Nessun merge o pubblicazione della versione definitiva.
+Intervento3/3 ora consegnato sullo stesso branch: vedere la consegna finale sopra. Nessun merge su main.
 
 ## 0.4.11 — intervento 1/3: motore economico e rendiconti
 

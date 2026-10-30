@@ -1,0 +1,9 @@
+{
+  "artifactBranch": "artifacts/v0.4.11-test",
+  "artifactCommit": "c36298c309aa360f238b4397c9de7a4e7f6d3a0b",
+  "url": "https://raw.githubusercontent.com/alelanza01/Elledue-Control/c36298c309aa360f238b4397c9de7a4e7f6d3a0b/deliverables/test-0.4.11/Elledue-Control-0.4.11-debug.apk",
+  "sha256": "5976a2316bdb95bf0d8904ab977ee67548f36827d2988d550e474e86db72e7e5",
+  "bytes": 33575578,
+  "downloadedWithoutAuthentication": true,
+  "onlyTrackedFile": "deliverables/test-0.4.11/Elledue-Control-0.4.11-debug.apk"
+}

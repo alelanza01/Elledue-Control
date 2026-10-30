@@ -1,0 +1,13 @@
+{
+  "sourceCommit": "9c310cbbdc50902262e7cc602130ea4dcc95c77d",
+  "applicationId": "it.elledue.control",
+  "versionName": "0.4.11",
+  "versionCode": 11,
+  "schema": 10,
+  "bytes": 33575578,
+  "sha256": "5976a2316bdb95bf0d8904ab977ee67548f36827d2988d550e474e86db72e7e5",
+  "certificateSha256": "cc45fdd9dccf37a2d94fb35e142bfde73b25de3e46e3b8ce93d4d5b9a7b2065c",
+  "sameSignerAs0410": true,
+  "signatureScheme": "v2",
+  "physicalInstallTested": false
+}
