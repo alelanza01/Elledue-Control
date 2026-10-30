@@ -23,6 +23,7 @@ import it.elledue.control.domain.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BookingEditorScreen(initial: BookingDraft, properties: List<PropertyWithOwner>, isNew: Boolean, busy: Boolean, error: String?, pending: PendingOverlap?, onBack: () -> Unit, onSave: (BookingDraft) -> Unit, onConfirm: () -> Unit, onDismiss: () -> Unit) {
+    val contextForDrafts=androidx.compose.ui.platform.LocalContext.current
     val draftKey=if(isNew)"booking/new" else "booking/${initial.id}/edit"
     var draft by rememberPersistentDraft(draftKey,initial)
     var correction by rememberSaveable{mutableStateOf(false)}
@@ -133,7 +134,7 @@ fun BookingEditorScreen(initial: BookingDraft, properties: List<PropertyWithOwne
         }
     }
 
-    if (discard) AlertDialog(onDismissRequest = { discard = false }, title = { Text("Abbandonare le modifiche?") }, text = { Text("La bozza locale rimane disponibile in Home → Riprendi bozze.") }, confirmButton = { TextButton(onClick = onBack) { Text("Abbandona") } }, dismissButton = { TextButton(onClick = { discard = false }) { Text("Continua modifica") } })
+    if(discard)LocalDraftExitDialog(save={discard=false;save()},keep={discard=false;onBack()},discard={it.elledue.control.data.DraftStore.get(contextForDrafts).clear(draftKey);discard=false;onBack()},dismiss={discard=false})
     if (pending != null) AlertDialog(onDismissRequest = onDismiss, title = { Text("Sovrapposizione rilevata") }, text = {
         Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Le date confliggono con queste prenotazioni. Conferma soltanto dopo aver verificato l’incompatibilità:")

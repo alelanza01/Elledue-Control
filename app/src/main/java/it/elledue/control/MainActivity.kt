@@ -63,7 +63,7 @@ class MainActivity : FragmentActivity() {
     override fun onNewIntent(intent:Intent){super.onNewIntent(intent);setIntent(intent);acceptNotification(intent)}
     override fun onStart(){super.onStart();(application as ElledueApplication).appLock.start()}
     override fun onStop(){(application as ElledueApplication).appLock.stop();super.onStop()}
-    override fun onResume(){super.onResume();lifecycleScope.launch{runCatching{(application as ElledueApplication).reminders.reconcile()}}}
+    override fun onResume(){super.onResume();lifecycleScope.launch{runCatching{(application as ElledueApplication).reminders.reconcile(force=true)}.onFailure{(application as ElledueApplication).maintenanceError.value="Promemoria non aggiornati: apri la diagnostica notifiche."}}}
 
     override fun attachBaseContext(newBase: Context) {
         val configuration = Configuration(newBase.resources.configuration)

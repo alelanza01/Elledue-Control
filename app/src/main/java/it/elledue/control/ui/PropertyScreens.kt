@@ -125,6 +125,7 @@ private fun DetailSection(title: String, rows: List<Pair<String, String>>) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PropertyEditorScreen(initial: PropertyDraft, isNew: Boolean, busy: Boolean, error: String?, onBack: () -> Unit, onSave: (PropertyDraft) -> Unit) {
+    val contextForDrafts=androidx.compose.ui.platform.LocalContext.current
     val draftKey=if(isNew)"property/new" else "property/${initial.id}/edit"
     var draft by rememberPersistentDraft(draftKey,initial)
     val editorScroll=rememberScrollState()
@@ -194,7 +195,7 @@ fun PropertyEditorScreen(initial: PropertyDraft, isNew: Boolean, busy: Boolean, 
             Spacer(Modifier.height(24.dp))
         }
     }
-    if (discard) AlertDialog(onDismissRequest = { discard = false }, title = { Text("Abbandonare le modifiche?") }, text = { Text("Le modifiche non salvate andranno perse.") }, confirmButton = { TextButton(onClick = onBack) { Text("Abbandona") } }, dismissButton = { TextButton(onClick = { discard = false }) { Text("Continua modifica") } })
+    if(discard)LocalDraftExitDialog(save={discard=false;onSave(draft)},keep={discard=false;onBack()},discard={it.elledue.control.data.DraftStore.get(contextForDrafts).clear(draftKey);discard=false;onBack()},dismiss={discard=false})
 }
 
 @Composable

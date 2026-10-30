@@ -21,6 +21,7 @@ import java.util.UUID
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExpenseEditor(initial: ExpenseDraft, properties: List<PropertyWithOwner>, bookings: List<ReservationEntity>, categories: List<ExpenseCategoryEntity>, model: AccountingViewModel, draftRoute:String?=null, onBack: () -> Unit) {
+    val contextForDrafts=androidx.compose.ui.platform.LocalContext.current
     val draftKey=draftRoute ?: if(initial.revision==0)"expense/new/OTHER?booking=${initial.reservationId}" else "expense/${initial.id}/edit"
     var draft by rememberPersistentDraft(draftKey,initial)
     var details by rememberSaveable{mutableStateOf(initial.revision>0)}
@@ -77,16 +78,16 @@ fun ExpenseEditor(initial: ExpenseDraft, properties: List<PropertyWithOwner>, bo
             if (busy) CircularProgressIndicator()
         }
     }
-    if (exit) AlertDialog(onDismissRequest = { exit = false }, title = { Text("Uscire senza salvare?") }, text = { Text("La bozza locale rimane disponibile in Home → Riprendi bozze.") }, confirmButton = { TextButton(onClick = { exit = false; onBack() }) { Text("Esci") } }, dismissButton = { TextButton(onClick = { exit = false }) { Text("Continua") } })
+    if(exit)LocalDraftExitDialog(save={exit=false;model.saveExpense(draft)},keep={exit=false;onBack()},discard={DraftStore.get(contextForDrafts).clear(draftKey);exit=false;onBack()},dismiss={exit=false})
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ExpenseDetail(item: ExpenseEntity, propertyName: String, model: AccountingViewModel, onBack: () -> Unit, onEdit: () -> Unit, bookingName: String? = null) {
+fun ExpenseDetail(item: ExpenseEntity, propertyName: String, model: AccountingViewModel, onBack: () -> Unit, onEdit: () -> Unit, bookingName: String? = null,protectedReport:String?=null,canRevise:Boolean=false,onReport:(String)->Unit = {}) {
     val busy by model.busy.collectAsStateWithLifecycle(); val error by model.error.collectAsStateWithLifecycle(); val history by model.expenseHistory.collectAsStateWithLifecycle()
     var void by rememberSaveable { mutableStateOf(false) }; var reason by rememberSaveable { mutableStateOf("") }
-    LaunchedEffect(item.id) { model.loadExpenseHistory(item.id) }
-    Scaffold(topBar = { TopAppBar(title = { Text("Scheda spesa") }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Indietro spesa") } }, actions = { if (!item.voided) TextButton(onClick = onEdit, enabled = !busy, modifier = Modifier.testTag("edit-expense")) { Text("Rettifica") } }) }) { padding ->
+    LaunchedEffect(item.id,item.revision) { model.loadExpenseHistory(item.id) }
+    Scaffold(topBar = { TopAppBar(title = { Text("Scheda spesa") }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Indietro spesa") } }, actions = { if (!item.voided && (protectedReport==null || canRevise)) TextButton(onClick = onEdit, enabled = !busy, modifier = Modifier.testTag("edit-expense")) { Text("Rettifica") } }) }) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Text(item.description, style = MaterialTheme.typography.headlineMedium, modifier = Modifier.testTag("expense-detail"))
             Text("$propertyName · ${item.category}")
@@ -99,11 +100,15 @@ fun ExpenseDetail(item: ExpenseEntity, propertyName: String, model: AccountingVi
             if (item.reservationId != null) Text("Prenotazione: ${bookingName ?: "collegamento conservato"}")
             if (item.notes.isNotBlank()) Text(item.notes)
             if (item.voided) Text("Spesa annullata: esclusa dai totali, storico conservato.", color = MaterialTheme.colorScheme.error)
-            else OutlinedButton(onClick = { reason = ""; void = true }, enabled = !busy, modifier = Modifier.testTag("void-expense")) { Text("Annulla spesa con motivazione") }
+            else if(protectedReport!=null && !canRevise) {
+                Text("Questa spesa è già inclusa in un rendiconto confermato. Apri una versione rettificativa prima di annullarla: il documento storico resta invariato.",color=ElledueGold)
+                OutlinedButton(onClick={onReport(protectedReport)},modifier=Modifier.testTag("expense-open-report")){Text("Apri rendiconto per rettifica")}
+            }
+            else OutlinedButton(onClick = { reason = ""; void = true }, enabled = !busy, modifier = Modifier.testTag("void-expense")) { Text("Annulla spesa") }
             if (void) OutlinedCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text("Annullare la spesa?", style = MaterialTheme.typography.titleMedium)
-                AccountingField("Motivo", reason, "void-reason", !busy) { reason = it }
-                Row { TextButton(onClick = { model.voidExpense(item.id, reason) }, enabled = !busy) { Text("Conferma annullamento") }; TextButton(onClick = { void = false }, enabled = !busy) { Text("Indietro") } }
+                AccountingField("Motivo facoltativo", reason, "void-reason", !busy) { reason = it }
+                Row { TextButton(onClick = { model.voidExpense(item.id, reason.ifBlank{"Annullamento richiesto dall’operatore"}) }, enabled = !busy) { Text("Conferma annullamento") }; TextButton(onClick = { void = false }, enabled = !busy) { Text("Indietro") } }
             } }
             Text("Storico rettifiche · versione ${item.revision}", style = MaterialTheme.typography.titleMedium)
             history.forEach { row -> Text("v${row.version} · ${row.reason}\n${Amounts.euro(org.json.JSONObject(row.snapshotJson).getLong("actualCents"))}", style = MaterialTheme.typography.bodySmall) }

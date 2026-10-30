@@ -42,7 +42,13 @@ class DraftStore(context:Context) {
         val edit=preferences.edit().clear();values.forEach{(k,v)->edit.putString(k,v)}
         check(edit.commit()) {"Le bozze non sono state ripristinate: il backup originale le conserva, riprova senza eliminarlo."};revision.value++
     }
-    fun routes():List<String> = preferences.all.keys.map{it.substringBefore('#')}.distinct().sorted()
+    /** A generated form ID alone is not an edited draft. */
+    fun routes():List<String> = preferences.all.keys.groupBy{it.substringBefore('#')}.filterValues{keys->keys.any{!it.endsWith("#id")}}.keys.sorted()
+    @Synchronized fun discardAll() {
+        val ok=preferences.edit().clear().commit()
+        error.value=if(ok)null else "Bozze non rimosse: riprova senza eliminare i dati dell’app."
+        check(ok){error.value!!};revision.value++
+    }
     fun contains(key:String)=preferences.contains(key)
     fun has(route:String)=routes().contains(route)
     internal fun removeReferences(ref:DeletionReferences) {

@@ -12,6 +12,16 @@ import kotlinx.coroutines.flow.first
 class ReportRepository(private val db: AppDatabase, private val context: Context) {
     private val dao = db.reportDao()
     val reports = dao.observe()
+    suspend fun abandonDraft(id:String) {
+        db.withTransaction {
+            val report=requireNotNull(dao.get(id)){"Documento non trovato."}
+            require(report.status=="DRAFT"){"Un rendiconto confermato è immutabile e non può essere abbandonato."}
+            db.openHelper.readableDatabase.query("SELECT 1 FROM standard_approvals WHERE reportId=?",arrayOf(id)).use{require(!it.moveToFirst())}
+            db.openHelper.writableDatabase.execSQL("DELETE FROM report_booking_options WHERE reportId=?",arrayOf(id))
+            db.openHelper.writableDatabase.execSQL("DELETE FROM reports WHERE id=?",arrayOf(id))
+        }
+        DraftStore.get(context).clear("report/$id")
+    }
     suspend fun generate(property: String, month: String): String = db.withTransaction {
         Competence.month(month); val selected=requireNotNull(db.propertyDao().get(property)) { "Seleziona un immobile." }; require(selected.property.businessType!="OWNED") {"Gli immobili propri non hanno un rendiconto per proprietario esterno."}
         val versions = dao.period(property, month)

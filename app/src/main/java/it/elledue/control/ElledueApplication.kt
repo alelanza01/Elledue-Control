@@ -17,8 +17,12 @@ class ElledueApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         background.launch {
-            reconciliation.reconcile()
-            it.elledue.control.data.FeedbackReconciliation(database).reconcile()
+            try {
+                reconciliation.reconcile()
+                it.elledue.control.data.FeedbackReconciliation(database).reconcile()
+            }catch(e:CancellationException){throw e}catch(_:Exception){
+                maintenanceError.value="Aggiornamento delle fonti economiche interrotto: verifica i dati. La diagnostica notifiche resta disponibile."
+            }
             database.invalidationTracker.createFlow("properties","owners","reservations","expenses","tax_assessments","money_movements","activities","property_issues","stay_cost_forecasts",emitInitialState=true)
                 .debounce(250).collect {
                     runCatching { reportRepository.refreshDrafts() }

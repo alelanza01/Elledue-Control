@@ -20,6 +20,9 @@ class ReportViewModel(private val repo: ReportRepository) : ViewModel() {
     val unassigned = MutableStateFlow<List<ReservationEntity>>(emptyList())
     fun retry() { retry.value++ }
     fun clear() { error.value = null; savedId.value = null }
+    val abandonedId=MutableStateFlow<String?>(null)
+    fun abandon(id:String)=execute{repo.abandonDraft(id);abandonedId.value=id}
+    fun clearAbandoned(){abandonedId.value=null}
     fun generate(property: String, month: String) = execute { savedId.value = repo.generate(property, month) }
     fun refresh(id: String, notes: String? = null) = execute { repo.refresh(id, notes) }
     fun revision(id: String, reason: String) = execute { savedId.value = repo.beginRevision(id, reason) }

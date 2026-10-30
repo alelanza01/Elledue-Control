@@ -79,7 +79,7 @@ class StabilityDataTest {
     @Test fun changedDataRequiresFreshBackupAndStrongConfirmation()=runBlocking<Unit> {
         PropertyRepository(db).save(PropertyDraft(id="p",ownerId="o",name="Casa",address="Test",ownerName="Test"))
         val service=DeletionRepository(db,context);val p=service.prepare("property","p");val receipt=service.saveVerifiedBackup(p,Uri.fromFile(File(context.cacheDir,"before-change.json")))
-        reject{service.delete(p,receipt,"Casa",true)};PropertyRepository(db).archive("p",true);reject{service.delete(p,receipt,"ELIMINA Casa",true)};assertNotNull(db.propertyDao().get("p"))
+        reject{service.delete(p,receipt,"Casa",true)};PropertyRepository(db).archive("p",true);reject{service.delete(p,receipt,"ELIMINA",true)};assertNotNull(db.propertyDao().get("p"))
     }
     @Test fun deletionRequiresTheSafetyBackupStillToExistAndDraftCleanupMatchesIdsPrecisely()=runBlocking<Unit>{
         val props=PropertyRepository(db);props.save(PropertyDraft(id="p",ownerId="o",name="Casa",address="Test",ownerName="Test"))
@@ -88,8 +88,8 @@ class StabilityDataTest {
         store.save("property/new",PropertyDraft(name="Bozza indipendente"));store.save("expense/new/OTHER?booking=b",ExpenseDraft(propertyId="p",reservationId="b"))
         val service=DeletionRepository(db,context);val plan=service.prepare("booking","b");val file=File(context.cacheDir,"still-readable.json")
         val receipt=service.saveVerifiedBackup(plan,Uri.fromFile(file));file.delete()
-        reject{service.delete(plan,receipt,"ELIMINA ${plan.label}",true)};assertNotNull(db.reservationDao().get("b"))
-        val verified=service.saveVerifiedBackup(plan,Uri.fromFile(file));service.delete(plan,verified,"ELIMINA ${plan.label}",true)
+        reject{service.delete(plan,receipt,"ELIMINA",true)};assertNotNull(db.reservationDao().get("b"))
+        val verified=service.saveVerifiedBackup(plan,Uri.fromFile(file));service.delete(plan,verified,"ELIMINA",true)
         assertFalse(store.has("booking/b/edit"));assertFalse(store.has("expense/new/OTHER?booking=b"));assertTrue(store.has("booking/unrelated-b/edit"));assertTrue(store.has("property/new"))
     }
 

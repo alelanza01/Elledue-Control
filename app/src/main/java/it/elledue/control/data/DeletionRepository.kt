@@ -9,6 +9,8 @@ import kotlinx.coroutines.withContext
 import org.json.JSONObject
 
 /** Explicit, complete dependency deletion. No cascade deleting unrelated costs or shared owners. */
+class ProtectedDeletionException:IllegalArgumentException("Sono presenti rendiconti confermati: archivia l’immobile per conservare documenti e collegamenti storici.")
+
 class DeletionPlan internal constructor(val kind:String,val id:String,val label:String,val counts:Map<String,Int>,val reportIds:Set<String>,internal val backup:ByteArray,internal val fingerprint:String)
 class DeletionReceipt internal constructor(internal val fingerprint:String,val uri:Uri)
 class DeletionRepository(private val db:AppDatabase,private val context:Context,private val beforeCommit:()->Unit={}) {
@@ -23,7 +25,7 @@ class DeletionRepository(private val db:AppDatabase,private val context:Context,
         val direct=allReports.filter {report->kind=="property" || report.yearMonth==booking!!.competenceMonth || report.snapshotJson?.let {json->
             val s=ReportCodec.decode(json);(s.bookings+s.linkedBookings.orEmpty()+s.excludedBookings.orEmpty()).any{it.id==id} || s.expenses.any{it.reservationId==id} || s.movements.any{it.reservationId==id}
         }==true}
-        require(direct.none{it.status=="CONFIRMED"}){"Sono presenti rendiconti confermati: usa l’archiviazione per conservare documenti e collegamenti storici."}
+        if(direct.any{it.status=="CONFIRMED"})throw ProtectedDeletionException()
         val periods=direct.map{it.yearMonth}.toSet();val reports=allReports.filter{it.yearMonth in periods}.map{it.id}.toSet()
         fun rows(table:String)=tables.getJSONArray(table).let{array->(0 until array.length()).map{array.getJSONObject(it)}}
         val costs=rows("expenses").filter{if(kind=="property")it.optString("propertyId")==id else it.optString("reservationId")==id}.map{it.getString("id")}.toSet()
@@ -39,6 +41,7 @@ class DeletionRepository(private val db:AppDatabase,private val context:Context,
         counts["Revisioni tassa"]=rows("tax_assessment_revisions").count{if(kind=="property")it.getString("reservationId") in rows("reservations").filter{r->r.getString("propertyId")==id}.map{r->r.getString("id")} else it.getString("reservationId")==id}
         return@withTransaction DeletionPlan(kind,id,if(booking==null)property.property.name else "${booking.guestFirstName} ${booking.guestLastName}",counts,reports,bytes,ReportCodec.hash(bytes.toString(Charsets.UTF_8)))
     }
+    suspend fun archive(id:String)=PropertyRepository(db).archive(id,true)
     suspend fun saveVerifiedBackup(plan:DeletionPlan,uri:Uri):DeletionReceipt=withContext(Dispatchers.IO) {
         requireNotNull(context.contentResolver.openOutputStream(uri,"wt")).use{it.write(plan.backup)}
         val bytes=requireNotNull(context.contentResolver.openInputStream(uri)).use{it.readBytes()}
@@ -53,7 +56,7 @@ class DeletionRepository(private val db:AppDatabase,private val context:Context,
         }}.getOrElse{throw IllegalArgumentException("Il backup preventivo non è più accessibile: salva e verifica un nuovo backup.")}}
         require(persisted.contentEquals(plan.backup)){"Il backup preventivo non è più accessibile o è cambiato: salva e verifica un nuovo backup."}
         val references=db.withTransaction {
-        require(confirmation=="ELIMINA ${plan.label}"){"Digita esattamente la conferma richiesta."}
+        require(confirmation.trim().equals("ELIMINA",ignoreCase=true)){"Digita ELIMINA: non occorre il nome dell’immobile."}
         require(receipt.fingerprint==plan.fingerprint){"Prima salva e verifica il backup di questa anteprima."}
         require(plan.reportIds.isEmpty() || includeDocuments){"Conferma esplicitamente l’eliminazione dei rendiconti e di tutte le loro versioni."}
         require(ReportCodec.hash(backup.export().toString(Charsets.UTF_8))==plan.fingerprint){"I dati sono cambiati: aggiorna l’anteprima e salva un nuovo backup."}

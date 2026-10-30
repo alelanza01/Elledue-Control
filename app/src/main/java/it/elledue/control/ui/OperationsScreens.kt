@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -63,6 +65,11 @@ val homeCovers=listOf(R.drawable.home_cover_1,R.drawable.home_cover_2,R.drawable
     var busy by remember {mutableStateOf(false)};var error by remember {mutableStateOf<String?>(null)};var deleting by remember {mutableStateOf(false)}
     val localScope=rememberCoroutineScope()
     val scope=actionScope ?: localScope
+    var exit by remember {mutableStateOf(false)}
+    val contextForDrafts=androidx.compose.ui.platform.LocalContext.current
+    val changed=title!=(initial?.title ?: "") || notes!=(initial?.notes ?: "") || date!=(due?.toLocalDate()?.format(BookingDates.inputFormat) ?: "") || time!=(due?.takeIf{initial?.hasTime!=false}?.toLocalTime()?.toString()?.take(5) ?: "") || property!=(initial?.propertyId ?: "") || booking!=(initial?.reservationId ?: "") || completed!=(initial?.completed ?: false) || kind!=(initial?.kind ?: "GENERAL")
+    fun requestBack(){if(!busy){if(changed)exit=true else back()}}
+    androidx.activity.compose.BackHandler{requestBack()}
     fun save() {if(busy)return;busy=true;scope.launch {try {
         require(time.isBlank() || date.isNotBlank()) {"Inserisci una data prima dell’orario."}
         val stamp=if(date.isBlank()) null else {
@@ -73,9 +80,9 @@ val homeCovers=listOf(R.drawable.home_cover_1,R.drawable.home_cover_2,R.drawable
         }
         repository.save(ActivityEntity(id,property.ifBlank {null},title,stamp,initial?.zoneId ?: "Europe/Rome",completed,booking.ifBlank {null},notes,kind=kind,hasTime=time.isNotBlank()));kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main){back()}
     } catch(e:CancellationException){throw e} catch(e:Exception){error=e.message ?: "Salvataggio non riuscito"} finally {busy=false} } }
-    Column(Modifier.fillMaxSize().imePadding().verticalScroll(rememberScrollState()).padding(20.dp).testTag("activity-editor"),verticalArrangement=Arrangement.spacedBy(12.dp)) {
+    Column(Modifier.fillMaxSize().imePadding().verticalScroll(rememberScrollState()).padding(20.dp).testTag("activity-editor").semantics{stateDescription=if(changed)"Modifiche non salvate" else "Nessuna modifica"},verticalArrangement=Arrangement.spacedBy(12.dp)) {
         DraftBanner(draftKey){back()}
-        TextButton(onClick=back,enabled=!busy){Text("Indietro")};Text(if(initial==null)"Nuova attività" else "Dettaglio e modifica attività",style=MaterialTheme.typography.headlineLarge)
+        TextButton(onClick={requestBack()},enabled=!busy){Text("Indietro")};Text(if(initial==null)"Nuova attività" else "Dettaglio e modifica attività",style=MaterialTheme.typography.headlineLarge)
         OutlinedTextField(title,{title=it},label={Text("Titolo *")},modifier=Modifier.fillMaxWidth().testTag("activity-title"),enabled=!busy)
         OutlinedTextField(notes,{notes=it},label={Text("Descrizione / note")},modifier=Modifier.fillMaxWidth().testTag("activity-notes"),enabled=!busy)
         ChoiceField("Tipologia attività",kind,listOf("GENERAL" to "Attività generale","CLEANING" to "Pulizia programmata","MAINTENANCE" to "Manutenzione","REGISTRATION" to "Registrazione ospiti"),!busy){kind=it}
@@ -94,6 +101,7 @@ val homeCovers=listOf(R.drawable.home_cover_1,R.drawable.home_cover_2,R.drawable
         Button(onClick={save()},enabled=!busy && title.isNotBlank(),modifier=Modifier.testTag("save-activity")){Text("Salva attività")}
         if(initial!=null) TextButton(onClick={deleting=true},enabled=!busy){Text("Elimina attività")}
     }
+    if(exit)LocalDraftExitDialog(save={exit=false;save()},keep={exit=false;back()},discard={it.elledue.control.data.DraftStore.get(contextForDrafts).clear(draftKey);exit=false;back()},dismiss={exit=false})
     if(deleting) AlertDialog(onDismissRequest={deleting=false},title={Text("Eliminare l’attività?")},text={Text("Spese, pulizie e movimenti contabili rimarranno conservati.")},confirmButton={TextButton(onClick={if(!busy){busy=true;scope.launch {try{repository.delete(id);kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main){back()}}catch(e:Exception){error="Eliminazione non riuscita"}finally{busy=false;deleting=false}}}},enabled=!busy){Text("Conferma eliminazione")}},dismissButton={TextButton(onClick={deleting=false}){Text("Annulla")}})
 }
 

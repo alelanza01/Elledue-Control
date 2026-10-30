@@ -24,21 +24,44 @@ import java.time.format.DateTimeFormatter
 
 @Composable fun NotificationSettings(back:()->Unit) {
     val context=LocalContext.current;val app=context.applicationContext as ElledueApplication
+    val diagnostic by app.reminderStore.diagnostics.collectAsState()
     val saved by app.reminderStore.state.collectAsState();var value by rememberPersistentDraft("notifications#settings",saved)
     var error by remember{mutableStateOf<String?>(null)};var result by remember{mutableStateOf<String?>(null)}
     val maintenanceError by app.maintenanceError.collectAsState()
     val scope=rememberCoroutineScope();var refresh by remember{mutableIntStateOf(0)}
-    val permission=rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()){refresh++;scope.launch{app.reminders.reconcile(force=true)}}
+    val permission=rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()){refresh++;scope.launch{runCatching{app.reminders.reconcile(force=true)}.onFailure{error=it.message ?: "Riprogrammazione non riuscita: verifica la diagnostica."}}}
     val lifecycle=androidx.lifecycle.compose.LocalLifecycleOwner.current
-    DisposableEffect(lifecycle){val observer=androidx.lifecycle.LifecycleEventObserver{_,event->if(event==androidx.lifecycle.Lifecycle.Event.ON_RESUME){refresh++;scope.launch{app.reminders.reconcile(force=true)}}};lifecycle.lifecycle.addObserver(observer);onDispose{lifecycle.lifecycle.removeObserver(observer)}}
-    val allowed=remember(refresh){app.reminders.allowed()}
+    DisposableEffect(lifecycle){val observer=androidx.lifecycle.LifecycleEventObserver{_,event->if(event==androidx.lifecycle.Lifecycle.Event.ON_RESUME){refresh++;scope.launch{runCatching{app.reminders.reconcile(force=true)}.onFailure{error=it.message ?: "Riprogrammazione non riuscita: verifica la diagnostica."}}}};lifecycle.lifecycle.addObserver(observer);onDispose{lifecycle.lifecycle.removeObserver(observer)}}
+    val allowed=remember(refresh,diagnostic){app.reminders.allowed()}
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp).testTag("notification-settings"),verticalArrangement=Arrangement.spacedBy(12.dp)) {
         TextButton(onClick=back){Text("Indietro")};ConceptHeading("Notifiche Android","Promemoria locali · Europe/Rome")
-        Text(if(allowed)"Permesso Android concesso" else "Notifiche bloccate da Android",color=if(allowed)ArrivalColor else ElledueGold)
-        OutlinedButton(onClick={if(Build.VERSION.SDK_INT>=33 && !allowed)permission.launch(Manifest.permission.POST_NOTIFICATIONS) else context.startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE,context.packageName))}){Text("Permesso e canale Android")}
-        Text(if(app.reminders.exactAllowed())"Allarmi precisi disponibili" else "Allarmi non esatti: Android può ritardare i promemoria",color=ElledueGold)
-        if(Build.VERSION.SDK_INT>=31 && !app.reminders.exactAllowed())OutlinedButton(onClick={context.startActivity(Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM,android.net.Uri.parse("package:"+context.packageName)))}){Text("Consenti allarmi precisi (facoltativo)")}
-        ToggleSetting("Attiva promemoria",value.enabled){value=value.copy(enabled=it)}
+        Text(if(saved.enabled)"Promemoria dell’app: ATTIVI" else "Promemoria dell’app: DISATTIVATI",modifier=Modifier.testTag("notification-enabled-state"))
+        Text(if(app.reminders.permissionGranted())"Permesso Android: concesso" else "Permesso Android: negato")
+        Text(if(app.reminders.appNotificationsEnabled())"Notifiche dell’app consentite da Android" else "Notifiche dell’app bloccate da Android")
+        Text(if(app.reminders.channelEnabled())"Canale Promemoria operativi: attivo" else "Canale Promemoria operativi: bloccato")
+        app.reminders.blockedReason()?.let{Text(it,color=MaterialTheme.colorScheme.error)}
+        OutlinedButton(onClick={if(Build.VERSION.SDK_INT>=33 && !app.reminders.permissionGranted())permission.launch(Manifest.permission.POST_NOTIFICATIONS) else context.startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE,context.packageName))}){Text("Permesso Android e notifiche dell’app")}
+        OutlinedButton(onClick={context.startActivity(Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE,context.packageName).putExtra(Settings.EXTRA_CHANNEL_ID,ReminderEngine.CHANNEL))}){Text("Impostazioni canale promemoria")}
+        Text(if(app.reminders.exactAllowed())"Allarmi esatti: disponibili" else "Allarmi non esatti: Android può ritardare la consegna",color=ElledueGold)
+        if(Build.VERSION.SDK_INT>=31 && !app.reminders.exactAllowed())OutlinedButton(onClick={runCatching{context.startActivity(Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM,android.net.Uri.parse("package:"+context.packageName)))}.onFailure{error="Apri i permessi speciali Allarmi e promemoria nelle impostazioni Android."}}){Text("Consenti allarmi precisi (facoltativo)")}
+        val power=context.getSystemService(android.os.PowerManager::class.java)
+        Text(if(power.isIgnoringBatteryOptimizations(context.packageName))"Batteria: app esclusa dalle ottimizzazioni" else "Batteria: possibili ritardi per risparmio energetico")
+        if(Build.VERSION.SDK_INT>=28 && context.getSystemService(android.app.ActivityManager::class.java).isBackgroundRestricted)Text("Android limita le attività in background: controlla le impostazioni batteria dell’app.",color=ElledueGold)
+        TextButton(onClick={runCatching{context.startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))}.onFailure{context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,android.net.Uri.parse("package:"+context.packageName)))}}){Text("Apri impostazioni batteria")}
+        ToggleSetting("Attiva promemoria",value.enabled){next->value=value.copy(enabled=next);scope.launch{runCatching{app.reminderStore.save(app.reminderStore.load().copy(enabled=next));app.reminders.reconcile(force=true)}.onSuccess{error=null;result="Attivazione aggiornata";if(value==app.reminderStore.load())app.drafts.clear("notifications");refresh++}.onFailure{error=it.message}}}
+        Text("L’attivazione è applicata subito. Per gli altri parametri usa Salva promemoria.",style=MaterialTheme.typography.bodySmall)
+        val count=remember(diagnostic,refresh){app.reminderStore.scheduled().values.count{it.at>System.currentTimeMillis()}}
+        Text("Promemoria futuri programmati: $count",style=MaterialTheme.typography.titleMedium,modifier=Modifier.testTag("notification-scheduled-count"))
+        Text(if(saved.quietEnabled)"Fascia di silenzio: ${saved.quietStart}–${saved.quietEnd}; gli eventi slittano alla fine" else "Fascia di silenzio: disattivata")
+        app.reminderStore.status("error")?.takeIf{it.isNotBlank()}?.let{Text(it,color=MaterialTheme.colorScheme.error,modifier=Modifier.testTag("notification-diagnostic-error"))}
+        fun stamp(key:String)=app.reminderStore.status(key)?.toLongOrNull()?.let{DateTimeFormatter.ofPattern("dd/MM HH:mm:ss").format(Instant.ofEpochMilli(it).atZone(ReminderPlanner.zone))} ?: "non registrata"
+        Text("Ultima programmazione: ${stamp("last-schedule")}\nUltima ricezione dell’allarme: ${stamp("last-receiver")}\nUltima notifica affidata ad Android: ${stamp("last-posted")}",style=MaterialTheme.typography.bodySmall)
+        OutlinedButton(onClick={scope.launch{runCatching{app.reminders.reconcile(force=true)}.onSuccess{error=null;result="Programmazione aggiornata";refresh++}.onFailure{error=it.message}}},modifier=Modifier.testTag("reschedule-notifications")){Text("Verifica e riprogramma")}
+        OutlinedButton(onClick={runCatching{app.reminders.test()}.onSuccess{error=null;result="Notifica immediata affidata ad Android: verifica se è visibile."}.onFailure{error=it.message}},modifier=Modifier.testTag("immediate-notification-test")){Text("Notifica di prova immediata")}
+        OutlinedButton(onClick={scope.launch{runCatching{app.reminders.scheduleTest()}.onSuccess{job->error=null;result="Test programmato per "+DateTimeFormatter.ofPattern("HH:mm:ss").format(Instant.ofEpochMilli(job.at).atZone(ReminderPlanner.zone))+". Puoi chiudere normalmente l’app e bloccare il telefono.";refresh++}.onFailure{error=it.message}}},modifier=Modifier.testTag("scheduled-notification-test")){Text("Prova programmata tra 2 minuti")}
+        Text("Il test programmato ignora solo la fascia di silenzio e richiede promemoria attivi. Senza allarmi esatti può arrivare in ritardo. Una chiamata accettata da Android non dimostra che il telefono abbia mostrato la notifica.",style=MaterialTheme.typography.bodySmall)
+        if(value!=saved)Text("Ci sono parametri locali non ancora salvati.",color=ElledueGold)
+        result?.let{Text(it,modifier=Modifier.testTag("notification-test-result"))};error?.let{Text(it,color=MaterialTheme.colorScheme.error)}
         ToggleSetting("Arrivi",value.arrivals){value=value.copy(arrivals=it)}
         ToggleSetting("Partenze",value.departures){value=value.copy(departures=it)}
         ToggleSetting("Attività programmate",value.tasks){value=value.copy(tasks=it)}
@@ -61,11 +84,10 @@ import java.time.format.DateTimeFormatter
         maintenanceError?.let{Text(it,color=MaterialTheme.colorScheme.error)}
         error?.let{Text(it,color=MaterialTheme.colorScheme.error)};result?.let{Text(it)}
         Button(onClick={scope.launch{runCatching{app.reminderStore.save(value);app.drafts.clear("notifications");app.reminders.reconcile(force=true)}.onSuccess{result="Impostazioni salvate e promemoria aggiornati";error=null;refresh++}.onFailure{error=it.message ?: "Salvataggio non riuscito"}}},modifier=Modifier.fillMaxWidth().testTag("save-notifications")){Text("Salva promemoria")}
-        OutlinedButton(onClick={runCatching{app.reminders.test()}.onFailure{error=it.message}},enabled=allowed){Text("Invia notifica di prova")}
         DraftBanner("notifications"){value=saved}
         Text("Prossimi promemoria",style=MaterialTheme.typography.titleLarge)
-        val jobs=remember(refresh,saved){app.reminderStore.scheduled().values.sortedBy{it.at}}
-        if(jobs.isEmpty())Text("Nessun promemoria futuro programmato. Verifica attivazione, permessi e date.")
+        val jobs=remember(refresh,saved,diagnostic){app.reminderStore.scheduled().values.sortedBy{it.at}}
+        if(jobs.isEmpty())Text("Nessun promemoria futuro programmato. Verifica attivazione, permessi, tipi e date future. Le annullate, gli immobili archiviati e le attività completate sono esclusi. La registrazione ospiti richiede l’orario effettivo di arrivo; la tassa automatica non impone la riscossione ordinaria.")
         jobs.take(50).forEach{job->Text(job.title+" · "+DateTimeFormatter.ofPattern("dd/MM HH:mm").format(Instant.ofEpochMilli(job.at).atZone(ReminderPlanner.zone)),style=MaterialTheme.typography.bodySmall)}
     }
 }

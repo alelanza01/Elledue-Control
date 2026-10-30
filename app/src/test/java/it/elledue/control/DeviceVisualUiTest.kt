@@ -38,14 +38,14 @@ class DeviceVisualUiTest {
         compose.onNodeWithText("Proprio di test").performClick();waitTag("property-menu")
         compose.onNodeWithText("Immobile proprio / in comproprietà").performScrollTo();nativeCapture(compose,"owned-property")
         compose.onNodeWithTag("property-menu").performClick();compose.onNodeWithText("Elimina definitivamente immobile").performClick();waitTag("delete-permanently")
-        compose.onNodeWithTag("deletion-confirmation").performScrollTo().performTextReplacement("ELIMINA Proprio di test")
+        compose.onNodeWithTag("deletion-confirmation").performScrollTo().performTextReplacement("ELIMINA")
         compose.onNodeWithTag("delete-permanently").assertIsNotEnabled();nativeCapture(compose,"deletion-before-backup")
         compose.onNodeWithTag("deletion-backup").performScrollTo().performClick()
         val activity=compose.activity;val started=Shadows.shadowOf(activity).nextStartedActivityForResult
         assertEquals(Intent.ACTION_CREATE_DOCUMENT,started.intent.action)
         val file=File(activity.cacheDir,"synthetic-safety.json")
         compose.runOnUiThread{Shadows.shadowOf(activity).receiveResult(started.intent,Activity.RESULT_OK,Intent().setData(Uri.fromFile(file)))}
-        compose.waitUntil(20000){compose.onAllNodes(hasText("Backup verificato e accessibile nel documento scelto.")).fetchSemanticsNodes().isNotEmpty()}
+        compose.waitUntil(20000){compose.onAllNodes(hasText("Backup salvato, riletto e verificato.")).fetchSemanticsNodes().isNotEmpty()}
         assertTrue(file.length()>100);compose.onNodeWithTag("delete-permanently").performScrollTo().assertIsEnabled();nativeCapture(compose,"deletion-verified")
         compose.onNodeWithTag("delete-permanently").performClick();try{waitTag("new-property")}catch(e:Throwable){throw AssertionError(compose.onRoot().printToString(),e)}
         runBlocking {assertNull(app.propertyRepository.get("owned"));assertNull(app.reservationRepository.get("stay"))}

@@ -24,6 +24,7 @@ object StandardCostProjection {
     val unlinked=allCosts.any{it.propertyId==b.propertyId && it.reservationId==null && it.kind==default.kind && !it.voided && it.competenceMonth in listOf(b.competenceMonth,operationMonth)}
     if(unlinked) {warnings.add("${b.guestFirstName} ${b.guestLastName}: ${if(default.kind=="CLEANING")"pulizia" else "lavanderia"} da associare. Esistono spese senza soggiorno nel periodo: nessuna seconda voce proposta.");continue}
     val f=forecasts.firstOrNull{it.reservationId==b.id && it.kind==default.kind} ?: default
+    if(f.manual && f.overrideCents==0L)continue // Explicitly excluded forecast; no expense or cash is invented.
     proposals.add(ExpenseEntity(id=StayCostRepository.expenseId(b.id,f.kind),propertyId=b.propertyId,reservationId=b.id,
      dateEpochDay=b.checkOutEpochDay,description=if(f.kind=="CLEANING")"Pulizia standard" else "Lavanderia · letto e asciugamani",
      category=if(f.kind=="CLEANING")"Pulizie" else "Lavanderia",actualCents=f.overrideCents ?: OperationalMoney.cost(f.quantity,f.unitCents),

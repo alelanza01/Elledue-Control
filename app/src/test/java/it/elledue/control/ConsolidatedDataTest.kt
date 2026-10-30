@@ -113,7 +113,7 @@ class ConsolidatedDataTest {
   seed();val r=IssueRepository(db);r.save(PropertyIssue(id="i",propertyId="p",title="Aperto",reservationId="b"))
   val backup=BackupService(db,context);val original=backup.export();val service=DeletionRepository(db,context)
   val plan=service.prepare("booking","b");val receipt=service.saveVerifiedBackup(plan,Uri.fromFile(File(context.cacheDir,"049-safety.json")))
-  service.delete(plan,receipt,"ELIMINA ${plan.label}",true)
+  service.delete(plan,receipt,"ELIMINA",true)
   assertNull(db.issueDao().get("i")!!.reservationId);assertTrue(IssueRepository.open(db.issueDao().get("i")!!));assertTrue(db.stayCostDao().get("b").isEmpty())
   backup.restore(backup.prepare(original),true);assertEquals("b",db.issueDao().get("i")!!.reservationId);assertEquals(2,db.stayCostDao().get("b").size)
  }

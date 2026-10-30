@@ -45,8 +45,9 @@ import kotlinx.coroutines.launch
  fun clearDraft(){listOf("quantity","unit","amount").forEach{store.clear("$draftKey-$it")}}
  val scope=rememberCoroutineScope();var error by remember{mutableStateOf<String?>(null)};var busy by remember{mutableStateOf(false)}
  OutlinedCard(Modifier.fillMaxWidth()){Column(Modifier.padding(14.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){
-  Text(if(f.kind=="CLEANING")"Pulizie previste · da confermare" else "Lavanderia prevista · da confermare",style=MaterialTheme.typography.titleMedium)
+  Text(if(f.manual && f.overrideCents==0L)"Previsione esclusa dal saldo" else if(f.kind=="CLEANING")"Pulizie previste · da confermare" else "Lavanderia prevista · da confermare",style=MaterialTheme.typography.titleMedium)
   Text("${f.quantity} × ${Amounts.euro(f.unitCents)} = ${Amounts.euro(f.overrideCents ?: OperationalMoney.cost(f.quantity,f.unitCents))}",color=ElledueGold)
+  TextButton(enabled=!busy,onClick={busy=true;scope.launch{try{repository.save(f.copy(overrideCents=if(f.manual && f.overrideCents==0L)null else 0));clearDraft()}catch(e:Exception){error=e.message}finally{busy=false}}},modifier=Modifier.testTag("exclude-standard-${f.kind}")){Text(if(f.manual && f.overrideCents==0L)"Ripristina previsione" else "Non applicare questa previsione")}
   TextButton(onClick={expanded=!expanded},modifier=Modifier.testTag("edit-standard-${f.kind}")){Text(if(expanded)"Chiudi dettagli" else "Modifica standard / consuntivo")}
   if(expanded) {
   AccountingField("Tariffa €",unit,"standard-unit-${f.kind}"){unit=it}

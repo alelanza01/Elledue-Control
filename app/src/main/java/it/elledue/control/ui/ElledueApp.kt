@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.*
+import it.elledue.control.reports.ReportCodec
 import it.elledue.control.R
 import it.elledue.control.data.scope
 import it.elledue.control.domain.PropertyDraft
@@ -259,7 +260,9 @@ fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewMo
                     val item = accountingData!!.expenses.firstOrNull { it.id == destination.arguments?.getString("id") }
                     if (item == null) EmptyState("Spesa non trovata", "Torna alla contabilità.")
                     else ExpenseDetail(item, records.firstOrNull { it.property.id == item.propertyId }?.property?.name ?: "Immobile", accountingModel,
-                        onBack = { accountingModel.clear(); navigation.popBackStack() }, onEdit = { accountingModel.clear(); navigation.navigate("expense/${item.id}/edit") }, bookingName = bookings.firstOrNull { it.id == item.reservationId }?.let { "${it.guestFirstName} ${it.guestLastName} · ${BookingDates.display(it.checkInEpochDay)}" })
+                        onBack = { accountingModel.clear(); navigation.popBackStack() }, onEdit = { accountingModel.clear(); navigation.navigate("expense/${item.id}/edit") }, bookingName = bookings.firstOrNull { it.id == item.reservationId }?.let { "${it.guestFirstName} ${it.guestLastName} · ${BookingDates.display(it.checkInEpochDay)}" },
+                        protectedReport=reports.filter{it.status=="CONFIRMED" && it.propertyId==item.propertyId && it.yearMonth==item.competenceMonth && runCatching{ReportCodec.decode(it.snapshotJson!!).expenses.any{expense->expense.id==item.id}}.getOrDefault(false)}.maxByOrNull{it.version}?.id,
+                        canRevise=reports.any{it.propertyId==item.propertyId && it.yearMonth==item.competenceMonth && it.status=="DRAFT" && it.previousId!=null},onReport={jump("report/$it")})
                 }
             }
             composable("expense/{id}/edit") { destination ->
@@ -291,6 +294,8 @@ fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewMo
                 }
             }
             composable("report/{id}") { destination ->
+                val abandoned by reportsModel.abandonedId.collectAsStateWithLifecycle()
+                LaunchedEffect(abandoned){if(abandoned==destination.arguments?.getString("id")){reportsModel.clearAbandoned();navigation.popBackStack()}}
                 val report = reports.firstOrNull { it.id == destination.arguments?.getString("id") }
                 when {
                     reportsState is ReportState.Loading -> LoadingScreen()

@@ -71,6 +71,7 @@ fun ReportDetail(report: ReportEntity, snapshot: ReportSnapshot, model: ReportVi
     var layout by rememberSaveable { mutableStateOf(ReportLayout.SUMMARY) }
     val exportPdf = rememberPdfExporter(snapshot, layout)
     var preview by remember { mutableStateOf(false) }
+    var abandon by rememberSaveable(report.id){mutableStateOf(false)}
     var tab by rememberSaveable(report.id) { mutableIntStateOf(0) }
     var notes by rememberPersistentDraft("report/${report.id}#notes",report.notes)
     var acknowledged by rememberSaveable(report.id, report.snapshotJson) { mutableStateOf(false) }
@@ -138,6 +139,8 @@ fun ReportDetail(report: ReportEntity, snapshot: ReportSnapshot, model: ReportVi
                 item { AccountingField("Note del rendiconto", notes, "report-notes", draft && !busy) { notes = it } }
             }
             if (draft) {
+                item {Text("Rendiconto non confermato salvato nel database. Non è una bozza locale di modulo.",style=MaterialTheme.typography.bodySmall)}
+                item {TextButton(onClick={abandon=true},enabled=!busy,modifier=Modifier.testTag("abandon-report-draft")){Text("Abbandona bozza di rendiconto")}}
                 item { OutlinedButton(onClick = exportPdf, modifier = Modifier.fillMaxWidth()) { Text("Esporta PDF della bozza") } }
                 item { Button(onClick = { model.refresh(report.id, notes) }, enabled = !busy, modifier = Modifier.fillMaxWidth().testTag("refresh-report")) { Text("Salva note · dati aggiornati automaticamente") } }
                 item { OutlinedButton(onClick = { tab = 2; confirm = true }, enabled = !busy && notes.trim() == report.notes && issues.none { it.blocking } && ((issues.isEmpty() && proposed.isEmpty()) || acknowledged), modifier = Modifier.fillMaxWidth().testTag("confirm-report")) { Text("Conferma rendiconto") } }
@@ -151,5 +154,6 @@ fun ReportDetail(report: ReportEntity, snapshot: ReportSnapshot, model: ReportVi
         }
     }
     if (preview) PdfPreview(snapshot, layout, { preview = false }, exportPdf) { layout = it }
+    if(abandon)AlertDialog(onDismissRequest={abandon=false},title={Text("Abbandonare questo rendiconto non confermato?")},text={Text("Viene rimossa solo questa bozza di documento. Prenotazioni, spese, pagamenti e versioni storiche confermate rimangono intatti.")},confirmButton={TextButton(onClick={abandon=false;model.abandon(report.id)},modifier=Modifier.testTag("confirm-abandon-report")){Text("Abbandona documento in bozza")}},dismissButton={TextButton(onClick={abandon=false}){Text("Annulla")}})
     if (confirm) AlertDialog(onDismissRequest = { if (!busy) confirm = false }, title = { Text("Confermare questa versione?") }, text = { Text("Verrà conservato uno snapshot immutabile. Il PDF non sarà inviato automaticamente.") }, confirmButton = { TextButton(enabled = !busy, onClick = { model.confirm(snapshot, acknowledged); confirm = false }) { Text("Conferma definitiva") } }, dismissButton = { TextButton(enabled = !busy, onClick = { confirm = false }) { Text("Torna alla verifica") } })
 }
