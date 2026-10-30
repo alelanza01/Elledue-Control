@@ -27,17 +27,21 @@ import java.util.UUID
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AccountingHome(data: AccountingData, bookings: List<ReservationEntity>, properties: List<PropertyWithOwner>, model: AccountingViewModel,
-                   onNew: (String) -> Unit, onExpense: (String) -> Unit, onTax: (String) -> Unit, onCategories: () -> Unit, onReports: () -> Unit = {}) {
+                   onNew: (String) -> Unit, onExpense: (String) -> Unit, onTax: (String) -> Unit, onCategories: () -> Unit, onReports: () -> Unit = {}, initialTab:Int=0,paymentsOnly:Boolean=false) {
     var month by rememberSaveable { mutableStateOf(YearMonth.from(BookingDates.today()).toString()) }
     var property by rememberSaveable { mutableStateOf("") }
-    var tab by rememberSaveable { mutableIntStateOf(0) }
+    var tab by rememberSaveable { mutableIntStateOf(initialTab) }
     var kind by rememberSaveable { mutableStateOf("") }
     var showVoided by rememberSaveable { mutableStateOf(false) }
     var payment by rememberSaveable { mutableStateOf(false) }
     var reversalId by rememberSaveable { mutableStateOf<String?>(null) }
     val busy by model.busy.collectAsStateWithLifecycle(); val error by model.error.collectAsStateWithLifecycle(); val saved by model.saved.collectAsStateWithLifecycle()
-    val summary = runCatching { operationalSummary(month, property, bookings, data.expenses, data.taxes, data.movements) }
-    Scaffold(topBar = { TopAppBar(title = { Text("Contabilità operativa") }, actions = { IconButton(onClick = onCategories) { Icon(Icons.Outlined.Tune, "Categorie spese") } }) }) { padding ->
+    val selected=properties.filter{property.isEmpty() || it.property.id==property}
+    val managedIds=selected.filter{it.property.businessType!="OWNED"}.map{it.property.id}.toSet()
+    val ownIds=selected.filter{it.property.businessType=="OWNED"}.map{it.property.id}.toSet()
+    val ownerPaymentAllowed=property in managedIds
+    val summary = runCatching { operationalSummary(month, property, bookings.filter{it.propertyId in managedIds && it.appliedBusinessType!="OWNED"}, data.expenses.filter{it.propertyId in managedIds}, data.taxes.filter{it.propertyId in managedIds}, data.movements.filter{it.propertyId in managedIds}) }
+    Scaffold(topBar = { TopAppBar(title = { Text(if(paymentsOnly)"Anticipi e pagamenti" else if(initialTab==1)"Spese" else "Dettagli contabili") }, actions = { IconButton(onClick = onCategories) { Icon(Icons.Outlined.Tune, "Categorie spese") } }) }) { padding ->
         LazyColumn(Modifier.fillMaxSize().padding(padding).testTag("accounting-scroll"), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             item { PropertySelector(properties, property, allOption = true) { property = it } }
             item { Row(verticalAlignment = Alignment.CenterVertically) {
@@ -45,11 +49,12 @@ fun AccountingHome(data: AccountingData, bookings: List<ReservationEntity>, prop
                 Text(month, style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f).testTag("accounting-month"))
                 IconButton(onClick = { month = YearMonth.parse(month).plusMonths(1).toString() }) { Icon(Icons.Outlined.ChevronRight, "Mese successivo contabilità") }
             } }
-            item { Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf("Riepilogo", "Spese", "Tassa").forEachIndexed { i, label -> FilterChip(tab == i, { tab = i }, label = { Text(label) }, modifier = Modifier.testTag("accounting-tab-$i")) }
+            if(!paymentsOnly)item { Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf("Riepilogo", "Spese", "Tassa e anticipi").forEachIndexed { i, label -> FilterChip(tab == i, { tab = i }, label = { Text(label) }, modifier = Modifier.testTag("accounting-tab-$i")) }
             } }
             if (tab == 0) {
-                item { Button(onClick = onReports, modifier = Modifier.fillMaxWidth().testTag("open-reports")) { Text("Rendiconti mensili") } }
+                if(!paymentsOnly) {
+                item { Button(onClick = onReports, enabled=managedIds.isNotEmpty(), modifier = Modifier.fillMaxWidth().testTag("open-reports")) { Text("Rendiconti mensili") } }
                 val currentBookings = bookings.filter { it.status != BookingStatus.CANCELLED.name && Competence.booking(it.checkInEpochDay) == month && (property.isEmpty() || it.propertyId == property) }
                 val unconfigured = currentBookings.count { booking -> data.taxes.none { it.reservationId == booking.id } }
                 val needsReview = data.taxes.count { tax -> tax.needsReview && currentBookings.any { it.id == tax.reservationId } }
@@ -60,8 +65,10 @@ fun AccountingHome(data: AccountingData, bookings: List<ReservationEntity>, prop
                         TextButton(onClick = { tab = 2 }) { Text("Verifica tasse dei soggiorni") }
                     } }
                 }
-                item {
-                    summary.getOrNull()?.let { s ->
+                if(ownIds.isNotEmpty())item { OwnBusinessCard(BusinessAnalytics.calculate(month,selected,bookings,data.expenses,data.taxes,data.movements)) }
+                if(managedIds.isNotEmpty())item {
+                    Text("Immobili in gestione · rapporto con proprietari esterni",style=MaterialTheme.typography.titleMedium)
+                    if(managedIds.isNotEmpty())summary.getOrNull()?.let { s ->
                         Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
                             Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Text(if (s.balance >= 0) "Saldo operativo da riconciliare" else "Credito da riconciliare", style = MaterialTheme.typography.labelLarge)
@@ -71,14 +78,15 @@ fun AccountingHome(data: AccountingData, bookings: List<ReservationEntity>, prop
                         }
                     } ?: Text("Importi aggregati oltre il limite: seleziona un immobile.", color = MaterialTheme.colorScheme.error)
                 }
-                summary.getOrNull()?.let { s ->
-                    item { AmountLine("Commissioni Elledue maturate", s.fees); AmountLine("Spese complessive", s.expenses); AmountLine("Spese anticipate da Elledue", s.advanced); AmountLine("Anticipate e rimborsabili", s.reimbursable); AmountLine("Pulizie", s.cleaning); AmountLine("Lavanderia", s.laundry) }
+                if(managedIds.isNotEmpty())summary.getOrNull()?.let { s ->
+                    item { AmountLine("Compenso di gestione Elledue", s.fees); AmountLine("Spese complessive", s.expenses); AmountLine("Spese anticipate da Elledue", s.advanced); AmountLine("Anticipate e rimborsabili", s.reimbursable); AmountLine("Pulizie", s.cleaning); AmountLine("Lavanderia", s.laundry) }
                     item { HorizontalDivider(); AmountLine("Tassa prevista", s.expectedTax); AmountLine("Tassa effettivamente riscossa", s.collectedTax); AmountLine("Tassa ancora da incassare", s.residualTax); AmountLine("Compensazioni riconosciute nel mese", s.compensated); AmountLine("Altri anticipi / pagamenti riconosciuti", s.payments) }
                 }
                 item { Text("Prenotazioni: interamente nel mese del check-in. Spese: mese assegnato. La tassa prevista/riscossa/residua riguarda questi soggiorni, anche se riscossa dopo; compensazioni e pagamenti seguono il mese del movimento.", style = MaterialTheme.typography.bodySmall) }
-                item { Text("I portali pagano il proprietario. La tassa non è un ricavo Elledue né una spesa.", style = MaterialTheme.typography.bodyMedium) }
-                item { OutlinedButton(onClick = { model.clear(); payment = true }, enabled = property.isNotEmpty(), modifier = Modifier.testTag("owner-payment")) { Text("Registra anticipo / pagamento proprietario") }; if (property.isEmpty()) Text("Seleziona un immobile per registrare un pagamento.", style = MaterialTheme.typography.bodySmall) }
-                val ownerMovements = data.movements.filter { it.competenceMonth == month && (property.isEmpty() || it.propertyId == property) && (it.kind == "OWNER_PAYMENT" || it.reversesId != null && data.movements.any { original -> original.id == it.reversesId && original.kind == "OWNER_PAYMENT" }) }
+                item { Text("Per gli immobili in gestione i portali pagano il proprietario. La tassa rimane distinta da ricavi, compensi e spese.", style = MaterialTheme.typography.bodyMedium) }
+                }
+                item { OutlinedButton(onClick = { model.clear(); payment = true }, enabled = ownerPaymentAllowed, modifier = Modifier.testTag("owner-payment")) { Text("Registra anticipo / pagamento proprietario") }; if (property.isEmpty()) Text("Seleziona un immobile per registrare un pagamento.", style = MaterialTheme.typography.bodySmall) }
+                val ownerMovements = data.movements.filter { it.propertyId in managedIds && it.competenceMonth == month && (property.isEmpty() || it.propertyId == property) && (it.kind == "OWNER_PAYMENT" || it.reversesId != null && data.movements.any { original -> original.id == it.reversesId && original.kind == "OWNER_PAYMENT" }) }
                 items(ownerMovements, key = { it.id }) { movement -> MovementRow(movement, data.movements, busy) { model.clear(); reversalId = movement.id } }
             } else if (tab == 1) {
                 item { Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -101,6 +109,8 @@ fun AccountingHome(data: AccountingData, bookings: List<ReservationEntity>, prop
                     }
                 }
             } else {
+                item { Text("Previsione, incasso, compensazione e riversamento sono passaggi separati. Apri il soggiorno per registrare il movimento effettivo.",style=MaterialTheme.typography.bodySmall) }
+                item { OutlinedButton(onClick={model.clear();payment=true},enabled=ownerPaymentAllowed){Text("Altri pagamenti / anticipi del proprietario")}; if(property.isBlank()) Text("Seleziona prima un immobile.",style=MaterialTheme.typography.bodySmall) }
                 val stays = bookings.filter { Competence.booking(it.checkInEpochDay) == month && (property.isEmpty() || it.propertyId == property) }
                 if (stays.isEmpty()) item { Text("Nessuna prenotazione con check-in nel periodo.") }
                 items(stays, key = { it.id }) { booking ->
@@ -154,6 +164,7 @@ fun MovementRow(item: MoneyMovementEntity, all: List<MoneyMovementEntity>, busy:
     val reversed = all.any { it.reversesId == item.id }
     OutlinedCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text("${movementLabel(item.kind)} · ${Amounts.euro(item.amountCents)}", style = MaterialTheme.typography.titleSmall)
+        if(item.kind=="COLLECTION")Text("Incassato da: "+when(item.collector){"OWNER"->"Proprietario";"PORTAL"->"Portale";"OTHER"->"Altro";else->"Elledue"},style=MaterialTheme.typography.bodySmall)
         Text("${BookingDates.display(item.dateEpochDay)} · competenza ${item.competenceMonth}", style = MaterialTheme.typography.bodySmall)
         if (item.sourceId != null) Text("Collegata alla riscossione del ${all.firstOrNull { it.id == item.sourceId }?.dateEpochDay?.let(BookingDates::display) ?: "data non disponibile"}", style = MaterialTheme.typography.bodySmall)
         if (item.notes.isNotBlank()) Text(item.notes, style = MaterialTheme.typography.bodySmall)
@@ -165,17 +176,19 @@ fun movementLabel(kind: String) = when (kind) { "COLLECTION" -> "Riscossione con
 
 @Composable
 fun MovementPanel(kind: String, propertyId: String, reservationId: String?, original: MoneyMovementEntity?, month: String, model: AccountingViewModel, dismiss: () -> Unit) {
-    val id = rememberSaveable { UUID.randomUUID().toString() }
-    var amount by rememberSaveable { mutableStateOf(if (kind == "REVERSAL") original?.amountCents?.let(Amounts::editable) ?: "" else "") }
-    var date by rememberSaveable { mutableStateOf(BookingDates.display(BookingDates.today().toEpochDay())) }
-    var competence by rememberSaveable { mutableStateOf(month) }
-    var notes by rememberSaveable { mutableStateOf("") }
+    val draftKey="movement/new?property=$propertyId&booking=${reservationId ?: ""}&kind=$kind&source=${original?.id ?: ""}"
+    val id by rememberPersistentDraft("$draftKey#id",UUID.randomUUID().toString())
+    var amount by rememberPersistentDraft("$draftKey#amount",if (kind == "REVERSAL") original?.amountCents?.let(Amounts::editable) ?: "" else "")
+    var date by rememberPersistentDraft("$draftKey#date",BookingDates.display(BookingDates.today().toEpochDay()))
+    var competence by rememberPersistentDraft("$draftKey#competence",month)
+    var notes by rememberPersistentDraft("$draftKey#notes","")
     var localError by remember { mutableStateOf<String?>(null) }
     val busy by model.busy.collectAsStateWithLifecycle(); val error by model.error.collectAsStateWithLifecycle()
     val bringIntoView = remember { BringIntoViewRequester() }
     LaunchedEffect(id) { withFrameNanos { }; bringIntoView.bringIntoView() }
     OutlinedCard(Modifier.fillMaxWidth().bringIntoViewRequester(bringIntoView).testTag("movement-panel")) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            DraftBanner(draftKey){dismiss()}
             Text(movementLabel(kind), style = MaterialTheme.typography.titleMedium)
             Text(if (kind == "COLLECTION") "Conferma soltanto una somma materialmente incassata." else if (kind == "COMPENSATION") "Riconosci un anticipo al proprietario; questa operazione non registra un nuovo incasso." else if (kind == "REMITTANCE") "Registra un riversamento verificato, separato dalla compensazione." else "Il movimento rimarrà nello storico.", style = MaterialTheme.typography.bodySmall)
             AccountingField("Importo €", amount, "movement-amount", enabled = !busy && kind != "REVERSAL") { amount = it }

@@ -29,7 +29,7 @@ class ReportRepositoryTest {
     }
     @After fun close() { db.close() }
     private suspend fun reject(block: suspend () -> Unit) { try { block(); fail("Expected rejection") } catch (_: IllegalArgumentException) { } }
-    private suspend fun confirm(id: String, acknowledge: Boolean = true) = report.confirm(id, ReportCodec.hash(ReportCodec.encode(report.snapshot(id))), acknowledge)
+    private suspend fun confirm(id: String, acknowledge: Boolean = true) = report.confirm(id, ReportCodec.hash(ReportCodec.encode(report.snapshot(id))), acknowledge,approveStandards=true)
     private suspend fun addCosts() {
         listOf(ExpenseDraft(propertyId = property.id, date = "30/11/2026", month = "2026-11", categoryId = "cleaning", quantity = "3", unit = "8"),
             ExpenseDraft(propertyId = property.id, date = "30/11/2026", month = "2026-11", categoryId = "laundry", quantity = "2", unit = "5"),
@@ -65,7 +65,7 @@ class ReportRepositoryTest {
         reject { confirm(id, false) }
         reservations.save(BookingDraft.from(reservations.get(input.id)!!).copy(actualOta = "0", managementPercent = "25", correctionReason = "Commissione effettiva zero"))
         report.refresh(id); val s = report.snapshot(id)
-        assertEquals(0L, s.ota()); assertEquals(25000L, s.summary().fees); assertTrue(s.issues().isEmpty()); confirm(id, false)
+        assertEquals(0L, s.ota()); assertEquals(25000L, s.summary().fees); assertTrue(s.issues().none{it.message.contains("OTA stimata")}); assertEquals(2,s.proposedExpenses.orEmpty().size); confirm(id, true)
     }
     @Test fun sourceEditsRefreshDraftAndStalePreviewCannotBeConfirmed() = runBlocking<Unit> {
         val id = report.generate(property.id, "2026-11"); val stale = ReportCodec.hash(ReportCodec.encode(report.snapshot(id)))
@@ -132,8 +132,8 @@ class ReportRepositoryTest {
         val payment = MoneyMovementEntity("owner-paid", property.id, null, "OWNER_PAYMENT", 30000, BookingDates.parse("30/11/2026").toEpochDay(), "2026-11", "Pagamento riconosciuto")
         accounting.post(payment)
         val id = report.generate(property.id, "2026-11"); val snapshot = confirm(id)
-        assertEquals(-13900L, snapshot.summary().balance)
-        assertEquals(Amounts.euro(13900), Amounts.euroAbsolute(snapshot.summary().balance))
+        assertEquals(-11300L, snapshot.summary().balance)
+        assertEquals(Amounts.euro(11300), Amounts.euroAbsolute(snapshot.summary().balance))
         assertEquals(30000L, snapshot.summary().payments)
     }
 

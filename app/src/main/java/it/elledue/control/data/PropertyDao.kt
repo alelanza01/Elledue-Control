@@ -8,6 +8,9 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 abstract class PropertyDao {
+    @Transaction @Query("SELECT * FROM properties WHERE archived=0 AND (:type='ALL' OR businessType=:type) ORDER BY name COLLATE NOCASE")
+    abstract fun observeActive(type:String):Flow<List<PropertyWithOwner>>
+
     @Transaction
     @Query("SELECT * FROM properties ORDER BY archived ASC, name COLLATE NOCASE ASC")
     abstract fun observeAll(): Flow<List<PropertyWithOwner>>

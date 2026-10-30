@@ -16,6 +16,7 @@ data class TaxAssessmentEntity(
     val calculatedCents: Long, val expectedCents: Long, val correctionReason: String,
     val remittanceResponsible: String = "UNDEFINED", val remittanceNotes: String = "",
     val needsReview: Boolean = false, val revision: Int = 1, val propertyId: String = "",
+    @androidx.room.ColumnInfo(defaultValue = "1") val consolidated:Boolean=true,
 )
 
 @Entity(tableName = "tax_assessment_revisions", foreignKeys = [ForeignKey(entity = ReservationEntity::class, parentColumns = ["id"], childColumns = ["reservationId"], onDelete = ForeignKey.RESTRICT)], indices = [Index(value = ["reservationId", "version"], unique = true)])
@@ -33,6 +34,7 @@ data class MoneyMovementEntity(
     val kind: String, val amountCents: Long, val dateEpochDay: Long, val competenceMonth: String,
     val notes: String, val sourceId: String? = null, val reversesId: String? = null,
     val createdAt: Long = System.currentTimeMillis(),
+    @ColumnInfo(defaultValue="'ELLEDUE'") val collector:String="ELLEDUE",
 )
 
 @Entity(tableName = "booking_financial_changes", foreignKeys = [ForeignKey(entity = ReservationEntity::class, parentColumns = ["id"], childColumns = ["reservationId"], onDelete = ForeignKey.RESTRICT)], indices = [Index("reservationId")])

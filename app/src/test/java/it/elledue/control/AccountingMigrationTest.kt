@@ -55,7 +55,7 @@ class AccountingMigrationTest {
                 val queries = schema.getJSONArray("setupQueries"); for (i in 0 until queries.length()) sqlite.execSQL(queries.getString(i))
                 sqlite.version = 2
             }
-            Room.databaseBuilder(context, AppDatabase::class.java, name).addMigrations(DatabaseMigrations.MIGRATION_2_3, DatabaseMigrations.MIGRATION_3_4, DatabaseMigrations.MIGRATION_4_5).build().withClosing { db ->
+            Room.databaseBuilder(context, AppDatabase::class.java, name).addMigrations(DatabaseMigrations.MIGRATION_2_3, DatabaseMigrations.MIGRATION_3_4, DatabaseMigrations.MIGRATION_4_5, DatabaseMigrations.MIGRATION_5_6, DatabaseMigrations.MIGRATION_6_7,DatabaseMigrations.MIGRATION_7_8, DatabaseMigrations.MIGRATION_8_9,DatabaseMigrations.MIGRATION_9_10).build().withClosing { db ->
                 val preserved = db.propertyDao().get(property.property.id)!!
                 assertEquals("Casa storica", preserved.property.name); assertEquals("Proprietario", preserved.owner.name)
                 assertEquals(0, preserved.platformCommissions.single().basisPoints); assertEquals("Istruzioni storiche", preserved.templates.single().body)
@@ -63,12 +63,12 @@ class AccountingMigrationTest {
                 assertEquals("2026-12", migrated.competenceMonth); assertEquals(15000L, migrated.actualOtaCents); assertEquals(17000L, migrated.managementCents)
                 val cost = db.accountingDao().expense(expense.id)!!
                 assertEquals(500L, cost.actualCents); assertEquals(booking.id, cost.reservationId); assertEquals("2027-01", cost.competenceMonth)
-                assertEquals(8, db.accountingDao().observeCategories().first().size)
+                assertEquals(9, db.accountingDao().observeCategories().first().size)
                 assertTrue(db.accountingDao().movements().isEmpty()); assertTrue(db.accountingDao().observeAssessments().first().isEmpty())
                 db.openHelper.readableDatabase.query("SELECT organizationName FROM app_settings").use { it.moveToFirst(); assertEquals("Gestione storica", it.getString(0)) }
                 db.openHelper.readableDatabase.query("SELECT title FROM activities").use { it.moveToFirst(); assertEquals("Controllo", it.getString(0)) }
                 db.openHelper.readableDatabase.query("SELECT status FROM reports").use { it.moveToFirst(); assertEquals("DRAFT", it.getString(0)) }
-                assertEquals(5, db.openHelper.readableDatabase.version)
+                assertEquals(10, db.openHelper.readableDatabase.version)
                 AccountingRepository(db).saveExpense(ExpenseDraft.from(cost).copy(amount = "6", reason = "Rettifica dopo migrazione"))
                 assertEquals(2, db.accountingDao().expenseHistory(cost.id).size)
             }

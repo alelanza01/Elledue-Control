@@ -26,7 +26,7 @@ class AccountingUiTest {
     private val booking = BookingDraft(id = "ui-accounting-booking", propertyId = property.id, firstName = "Ospite", lastName = "Contabilità", guests = "4", checkIn = BookingDates.display(BookingDates.today().toEpochDay()), checkOut = BookingDates.display(BookingDates.today().plusDays(4).toEpochDay()), gross = "1000")
     @Before fun seed() = runBlocking { app.propertyRepository.save(property); app.reservationRepository.save(booking) }
     private fun waitTag(tag: String) { compose.waitUntil(15000) { compose.onAllNodes(hasTestTag(tag)).fetchSemanticsNodes().isNotEmpty() } }
-    private fun economy() { compose.onNodeWithTag("nav-economy").performClick(); compose.onNodeWithTag("open-accounting").performClick(); waitTag("accounting-tab-1") }
+    private fun economy() { compose.onNodeWithTag("nav-economy").performClick(); waitTag("economy-scroll");compose.onNodeWithTag("economy-scroll").performScrollToNode(hasTestTag("open-accounting"));compose.onNodeWithTag("open-accounting").performClick(); waitTag("accounting-tab-1") }
     private fun screenshot(name: String) { compose.runOnIdle {
         val view = compose.activity.window.decorView; val bitmap = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888); view.draw(Canvas(bitmap))
         val file = File("build/reports/screenshots/$name.png"); file.parentFile!!.mkdirs(); file.outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }; bitmap.recycle()

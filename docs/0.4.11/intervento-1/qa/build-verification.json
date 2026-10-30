@@ -1,0 +1,11 @@
+{
+  "version": "0.4.11",
+  "versionCode": 11,
+  "package": "it.elledue.control",
+  "sha256": "e6887628ecb666be74e622d955329e7288ad2ad29f373d0f7b29360337021bdc",
+  "bytes": 32320442,
+  "certificateSha256": "cc45fdd9dccf37a2d94fb35e142bfde73b25de3e46e3b8ce93d4d5b9a7b2065c",
+  "sameSignatureAsOriginal0410": true,
+  "published": false,
+  "scope": "intervento 1/3"
+}

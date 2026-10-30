@@ -49,7 +49,7 @@ class DatabaseMigrationTest {
                 for (i in 0 until queries.length()) sqlite.execSQL(queries.getString(i))
                 sqlite.version = 1
             }
-            Room.databaseBuilder(context, AppDatabase::class.java, name).addMigrations(DatabaseMigrations.MIGRATION_1_2, DatabaseMigrations.MIGRATION_2_3, DatabaseMigrations.MIGRATION_3_4, DatabaseMigrations.MIGRATION_4_5).build().withClosing { db ->
+            Room.databaseBuilder(context, AppDatabase::class.java, name).addMigrations(DatabaseMigrations.MIGRATION_1_2, DatabaseMigrations.MIGRATION_2_3, DatabaseMigrations.MIGRATION_3_4, DatabaseMigrations.MIGRATION_4_5, DatabaseMigrations.MIGRATION_5_6, DatabaseMigrations.MIGRATION_6_7,DatabaseMigrations.MIGRATION_7_8, DatabaseMigrations.MIGRATION_8_9,DatabaseMigrations.MIGRATION_9_10).build().withClosing { db ->
                 assertEquals("Immobile storico", db.propertyDao().get(item.property.id)!!.property.name)
                 assertEquals("Proprietario storico", db.propertyDao().get(item.property.id)!!.owner.name)
                 val migrated = db.reservationDao().get(booking.id)!!
@@ -57,7 +57,7 @@ class DatabaseMigrationTest {
                 assertEquals("16:00", migrated.expectedArrivalTime)
                 assertNull(migrated.expectedTaxCents); assertEquals(0L, migrated.collectedTaxCents)
                 db.openHelper.readableDatabase.query("SELECT organizationName FROM app_settings").use { it.moveToFirst(); assertEquals("Organizzazione storica", it.getString(0)) }
-                assertEquals(5, db.openHelper.readableDatabase.version)
+                assertEquals(10, db.openHelper.readableDatabase.version)
             }
         } finally { context.deleteDatabase(name) }
     }

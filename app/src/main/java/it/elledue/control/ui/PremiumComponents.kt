@@ -91,8 +91,8 @@ fun PortfolioTile(item: PropertyWithOwner, open: () -> Unit) {
 fun ProfileScreen(settings: AppSettings?, model: SettingsViewModel, back: () -> Unit) {
     if (settings == null) { CircularProgressIndicator(); return }
     val status by model.saveState.collectAsStateWithLifecycle()
-    var first by rememberSaveable(settings.operatorFirstName) { mutableStateOf(settings.operatorFirstName) }
-    var last by rememberSaveable(settings.operatorLastName) { mutableStateOf(settings.operatorLastName) }
+    var first by rememberPersistentDraft("profile#first",settings.operatorFirstName)
+    var last by rememberPersistentDraft("profile#last",settings.operatorLastName)
     // Persist photos immediately; don't put large base64 values in the Android saved-instance bundle.
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).imePadding().padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         TextButton(onClick = back) { Text("Indietro") }
@@ -121,7 +121,7 @@ private fun HomeMetric(label: String, value: String, detail: String, icon: andro
 }
 
 @Composable
-fun CommandHome(properties: List<PropertyWithOwner>, bookings: List<ReservationEntity>, reports: List<ReportEntity>, accounting: AccountingData?, settings: AppSettings?, activities: List<ActivityEntity>, navigate: (String) -> Unit) {
+fun CommandHome(properties: List<PropertyWithOwner>, bookings: List<ReservationEntity>, reports: List<ReportEntity>, accounting: AccountingData?, settings: AppSettings?, activities: List<ActivityEntity>, navigate: (String) -> Unit,businessType:String="MANAGED",issues:List<PropertyIssue> = emptyList(),forecasts:List<StayCostForecast> = emptyList()) {
     val today = BookingDates.today().toEpochDay(); val month = java.time.YearMonth.from(BookingDates.today())
     val active = bookings.filter { it.status != "CANCELLED" }
     val arrivals = active.filter { it.checkInEpochDay == today }; val departures = active.filter { it.checkOutEpochDay == today }
@@ -131,12 +131,15 @@ fun CommandHome(properties: List<PropertyWithOwner>, bookings: List<ReservationE
     val occupied = metrics.sumOf { it.calendarOccupiedDays }; val available = metrics.sumOf { it.calendarDays }
     val ratio = if(available == 0) 0f else occupied.toFloat()/available
     val gross = OperationalMoney.total(active.filter { it.competenceMonth == month.toString() }.map { it.grossCents })
-    val fees = OperationalMoney.total(active.filter { it.competenceMonth == month.toString() }.map { it.managementCents })
+    val business=BusinessAnalytics.calculate(month.toString(),portfolio,bookings,accounting?.expenses.orEmpty(),accounting?.taxes.orEmpty(),accounting?.movements.orEmpty())
+    val fees = OperationalMoney.total(active.filter { it.competenceMonth == month.toString() && it.appliedBusinessType!="OWNED" }.map { it.managementCents })
     androidx.compose.foundation.lazy.LazyColumn(Modifier.fillMaxSize().testTag("home-scroll"), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
             Box(Modifier.fillMaxWidth().heightIn(min = 206.dp).clip(MaterialTheme.shapes.large).border(1.dp,ElledueGold.copy(.22f),MaterialTheme.shapes.large)) {
-                LocalPhoto(portfolio.firstOrNull { it.property.coverImageBase64 != null }?.property?.coverImageBase64,"Copertina della tua gestione",Modifier.matchParentSize())
-                Box(Modifier.matchParentSize().background(Brush.verticalGradient(listOf(ConceptBackground.copy(.48f),ConceptBackground.copy(.16f),ConceptBackground.copy(.94f)))))
+                val custom=portfolio.firstOrNull { it.property.coverImageBase64 != null }?.property?.coverImageBase64
+                if((settings?.homeCover ?: 0)==0 && custom!=null) LocalPhoto(custom,"Copertina della tua gestione",Modifier.matchParentSize())
+                else Image(painterResource(homeCovers[((settings?.homeCover ?: 1).coerceIn(1,3))-1]),"Copertina artistica Elledue",Modifier.matchParentSize(),contentScale=ContentScale.Crop)
+                Box(Modifier.matchParentSize().background(Brush.verticalGradient(listOf(ConceptBackground.copy(.78f),ConceptBackground.copy(.55f),ConceptBackground.copy(.94f)))))
                 Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
                     Text("Buongiorno${settings?.operatorFirstName?.takeIf { it.isNotBlank() }?.let { ",\n$it" } ?: ""}",style=MaterialTheme.typography.headlineLarge)
                     Text("${arrivals.size} ${if(arrivals.size==1) "arrivo" else "arrivi"} · ${departures.size} ${if(departures.size==1) "partenza" else "partenze"}",style=MaterialTheme.typography.bodyMedium)
@@ -149,6 +152,7 @@ fun CommandHome(properties: List<PropertyWithOwner>, bookings: List<ReservationE
                 }
             }
         }
+        if(businessType=="ALL")item { Text("In gestione: ${Amounts.euro(OperationalMoney.total(active.filter{it.appliedBusinessType!="OWNED" && it.competenceMonth==month.toString()}.map{it.grossCents}))} · Ricavi propri: ${Amounts.euro(OperationalMoney.total(active.filter{it.appliedBusinessType=="OWNED" && it.competenceMonth==month.toString()}.map{it.grossCents}))}",style=MaterialTheme.typography.bodySmall) }
         item {
             Column(verticalArrangement=Arrangement.spacedBy(9.dp)) {
                 Row(horizontalArrangement=Arrangement.spacedBy(9.dp)) {
@@ -157,10 +161,15 @@ fun CommandHome(properties: List<PropertyWithOwner>, bookings: List<ReservationE
                 }
                 Row(horizontalArrangement=Arrangement.spacedBy(9.dp)) {
                     HomeMetric("Occupazione calendario",if(available==0) "—" else "${(ratio*100).toInt()}%",if(available==0) "Aggiungi il primo immobile" else "Giorni occupati nel mese",Icons.Outlined.DonutLarge,Modifier.weight(1f),ratio)
-                    HomeMetric("Lordo proprietari",Amounts.euro(gross),"Compensi ${Amounts.euro(fees)}",Icons.Outlined.BarChart,Modifier.weight(1f))
+                    HomeMetric(if(businessType=="OWNED")"Ricavi immobili propri" else "Lordo proprietari gestiti",Amounts.euro(if(businessType=="OWNED")business.ownGross else business.managedGross),if(businessType=="OWNED")"Risultato operativo ${Amounts.euro(business.ownResult)}" else "Compenso di gestione Elledue ${Amounts.euro(business.fees)}",Icons.Outlined.BarChart,Modifier.weight(1f))
                 }
             }
         }
+        if(businessType=="ALL")item { OwnBusinessCard(business) }
+        item { Text("Il tuo portafoglio",style=MaterialTheme.typography.titleLarge) }
+        portfolio.take(2).forEach { p -> item(key="property-${p.property.id}") { PortfolioTile(p) { navigate("property/${p.property.id}") } } }
+        if(portfolio.size>2)item{TextButton(onClick={navigate("properties")},modifier=Modifier.testTag("home-all-properties")){Text("Tutti gli immobili (${portfolio.size})")}}
+        if(properties.isEmpty()) item { EmptyState("Pronto per il primo immobile","Aggiungi la copertina e costruisci il tuo portfolio.","Aggiungi un immobile",{navigate("property/new")}) }
         item {
             Text("Azioni rapide",style=MaterialTheme.typography.titleMedium,modifier=Modifier.padding(bottom=8.dp))
             Row(horizontalArrangement=Arrangement.spacedBy(7.dp)) {
@@ -170,6 +179,18 @@ fun CommandHome(properties: List<PropertyWithOwner>, bookings: List<ReservationE
                 ActionTile("Rendiconti",Icons.Outlined.Description,Modifier.weight(1f)) { navigate("reports") }
             }
         }
+        item {Text("Da fare",style=MaterialTheme.typography.titleLarge,modifier=Modifier.testTag("home-attention-heading"))}
+        item {Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){TextButton(onClick={navigate("activities")}){Text("Tutte le attività")};TextButton(onClick={navigate("issues")},modifier=Modifier.testTag("home-maintenance")){Text("Manutenzioni")}}}
+        val pending=activities.filter{!it.completed}.sortedBy{it.dueEpochMillis ?: Long.MAX_VALUE}.take(3)
+        val openIssues=issues.filter{IssueRepository.open(it)}.sortedBy{if(it.priority=="URGENT")0 else 1}.take(3)
+        val drafts=reports.filter{it.status=="DRAFT"}.take(3)
+        val taxExceptions=active.filter{b->val tax=accounting?.taxes?.firstOrNull{it.reservationId==b.id};tax?.needsReview==true || (tax==null && b.taxableGuests==null) || (!b.automaticTaxAdvance && tax!=null && Ledger.residual(tax.expectedCents,b.collectedTaxCents)>0 && b.checkInEpochDay<=today)}.take(3)
+        if(pending.isEmpty() && openIssues.isEmpty() && drafts.isEmpty() && taxExceptions.isEmpty())item{Text("Nessuna attività in evidenza.",style=MaterialTheme.typography.bodySmall,color=ConceptMuted)}
+        pending.forEach{a->item(key="pending-${a.id}"){TextButton(onClick={navigate("activity/${a.id}")}){Text("Da completare · ${a.title}")}}}
+        openIssues.forEach{i->item(key="issue-${i.id}"){TextButton(onClick={navigate("issue/${i.id}")}){Text("Manutenzione aperta · ${i.title}")}}}
+        taxExceptions.forEach{b->item(key="tax-${b.id}"){TextButton(onClick={navigate("tax/${b.id}")},modifier=Modifier.testTag("home-tax-exception-${b.id}")){Text("Eccezione tassa da verificare · ${b.guestLastName}")}}}
+        drafts.forEach{report->item(key="report-${report.id}"){TextButton(onClick={navigate("report/${report.id}")}){Text("Rendiconto da verificare · ${report.yearMonth}")}}}
+        item {TextButton(onClick={navigate("drafts")},modifier=Modifier.testTag("open-drafts")){Text("Riprendi bozze dei moduli")}}
         item { Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.SpaceBetween) { Text("Oggi",style=MaterialTheme.typography.titleLarge);TextButton(onClick={navigate("activities")},modifier=Modifier.testTag("nav-activities")) { Text("Operatività  ›") } } }
         val events = (arrivals+departures).distinctBy { it.id }
         if(events.isEmpty()) item { Text("Nessun arrivo o partenza oggi.",color=ConceptMuted,style=MaterialTheme.typography.bodySmall) }
@@ -177,16 +198,12 @@ fun CommandHome(properties: List<PropertyWithOwner>, bookings: List<ReservationE
             val arriving=b.checkInEpochDay==today
             ConceptTimelineRow(if(arriving) b.expectedArrivalTime else b.expectedDepartureTime,if(arriving) "Check-in" else "Check-out","${properties.firstOrNull { it.property.id==b.propertyId }?.property?.name} · ${b.guestLastName}",if(arriving) Icons.Outlined.Login else Icons.Outlined.Logout,if(arriving) ArrivalColor else DepartureColor) { navigate("booking/${b.id}") }
         } }
-        item { Row(Modifier.fillMaxWidth().clip(MaterialTheme.shapes.medium).background(ConceptCard).padding(12.dp),horizontalArrangement=Arrangement.spacedBy(8.dp)) {
-            Icon(Icons.Outlined.FactCheck,null,tint=ElledueGold,modifier=Modifier.size(20.dp))
-            Column(Modifier.weight(1f)) { Text("${activities.count { !it.completed }} attività · ${reports.count { it.status=="DRAFT" }} bozze da verificare",style=MaterialTheme.typography.labelMedium);Text("Consulta attenzione operativa e contabilità",style=MaterialTheme.typography.bodySmall,color=ConceptMuted) }
-            IconButton(onClick={navigate("accounting")}) { Icon(Icons.Outlined.ChevronRight,"Apri contabilità",tint=ElledueGold) }
-        } }
         val upcoming=active.filter { it.checkInEpochDay>today }.sortedBy { it.checkInEpochDay }.take(3)
         if(upcoming.isNotEmpty()) item { Text("Prossimi soggiorni",style=MaterialTheme.typography.titleLarge) }
         upcoming.forEach { b -> item(key="next-${b.id}") { ConceptTimelineRow(BookingDates.display(b.checkInEpochDay).take(5),"${b.guestFirstName} ${b.guestLastName}",properties.firstOrNull { it.property.id==b.propertyId }?.property?.name ?: "Immobile",Icons.Outlined.Apartment,StayColor) { navigate("booking/${b.id}") } } }
-        item { Text("Il tuo portfolio",style=MaterialTheme.typography.titleLarge) }
-        portfolio.take(2).forEach { p -> item(key="property-${p.property.id}") { PortfolioTile(p) { navigate("property/${p.property.id}") } } }
-        if(properties.isEmpty()) item { EmptyState("Pronto per il primo immobile","Aggiungi la copertina e costruisci il tuo portfolio.","Aggiungi un immobile",{navigate("property/new")}) }
+        val leaving=active.filter{it.checkOutEpochDay>today}.sortedBy{it.checkOutEpochDay}.take(3)
+        if(leaving.isNotEmpty())item{Text("Prossime partenze",style=MaterialTheme.typography.titleLarge)}
+        leaving.forEach{b->item(key="departure-${b.id}"){ConceptTimelineRow(BookingDates.display(b.checkOutEpochDay).take(5),"Check-out · ${b.guestLastName}",properties.firstOrNull{it.property.id==b.propertyId}?.property?.name ?: "Immobile",Icons.Outlined.CalendarMonth,DepartureColor){navigate("booking/${b.id}")}}}
+
     }
 }

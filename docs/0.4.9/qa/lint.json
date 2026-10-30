@@ -1,0 +1,9 @@
+{
+  "errors": 0,
+  "warnings": 17,
+  "byId": {
+    "ExifInterface": 1,
+    "TrustAllX509TrustManager": 3,
+    "UseKtx": 13
+  }
+}

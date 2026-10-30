@@ -1,0 +1,16 @@
+{
+  "file": "Elledue-Control-0.4.10-debug.apk",
+  "bytes": 32278640,
+  "sha256": "203aedf9465469b27ccdb2f4d047d21c04eb3b7ad0fd83655dd9628f44825df9",
+  "package": "it.elledue.control",
+  "version": "0.4.10",
+  "versionCode": 10,
+  "certificateSha256": "cc45fdd9dccf37a2d94fb35e142bfde73b25de3e46e3b8ce93d4d5b9a7b2065c",
+  "sameCertificateAs": [
+    "0.4.8",
+    "0.4.9"
+  ],
+  "minimumAndroid": 26,
+  "targetAndroid": 35,
+  "internetPermission": false
+}

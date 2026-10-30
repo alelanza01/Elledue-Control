@@ -2,17 +2,19 @@ package it.elledue.control.data
 
 import kotlinx.coroutines.flow.map
 
-class SettingsRepository(private val dao: SettingsDao) {
+class SettingsRepository(private val dao: SettingsDao,private val drafts:DraftStore?=null) {
     val settings = dao.observe().map { it ?: AppSettings() }
+
+    suspend fun cover(value:Int) { require(value in 0..3); dao.save((dao.get() ?: AppSettings()).copy(homeCover=value));drafts?.clear("appearance") }
 
     suspend fun saveOrganizationName(name: String) {
         val normalized = name.trim()
         require(normalized.isNotEmpty()) { "Organization name must not be blank" }
-        dao.save((dao.get() ?: AppSettings()).copy(organizationName = normalized))
+        dao.save((dao.get() ?: AppSettings()).copy(organizationName = normalized));drafts?.clear("settings")
     }
     suspend fun saveProfile(first: String, last: String, photo: String?) {
         require(first.length <= 100 && last.length <= 100)
         LocalImages.validate(photo)
-        dao.save((dao.get() ?: AppSettings()).copy(operatorFirstName = first.trim(), operatorLastName = last.trim(), operatorPhotoBase64 = photo))
+        dao.save((dao.get() ?: AppSettings()).copy(operatorFirstName = first.trim(), operatorLastName = last.trim(), operatorPhotoBase64 = photo));drafts?.clear("profile")
     }
 }

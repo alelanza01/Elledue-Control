@@ -21,8 +21,9 @@ import it.elledue.control.domain.*
 @Composable
 fun TaxScreen(booking: ReservationEntity, property: PropertyEntity, data: AccountingData, model: AccountingViewModel, onBack: () -> Unit) {
     val assessment = data.taxes.firstOrNull { it.reservationId == booking.id }
-    val initial = assessment?.let(TaxDraft::from) ?: TaxDraft(nights = minOf(booking.checkOutEpochDay - booking.checkInEpochDay, property.touristTaxMaxNights?.toLong() ?: Long.MAX_VALUE).toString())
-    var draft by rememberSaveable(booking.id, assessment?.revision, stateSaver = TaxDraftSaver) { mutableStateOf(initial) }
+    val initial = assessment?.let(TaxDraft::from) ?: TaxDraft(taxable=booking.taxableGuests?.toString() ?: "",exempt=booking.exemptGuests?.toString() ?: "",nights = minOf(booking.checkOutEpochDay - booking.checkInEpochDay, property.touristTaxMaxNights?.toLong() ?: Long.MAX_VALUE).toString())
+    val draftKey="tax/${booking.id}"
+    var draft by rememberPersistentDraft(draftKey,initial)
     var exit by rememberSaveable { mutableStateOf(false) }
     var movementKind by rememberSaveable { mutableStateOf<String?>(null) }; var sourceId by rememberSaveable { mutableStateOf<String?>(null) }
     val busy by model.busy.collectAsStateWithLifecycle(); val error by model.error.collectAsStateWithLifecycle(); val saved by model.saved.collectAsStateWithLifecycle(); val history by model.taxHistory.collectAsStateWithLifecycle()
@@ -35,6 +36,7 @@ fun TaxScreen(booking: ReservationEntity, property: PropertyEntity, data: Accoun
     LaunchedEffect(booking.id) { model.loadTaxHistory(booking.id) }
     Scaffold(topBar = { TopAppBar(title = { Text("Tassa di soggiorno") }, navigationIcon = { IconButton(onClick = back) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Indietro tassa") } }) }) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(20.dp).testTag("tax-screen"), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            DraftBanner(draftKey){draft=initial}
             Text("${booking.guestFirstName} ${booking.guestLastName}", style = MaterialTheme.typography.headlineMedium)
             Text("${property.name} · ${BookingDates.display(booking.checkInEpochDay)} → ${BookingDates.display(booking.checkOutEpochDay)}")
             Text("${booking.guestCount} ospiti totali · competenza ${booking.competenceMonth}", style = MaterialTheme.typography.labelLarge)
@@ -51,21 +53,23 @@ fun TaxScreen(booking: ReservationEntity, property: PropertyEntity, data: Accoun
             AccountingField("Motivo rettifica", draft.reason, "tax-reason", !busy) { draft = draft.copy(reason = it) }
             ChoiceField("Soggetto del riversamento", draft.responsible, listOf("UNDEFINED" to "Da definire", "OWNER" to "Proprietario", "ELLEDUE" to "Elledue", "OTHER" to "Altro soggetto"), !busy) { draft = draft.copy(responsible = it) }
             AccountingField("Obblighi / note riversamento", draft.remittanceNotes, enabled = !busy) { draft = draft.copy(remittanceNotes = it) }
-            Button(onClick = { model.saveTax(booking.id, draft) }, enabled = !busy && (booking.status != BookingStatus.CANCELLED.name || assessment != null), modifier = Modifier.fillMaxWidth().testTag("save-tax")) { Text("Conferma conteggi e impostazione tassa") }
+            OutlinedButton(onClick={draft=draft.copy(useCurrentRules=true,nights=minOf(booking.checkOutEpochDay-booking.checkInEpochDay,property.touristTaxMaxNights?.toLong() ?: Long.MAX_VALUE).toString())},enabled=!busy){Text("Usa le impostazioni attuali dell’immobile")}
+            Text(if(assessment?.consolidated==false)"Previsione automatica provvisoria: si aggiorna con il soggiorno finché non confermi o registri incassi." else "Conteggi consolidati: una modifica richiede conferma esplicita e conserva lo storico.",style=MaterialTheme.typography.bodySmall)
+            Button(onClick = { model.saveTax(booking.id, draft) }, enabled = !busy && (booking.status != BookingStatus.CANCELLED.name || assessment != null), modifier = Modifier.fillMaxWidth().testTag("save-tax")) { Text("Salva tassa prevista · nessun incasso") }
             HorizontalDivider()
             Text(if (booking.status == BookingStatus.CANCELLED.name) { if (collected > 0) "Annullata: riscossioni da riconciliare" else "Annullata: nessuna riscossione" } else Ledger.taxStatus(assessment?.expectedCents, collected), style = MaterialTheme.typography.titleLarge, modifier = Modifier.testTag("tax-status"))
             assessment?.let { AmountLine("Prevista confermata", it.expectedCents); if (booking.status != BookingStatus.CANCELLED.name) AmountLine("Ancora da incassare", Ledger.residual(it.expectedCents, collected)); if (collected > it.expectedCents) Text("Eccedenza ${Amounts.euro(collected - it.expectedCents)}: riconcilia con uno storno motivato.", color = MaterialTheme.colorScheme.error) }
             AmountLine("Effettivamente riscossa", collected); AmountLine("Riconosciuta in compensazione", compensated); AmountLine("Riversamento registrato", remitted)
             Text("Riscossione e compensazione sono separate. Il check-out non registra incassi. Il riversamento segue gli obblighi configurati, senza presumere il soggetto responsabile.", style = MaterialTheme.typography.bodySmall)
-            Button(onClick = { model.clear(); sourceId = null; movementKind = "COLLECTION" }, enabled = canPost && collected < (assessment?.expectedCents ?: 0), modifier = Modifier.fillMaxWidth().testTag("collect-tax")) { Text("Conferma riscossione, anche parziale") }
+            Button(onClick = { model.clear(); sourceId = null; movementKind = "COLLECTION" }, enabled = canPost && collected < (assessment?.expectedCents ?: 0), modifier = Modifier.fillMaxWidth().testTag("collect-tax")) { Text("Registra incasso · anche parziale") }
             active.filter { it.kind == "COLLECTION" }.forEach { source ->
-                val compAvailable = source.amountCents - OperationalMoney.total(active.filter { it.kind == "COMPENSATION" && it.sourceId == source.id }.map { it.amountCents })
+                val compAvailable = if(source.collector!="ELLEDUE")0L else source.amountCents - OperationalMoney.total(active.filter { it.kind == "COMPENSATION" && it.sourceId == source.id }.map { it.amountCents })
                 val remitAvailable = source.amountCents - OperationalMoney.total(active.filter { it.kind == "REMITTANCE" && it.sourceId == source.id }.map { it.amountCents })
                 OutlinedCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Riscossione del ${BookingDates.display(source.dateEpochDay)} · ${Amounts.euro(source.amountCents)}", style = MaterialTheme.typography.titleSmall)
                     Text("Disponibile per compensazione ${Amounts.euro(compAvailable)}", style = MaterialTheme.typography.bodySmall)
-                    TextButton(onClick = { model.clear(); sourceId = source.id; movementKind = "COMPENSATION" }, enabled = canPost && compAvailable > 0, modifier = Modifier.testTag("compensate-${source.id}")) { Text("Riconosci in compensazione") }
-                    TextButton(onClick = { model.clear(); sourceId = source.id; movementKind = "REMITTANCE" }, enabled = canPost && remitAvailable > 0 && assessment?.remittanceResponsible != "UNDEFINED") { Text("Registra riversamento separato") }
+                    TextButton(onClick = { model.clear(); sourceId = source.id; movementKind = "COMPENSATION" }, enabled = canPost && compAvailable > 0 && booking.appliedBusinessType!="OWNED", modifier = Modifier.testTag("compensate-${source.id}")) { Text("Compensa con proprietario") }
+                    TextButton(onClick = { model.clear(); sourceId = source.id; movementKind = "REMITTANCE" }, enabled = canPost && remitAvailable > 0 && assessment?.remittanceResponsible != "UNDEFINED") { Text("Registra riversamento") }
                 } }
             }
             Text("Storico movimenti", style = MaterialTheme.typography.titleLarge)

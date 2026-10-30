@@ -38,7 +38,7 @@ fun rememberPdfExporter(snapshot: ReportSnapshot, layout: ReportLayout = ReportL
 }
 
 @Composable
-fun BackupControls(service: BackupService) {
+fun BackupControls(service: BackupService,onRestored:()->Unit={}) {
     val context = LocalContext.current; val scope = rememberCoroutineScope()
     var busy by remember { mutableStateOf(false) }; var message by remember { mutableStateOf<String?>(null) }
     var prepared by remember { mutableStateOf<PreparedBackup?>(null) }; var acknowledge by remember { mutableStateOf(false) }
@@ -68,7 +68,7 @@ fun BackupControls(service: BackupService) {
         Text("Il ripristino sostituisce tutti i dati attuali, senza unire contabilità diverse. Esporta prima una copia di sicurezza.")
         TextButton(onClick = { rollback = true; exporter.launch("Elledue-prima-del-ripristino.json") }, enabled = !busy) { Text("Esporta copia dei dati attuali") }
         Row { Checkbox(acknowledge, { acknowledge = it }, enabled = !busy); Text("Confermo la sostituzione completa", modifier = Modifier.weight(1f)) }
-        Button(onClick = { val backup = prepared!!; busy = true; scope.launch { try { withContext(Dispatchers.IO) { service.restore(backup, confirmed = true) }; message = "Ripristino completato e verificato."; prepared = null } catch (_: Exception) { message = "Ripristino non riuscito: i dati precedenti sono conservati." } finally { busy = false } } }, enabled = acknowledge && !busy, modifier = Modifier.testTag("confirm-restore")) { Text("Ripristina dati") }
+        Button(onClick = { val backup = prepared!!; busy = true; scope.launch { try { withContext(Dispatchers.IO) { service.restore(backup, confirmed = true) }; message = "Ripristino completato e verificato."; prepared = null;onRestored() } catch (_: Exception) { message = "Ripristino interrotto. Conserva entrambi i backup e riapri l’app per verificare lo stato; nessun backup è stato eliminato." } finally { busy = false } } }, enabled = acknowledge && !busy, modifier = Modifier.testTag("confirm-restore")) { Text("Ripristina dati") }
         TextButton(onClick = { prepared = null }, enabled = !busy) { Text("Annulla") }
     } }
 }

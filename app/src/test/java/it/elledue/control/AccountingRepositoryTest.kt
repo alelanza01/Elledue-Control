@@ -39,7 +39,7 @@ class AccountingRepositoryTest {
         accounting.saveCategory("custom", "Giardinaggio")
         accounting.saveCategory("detergents", "Prodotti pulizia")
         accounting.initialize()
-        assertEquals(9, accounting.categories.first().size)
+        assertEquals(10, accounting.categories.first().size)
         assertEquals("Prodotti pulizia", db.accountingDao().category("detergents")!!.label)
         accounting.saveExpense(expense())
         accounting.saveCategory("detergents", "Nuovo nome", archived = true)

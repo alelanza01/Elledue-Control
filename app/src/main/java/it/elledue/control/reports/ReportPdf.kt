@@ -23,6 +23,7 @@ class ReportPdf(private val context: Context) {
     private lateinit var snapshot: ReportSnapshot
     private var y = 0f; private var number = 0
     private var rowCounter = 0
+    private var compact=false
     val pageCount get() = number
     private val left = 40f; private val right = 555f; private val bottom = 775f
     private fun width(value: String, size: Float, bold: Boolean = false): Float = (if (bold) boldFont else regular).getStringWidth(value) * size / 1000f
@@ -49,7 +50,7 @@ class ReportPdf(private val context: Context) {
     }
     private fun finish() {
         rect(left, 795f, right, 795.5f, Color.rgb(220, 224, 230))
-        text("Elledue Management · ${snapshot.month} · v${snapshot.version}", left, 807f, 8f)
+        text("Elledue Management · ${snapshot.month}", left, 807f, 8f)
         text("Pagina $number", 505f, 807f, 8f); content.close()
     }
     private fun newPage() {
@@ -66,18 +67,18 @@ class ReportPdf(private val context: Context) {
         val width = 155f; val height = width * logo.height / logo.width
         content.drawImage(logo, left, 842f - 28f - height, width, height)
         text("RENDICONTO MENSILE", 310f, 26f, 12f, Color.WHITE, true)
-        text("${snapshot.month}  ·  VERSIONE ${snapshot.version}", 310f, 48f, 9f, gold)
-        text("${if (snapshot.draft) "BOZZA · " else ""}${snapshot.id.take(8)}${if (snapshot.previousId != null) " · RETTIFICATIVO" else ""}", 310f, 67f, 8f, Color.WHITE)
-        y = 115f
+        text(snapshot.month, 310f, 48f, 9f, gold)
+        text(if(snapshot.draft)"BOZZA · NON DEFINITIVO" else if(snapshot.previousId!=null)"RENDICONTO RETTIFICATIVO" else "",310f,67f,8f,Color.WHITE)
+        y = if(compact)105f else 115f
     }
     private fun ensure(height: Float) { if (y + height > bottom) newPage() }
     private fun paragraph(value: String, size: Float = 9f, bold: Boolean = false) {
         val wrapped = lines(value, right - left, size, bold)
         if (wrapped.size * (size + 5f) + 5f <= bottom - 115f) ensure(wrapped.size * (size + 5f) + 5f)
-        wrapped.forEach { line -> ensure(size + 7f); text(line, left, y, size, bold = bold); y += size + 5f }
-        y += 5f
+        wrapped.forEach { line -> ensure(size + 7f); text(line, left, y, size, bold = bold); y += size + if(compact)3f else 5f }
+        y += if(compact)3f else 5f
     }
-    private fun section(title: String) { ensure(48f); y += 8f; text(title, left, y, 13f, night, true); y += 22f; rect(left, y, right, y + 1f, gold); y += 8f }
+    private fun section(title: String) { ensure(48f); y += if(compact)5f else 8f; text(title, left, y, 13f, night, true); y += if(compact)18f else 22f; rect(left, y, right, y + 1f, gold); y += if(compact)5f else 8f }
     private fun table(headers: List<String>, widths: List<Float>, rows: List<List<String>>) {
         fun header() {
             val height = headers.maxOf { lines(it, widths[headers.indexOf(it)] - 10f, 8f, true).size } * 12f + 14f
@@ -111,57 +112,65 @@ class ReportPdf(private val context: Context) {
         }
         y += 10f
     }
-    private fun amount(label: String, cents: Long) { ensure(20f); text(label, left, y, 9f); val value = Amounts.euro(cents); text(value, right - width(value, 9f), y); y += 21f }
+    private fun amount(label: String, cents: Long) { ensure(20f); text(label, left, y, 9f); val value = Amounts.euro(cents); text(value, right - width(value, 9f), y); y += if(compact)17f else 21f }
     fun write(value: ReportSnapshot, output: OutputStream, layout: ReportLayout = ReportLayout.DETAILED) {
         require(value.issues().none { it.blocking }) { "Snapshot incoerente." }
+        compact=layout==ReportLayout.SUMMARY
         snapshot = value; PDFBoxResourceLoader.init(context); document = PDDocument(); number = 0; rowCounter = 0
         regular = context.assets.open("fonts/DejaVuSans.ttf").use { PDType0Font.load(document, it) }; boldFont = context.assets.open("fonts/DejaVuSans-Bold.ttf").use { PDType0Font.load(document, it) }
         try {
             newPage()
-            paragraph(value.property.name, 18f, true); paragraph("Proprietario: ${value.owner.name}")
+            paragraph(value.property.name,18f,true)
             paragraph("Periodo: ${value.month} · Emissione: ${Instant.ofEpochMilli(value.issuedAt).atZone(ZoneId.of("Europe/Rome")).format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))}")
-            if (layout == ReportLayout.DETAILED) paragraph("Identificativo: ${value.id.take(8)} · versione ${value.version}")
-            if (value.previousId != null) paragraph("Rettifica della versione precedente: ${value.revisionReason}")
-            section("01  Prenotazioni")
-            if (layout == ReportLayout.SUMMARY) {
-                table(listOf("Ospite", "Soggiorno / ospiti", "Lordo", "Compenso"), listOf(175f, 155f, 90f, 95f), value.bookings.filter { it.status != "CANCELLED" }.map {
-                    listOf("${it.guestFirstName} ${it.guestLastName}", "${BookingDates.display(it.checkInEpochDay)} → ${BookingDates.display(it.checkOutEpochDay)} · ${it.guestCount} ospiti", Amounts.euro(it.grossCents), Amounts.euro(it.managementCents))
+            section("01  Prenotazioni e ricavi")
+            val visible=value.bookings.filter{it.status!="CANCELLED" && it.id !in value.hiddenBookingIds.orEmpty()}
+            if(compact) {
+                table(listOf("Ospite","Soggiorno / ospiti","Lordo","OTA"),listOf(175f,155f,90f,95f),visible.map {
+                    listOf("${it.guestFirstName} ${it.guestLastName}","${BookingDates.display(it.checkInEpochDay)} → ${BookingDates.display(it.checkOutEpochDay)} · ${it.guestCount} ospiti",Amounts.euro(it.grossCents),Amounts.euro(it.otaCents))
                 })
             } else {
-            table(listOf("Ospite / portale", "Soggiorno", "Lordo", "OTA", "Netto", "Gestione", "Compenso"), listOf(139f, 81f, 59f, 58f, 60f, 51f, 67f), value.bookings.filter { it.status != "CANCELLED" }.map {
-                listOf("${it.guestFirstName} ${it.guestLastName}\n${it.guestCount} ospiti · ${it.platform}\n${it.checkOutEpochDay - it.checkInEpochDay} notti", "${BookingDates.display(it.checkInEpochDay)}\n${BookingDates.display(it.checkOutEpochDay)}", Amounts.euro(it.grossCents), "${Amounts.euro(it.otaCents)}\n${if (it.actualOtaCents == null) "Stimata" else "Effettiva"}", Amounts.euro(it.netCents), "${Amounts.editable(it.appliedManagementBasisPoints.toLong())}%", Amounts.euro(it.managementCents))
-            })
+                table(listOf("Ospite / portale","Soggiorno","Lordo","OTA","Netto","Compenso"),listOf(139f,101f,65f,65f,65f,80f),visible.map {
+                    listOf("${it.guestFirstName} ${it.guestLastName}\n${it.guestCount} ospiti · ${it.platform}","${BookingDates.display(it.checkInEpochDay)}\n${BookingDates.display(it.checkOutEpochDay)}",Amounts.euro(it.grossCents),Amounts.euro(it.otaCents),Amounts.euro(it.netCents),Amounts.euro(it.managementCents))
+                })
             }
-            val totals = value.summary()
-            amount("Lordo prenotazioni (tassa esclusa)", value.gross()); if (layout == ReportLayout.DETAILED) { amount("Commissioni OTA", value.ota()); amount("Netto dopo OTA al proprietario", value.net()) }; if (layout == ReportLayout.DETAILED) amount("Compenso Elledue maturato", totals.fees)
-            if (layout == ReportLayout.DETAILED) {
-            section("02  Pulizie")
-            fun bookingName(id: String?) = (value.bookings + value.linkedBookings.orEmpty()).firstOrNull { it.id == id }?.let { "${it.guestFirstName} ${it.guestLastName}" } ?: if (id == null) "Non collegata" else "Collegamento storico"
-            table(listOf("Data / prenotazione", "Intervento", "Ore", "Tariffa", "Costo effettivo"), listOf(126f, 177f, 50f, 73f, 89f), value.expenses.filter { it.kind == "CLEANING" }.map { listOf("${BookingDates.display(it.dateEpochDay)}\n${bookingName(it.reservationId)}", it.description, it.quantity ?: "—", it.unitCents?.let(Amounts::euro) ?: "—", Amounts.euro(it.actualCents)) })
-            amount("Totale pulizie", totals.cleaning)
-            section("03  Lavanderia")
-            table(listOf("Data", "Tipologia set", "Quantità", "Tariffa", "Costo effettivo"), listOf(80f, 223f, 50f, 73f, 89f), value.expenses.filter { it.kind == "LAUNDRY" }.map { listOf(BookingDates.display(it.dateEpochDay), it.setDefinition, it.quantity ?: "—", it.unitCents?.let(Amounts::euro) ?: "—", Amounts.euro(it.actualCents)) })
-            amount("Totale lavanderia", totals.laundry)
-            section("04  Altre spese")
-            table(listOf("Data / categoria", "Descrizione / note", "Rimborso", "Importo"), listOf(127f, 223f, 76f, 89f), value.expenses.filter { it.kind == "OTHER" }.map { listOf("${BookingDates.display(it.dateEpochDay)}\n${it.category}", "${it.description}\n${it.notes}", if (it.advancedByElledue && it.reimbursable) "Sì" else "No", Amounts.euro(it.actualCents)) })
-            amount("Spese complessive", totals.expenses); amount("Spese anticipate da Elledue", totals.advanced); amount("Spese anticipate e rimborsabili", totals.reimbursable)
-            paragraph("Le tariffe e i costi effettivi degli interventi sono storici. Nel saldo entrano soltanto spese anticipate da Elledue e rimborsabili dal proprietario.", 8f)
+            if(value.hiddenBookingIds.orEmpty().isNotEmpty())paragraph("Le prenotazioni non dettagliate sono incluse nei totali.",8f)
+            val totals=value.summary()
+            amount("Lordo prenotazioni",value.gross())
+            amount("Commissioni OTA complessive (IVA ove prevista)",value.ota())
+            amount("Netto dopo OTA",value.net())
+            val costs=value.effectiveExpenses().filter{!it.voided && it.advancedByElledue && it.reimbursable}
+            section("02  Pulizie e lavanderia")
+            if(!compact) {
+                fun bookingName(id:String?)=if(id in value.hiddenBookingIds.orEmpty())"Prenotazione non dettagliata" else (value.bookings+value.linkedBookings.orEmpty()).firstOrNull{it.id==id}?.let{"${it.guestFirstName} ${it.guestLastName}"} ?: ""
+                table(listOf("Data / soggiorno","Intervento","Ore / set","Tariffa","Importo"),listOf(156f,146f,57f,73f,83f),costs.filter{it.kind in listOf("CLEANING","LAUNDRY")}.map {
+                    listOf("${BookingDates.display(it.dateEpochDay)}${if(!it.effectiveDateConfirmed)" (prevista)" else ""}\n${bookingName(it.reservationId)}",if(it.kind=="CLEANING")it.description else "Lavanderia · ${it.setDefinition}",it.quantity ?: "—",it.unitCents?.let(Amounts::euro) ?: "—",Amounts.euro(it.actualCents))
+                })
+            }
+            amount("Pulizie · ${value.quantity("CLEANING")} ore",OperationalMoney.total(costs.filter{it.kind=="CLEANING"}.map{it.actualCents}))
+            amount("Lavanderia · ${value.quantity("LAUNDRY")} set",OperationalMoney.total(costs.filter{it.kind=="LAUNDRY"}.map{it.actualCents}))
+            section("03  Altre spese anticipate")
+            val other=costs.filter{it.kind !in listOf("CLEANING","LAUNDRY") && it.advancedByElledue && it.reimbursable}
+            if(compact) {
+                table(listOf("Categoria","Importo"),listOf(426f,89f),other.groupBy{it.category}.toSortedMap().map{(label,rows)->listOf(label,Amounts.euro(OperationalMoney.total(rows.map{it.actualCents})))})
             } else {
-                section("02  Spese rimborsabili")
-                table(listOf("Categoria", "Importo"), listOf(426f, 89f), value.expenses.filter { it.advancedByElledue && it.reimbursable }.groupBy { it.category }.map { (category, rows) -> listOf(category, Amounts.euro(OperationalMoney.total(rows.map { it.actualCents }))) })
+                table(listOf("Data / categoria","Descrizione","Importo"),listOf(142f,284f,89f),other.map{listOf("${BookingDates.display(it.dateEpochDay)}\n${it.category}",it.description+if(it.notes.isBlank())"" else "\n${it.notes}",Amounts.euro(it.actualCents))})
             }
-            section("Tassa di soggiorno e anticipi")
-            amount("Tassa di soggiorno riscossa", totals.collectedTax)
-            amount("Altri anticipi", totals.payments)
-            if (totals.collectedTax != totals.compensated) paragraph("Nel saldo sono riconosciuti ${Amounts.euro(totals.compensated)} di tassa, a fronte di ${Amounts.euro(totals.collectedTax)} riscossi. Riscossione e compensazione sono registrazioni distinte; possono riferirsi a periodi differenti.", 8f)
-            if (value.notes.isNotBlank()) { section("Note"); paragraph(value.notes) }
-            ensure(if (layout == ReportLayout.SUMMARY) 180f else 210f)
-            section("Saldo del periodo")
-            amount("Compenso di gestione", totals.fees); amount("Rimborsi anticipati", totals.reimbursable); if (layout == ReportLayout.SUMMARY) amount("Meno anticipi riconosciuti (tassa e altri)", OperationalMoney.total(listOf(totals.compensated, totals.payments))) else { amount("Meno compensazioni riconosciute", totals.compensated); amount("Meno altri anticipi / pagamenti", totals.payments) }
-            ensure(76f); rect(left, y, right, y + 76f, night)
-            text(if (totals.balance >= 0) "BONIFICO ANCORA DOVUTO A ELLEDUE" else "CREDITO DA RICONCILIARE", left + 15f, y + 12f, 10f, gold, true)
-            val balance = java.math.BigDecimal.valueOf(totals.balance).abs().movePointLeft(2).toPlainString().replace('.', ',') + " €"
-            text(balance, left + 15f, y + 33f, 23f, Color.WHITE, true); y += 91f
+            amount("Totale altre spese anticipate",OperationalMoney.total(other.map{it.actualCents}))
+            if(value.relatedExpenses.orEmpty().isNotEmpty()) {
+                section("Spese attribuite ad altro periodo")
+                paragraph("Queste voci non sono sommate al presente rendiconto.",8f)
+                table(listOf("Voce","Data","Periodo","Importo"),listOf(190f,120f,105f,100f),value.relatedExpenses.orEmpty().map{listOf(it.category,BookingDates.display(it.dateEpochDay),it.competenceMonth,Amounts.euro(it.actualCents))})
+            }
+            if(value.notes.isNotBlank()){section("Note");paragraph(value.notes)}
+            ensure(190f)
+            section("RIEPILOGO FINALE")
+            amount("Compenso di gestione Elledue",totals.fees)
+            amount("Spese anticipate da Elledue",totals.reimbursable)
+            amount("Già saldato / anticipi in compensazione",OperationalMoney.total(listOf(totals.compensated,totals.payments)))
+            ensure(76f);rect(left,y,right,y+76f,night)
+            text(if(totals.balance>=0)"TOTALE ANCORA DOVUTO A ELLEDUE" else "CREDITO DA RICONCILIARE",left+15f,y+12f,10f,gold,true)
+            val balance=java.math.BigDecimal.valueOf(totals.balance).abs().movePointLeft(2).toPlainString().replace('.',',')+" €"
+            text(balance,left+15f,y+33f,23f,Color.WHITE,true);y+=91f
             finish(); document.save(output)
         } finally { document.close() }
     }

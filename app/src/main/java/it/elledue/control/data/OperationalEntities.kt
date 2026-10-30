@@ -41,13 +41,22 @@ data class ReservationEntity(
     @ColumnInfo(defaultValue = "0") val collectedTaxCents: Long = 0,
     val accountingAllocationId: String? = null,
     @ColumnInfo(defaultValue = "''") val competenceMonth: String = "",
+    @ColumnInfo(defaultValue = "'MANAGED'") val appliedBusinessType:String = "MANAGED",
+    @ColumnInfo(defaultValue="'NONE'") val appliedOtaTreatment:String="NONE",
+    @ColumnInfo(defaultValue="2200") val appliedOtaVatBasisPoints:Int=2200,
+    @ColumnInfo(defaultValue="0") val automaticTaxAdvance:Boolean=false,
+    val taxAdvanceOverrideCents:Long?=null,
+    @ColumnInfo(defaultValue="0") val otaTreatmentManual:Boolean=false,
+    @ColumnInfo(defaultValue="0") val taxAdvanceManual:Boolean=false,
+
+
 )
 
 @Entity(tableName = "expenses", foreignKeys = [
     ForeignKey(entity = ExpenseCategoryEntity::class, parentColumns = ["id"], childColumns = ["categoryId"], onDelete = ForeignKey.RESTRICT),
     ForeignKey(entity = PropertyEntity::class, parentColumns = ["id"], childColumns = ["propertyId"], onDelete = ForeignKey.RESTRICT),
     ForeignKey(entity = ReservationEntity::class, parentColumns = ["id"], childColumns = ["reservationId"], onDelete = ForeignKey.RESTRICT),
-], indices = [Index("propertyId"), Index("reservationId"), Index("categoryId")])
+], indices = [Index("propertyId"), Index("reservationId"), Index("categoryId"),Index(value=["originKey"],unique=true)])
 data class ExpenseEntity(
     @PrimaryKey val id: String,
     val propertyId: String,
@@ -70,6 +79,10 @@ data class ExpenseEntity(
     @ColumnInfo(defaultValue = "1") val revision: Int = 1,
     @ColumnInfo(defaultValue = "0") val updatedAt: Long = 0,
     val accountingAllocationId: String? = null,
+    @ColumnInfo(defaultValue="'ACTUAL'") val recognition:String="ACTUAL",
+    val originKey:String?=null,
+    val approvalBatchId:String?=null,
+    @ColumnInfo(defaultValue="1") val effectiveDateConfirmed:Boolean=true,
 )
 
 @Entity(tableName = "activities", foreignKeys = [
@@ -84,6 +97,10 @@ data class ActivityEntity(
     val zoneId: String = "Europe/Rome",
     val completed: Boolean = false,
     val reservationId: String? = null,
+    @ColumnInfo(defaultValue = "''") val notes: String = "",
+    @ColumnInfo(defaultValue = "'GENERAL'") val kind:String = "GENERAL",
+    @ColumnInfo(defaultValue = "1") val hasTime:Boolean = true,
+
 )
 
 @Entity(tableName = "reports", foreignKeys = [

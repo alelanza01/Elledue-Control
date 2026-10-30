@@ -1,0 +1,111 @@
+{
+  "versionName": "0.4.7",
+  "versionCode": 7,
+  "applicationId": "it.elledue.control",
+  "databaseVersion": 6,
+  "sourceCommit": "f1712c1840e0146205e901c059444f2f201fec3d",
+  "branch": "feature/0.4.7-operations",
+  "base": "c156458de9c7d90f3585a3f44a7ca23db540cb88",
+  "build": "assembleDebug PASS",
+  "tests": {
+    "tests": 136,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "lint": {
+    "errors": 0,
+    "warnings": 6
+  },
+  "physicalDeviceTested": false,
+  "publicApkDistribution": false,
+  "apk": {
+    "path": "/workspace/artifacts/Elledue-Control-0.4.7-debug.apk",
+    "bytes": 30468426,
+    "sha256": "1ef63908d9b6a3c324641a00ffc5473fc44b315d199926cd66e1495a31b30d19"
+  },
+  "certificateSha256": "cc45fdd9dccf37a2d94fb35e142bfde73b25de3e46e3b8ce93d4d5b9a7b2065c",
+  "screenshots": "Android View.draw / Skia native, Robolectric API34; dati esclusivamente fittizi",
+  "artifacts": [
+    {
+      "path": "docs/0.4.7/qa/README.md",
+      "bytes": 3002,
+      "sha256": "95c1f312b7c60c21fc9862d549ffd5a57dd7dffc3c4c842e56218765e0f5ff8c"
+    },
+    {
+      "path": "docs/0.4.7/qa/galleria.png",
+      "bytes": 338319,
+      "sha256": "92cc9c093a02a56cc23335004853fbde3c6c539f0d8c5a22229d78351c924186"
+    },
+    {
+      "path": "docs/0.4.7/qa/rendiconto-sintetico-dati-fittizi.pdf",
+      "bytes": 28155,
+      "sha256": "7541d7f79ed4196b34d82309ad061c655ff184eb6735160f9a1d1f441ae15dbc"
+    },
+    {
+      "path": "docs/0.4.7/qa/screenshots/047-activities.png",
+      "bytes": 214219,
+      "sha256": "420a0f9cdc764c3124462695f13771ef5130f3b053ff9866c28700362195aac3"
+    },
+    {
+      "path": "docs/0.4.7/qa/screenshots/047-analysis.png",
+      "bytes": 210225,
+      "sha256": "9923aeeed213e3a4c47de00ea719dcdf33875cbb64b715c41cc8ffb5021e9198"
+    },
+    {
+      "path": "docs/0.4.7/qa/screenshots/047-appearance.png",
+      "bytes": 2362708,
+      "sha256": "4fa28abd2d8016de341f5aede2176c44e867b2c77e7b8f511019e54e4bbd042a"
+    },
+    {
+      "path": "docs/0.4.7/qa/screenshots/047-copy-calendar.png",
+      "bytes": 226679,
+      "sha256": "436ff480f66c98d9ffa7b7b2202f08d92a7ac4799eff8bbc364f3ed7ebcf5e90"
+    },
+    {
+      "path": "docs/0.4.7/qa/screenshots/047-expense-chart.png",
+      "bytes": 210225,
+      "sha256": "9923aeeed213e3a4c47de00ea719dcdf33875cbb64b715c41cc8ffb5021e9198"
+    },
+    {
+      "path": "docs/0.4.7/qa/screenshots/047-home.png",
+      "bytes": 1048923,
+      "sha256": "5e4230f9d6752cc8974b458f735a451e3cce8e304e4ed1ed9a85bd9f3434b69b"
+    },
+    {
+      "path": "docs/0.4.7/qa/screenshots/047-landscape-copy.png",
+      "bytes": 135282,
+      "sha256": "0e7b753bcd600c23ffbc06230ce597e1a23f75f8d2c432a942e46f04350ba19a"
+    },
+    {
+      "path": "docs/0.4.7/qa/screenshots/047-message-preview.png",
+      "bytes": 124602,
+      "sha256": "ff85b7e420f18d90a24abdb5fdb1990e3bf012561059fd51df2ba5e3bda28635"
+    },
+    {
+      "path": "docs/0.4.7/qa/screenshots/047-portal-selector.png",
+      "bytes": 207724,
+      "sha256": "a494a18ab44d31055584147c021a172343dffcba4882ede2f5f8afd41cb9d887"
+    },
+    {
+      "path": "docs/0.4.7/qa/screenshots/047-report-document.png",
+      "bytes": 329066,
+      "sha256": "287119380f8b4a167765d5f06516458cf332d14b0b1fbea340197b9e7dca8948"
+    },
+    {
+      "path": "docs/0.4.7/qa/screenshots/047-task-calendar.png",
+      "bytes": 191255,
+      "sha256": "03f0ef92923061fd3053765dff5a980e2b550e48e7560e4bf3fbb9dfde816727"
+    },
+    {
+      "path": "docs/0.4.7/qa/screenshots/047-task-editor.png",
+      "bytes": 120792,
+      "sha256": "6a4297bcce19dd6ed41053bb14cc1af78ffb59c88833cea4187fa11fae343bec"
+    },
+    {
+      "path": "docs/0.4.7/qa/screenshots/047-tourist-tax.png",
+      "bytes": 230738,
+      "sha256": "161a39a99a964e2ec97f4761de64ae4850c15807af63b46f026f4475a63caab6"
+    }
+  ]
+}

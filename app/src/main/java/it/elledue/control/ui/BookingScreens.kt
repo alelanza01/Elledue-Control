@@ -27,6 +27,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import it.elledue.control.data.*
 import it.elledue.control.domain.*
 import java.math.BigDecimal
@@ -48,7 +49,7 @@ fun BookingRow(item: ReservationEntity, propertyName: String, onOpen: () -> Unit
             Text(propertyName,style=MaterialTheme.typography.titleMedium)
             Text("${item.guestFirstName} ${item.guestLastName}",style=MaterialTheme.typography.bodyMedium)
             Text("${BookingDates.display(item.checkInEpochDay)} → ${BookingDates.display(item.checkOutEpochDay)} · ${item.guestCount} ospiti",style=MaterialTheme.typography.bodySmall,color=ConceptMuted)
-            if(item.status=="CANCELLED") Text("Annullata",color=DepartureColor,style=MaterialTheme.typography.labelSmall)
+            Text(if(item.status=="CANCELLED")"Annullata" else if(item.status=="COMPLETED")"Conclusa" else StayStatus.label(item),color=if(item.status=="CANCELLED")DepartureColor else ElledueGold,style=MaterialTheme.typography.labelSmall)
         }
         androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.AutoMirrored.Outlined.KeyboardArrowRight,null,tint=ElledueGold,modifier=Modifier.size(20.dp))
     }
@@ -56,12 +57,13 @@ fun BookingRow(item: ReservationEntity, propertyName: String, onOpen: () -> Unit
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ReservationsScreen(records: List<ReservationEntity>, properties: List<PropertyWithOwner>, onNew: () -> Unit, onOpen: (String) -> Unit) {
+fun ReservationsScreen(records: List<ReservationEntity>, properties: List<PropertyWithOwner>, onNew: () -> Unit, onOpen: (String) -> Unit, activities:List<ActivityEntity> = emptyList(), onActivity:(String)->Unit = {}, onCopy:(String,String,Long)->Unit = {_,_,_->},onDay:(Long)->Unit = {},issues:List<PropertyIssue> = emptyList(),onReservations:()->Unit = {},onFilteredDay:((Long,String)->Unit)?=null) {
     var monthText by rememberSaveable { mutableStateOf(YearMonth.from(BookingDates.today()).toString()) }
     var selectedDay by rememberSaveable { mutableLongStateOf(BookingDates.today().toEpochDay()) }
     var propertyFilter by rememberSaveable { mutableStateOf("") }
     var listMode by rememberSaveable { mutableStateOf(false) }
     var showCancelled by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(properties.map{it.property.id}){if(propertyFilter.isNotBlank() && properties.none{it.property.id==propertyFilter})propertyFilter=""}
     val month = YearMonth.parse(monthText)
     val start = month.atDay(1).toEpochDay()
     val end = month.plusMonths(1).atDay(1).toEpochDay()
@@ -72,10 +74,11 @@ fun ReservationsScreen(records: List<ReservationEntity>, properties: List<Proper
     Scaffold(topBar = { TopAppBar(title = { ConceptHeading("Calendario", "Prenotazioni e operatività") }, actions = { IconButton(onClick = onNew, enabled = properties.any { !it.property.archived }, modifier = Modifier.testTag("new-booking")) { Icon(Icons.Outlined.Add, "Nuova prenotazione") } }) }) { padding ->
         LazyColumn(Modifier.fillMaxSize().padding(padding).testTag("bookings-scroll"), contentPadding = PaddingValues(16.dp, 6.dp, 16.dp, 24.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
             item { ConceptPropertySelector(properties, propertyFilter, allOption = true) { propertyFilter = it } }
+            item { Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){OutlinedButton(onClick=onReservations,modifier=Modifier.weight(1f).testTag("calendar-open-reservations")){Text("Prenotazioni")};OutlinedButton(onClick={onCopy(propertyFilter,monthText,selectedDay)},modifier=Modifier.weight(1f).testTag("open-copy-calendar")){Text("Copia calendario")}} }
             item { Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 ConceptPill(!listMode, { listMode = false }, label = { Text("Mese") }, modifier = Modifier.testTag("booking-calendar-mode"))
                 ConceptPill(listMode, { listMode = true }, label = { Text("Agenda") }, modifier = Modifier.testTag("booking-list-mode"))
-                ConceptPill(showCancelled, { showCancelled = !showCancelled }, label = { Text("Annullate") }, modifier = Modifier.testTag("booking-cancelled-filter"))
+                ConceptPill(showCancelled, { showCancelled = !showCancelled }, label = { Text("Mostra annullate") }, modifier = Modifier.testTag("booking-cancelled-filter"))
             } }
             item { Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                 IconButton(onClick = { monthText = month.minusMonths(1).toString(); selectedDay = month.minusMonths(1).atDay(1).toEpochDay() }, modifier = Modifier.testTag("previous-month")) { Icon(Icons.AutoMirrored.Outlined.KeyboardArrowLeft, "Mese precedente") }
@@ -84,19 +87,8 @@ fun ReservationsScreen(records: List<ReservationEntity>, properties: List<Proper
             } }
             item { TextButton(onClick = { monthText = YearMonth.from(BookingDates.today()).toString(); selectedDay = today }, modifier = Modifier.testTag("calendar-today").heightIn(min=32.dp)) { Text("Oggi · ${BookingDates.display(today)}",style=MaterialTheme.typography.labelSmall) } }
             if (!listMode) {
-                item { MonthGrid(month, selectedDay, today, inMonth.filter { it.status != BookingStatus.CANCELLED.name }, propertyFilter.isNotBlank()) { selectedDay = it } }
-                item {
-                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                        properties.filter { property -> inMonth.any { it.propertyId == property.property.id } }.forEach { property ->
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Box(Modifier.size(8.dp).background(propertyColor(property.property.id), CircleShape))
-                                Text(property.property.name, style = MaterialTheme.typography.labelMedium)
-                            }
-                        }
-                    }
-                }
-                item { Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(8.dp)) { listOf("Check-in" to ArrivalColor,"Check-out" to DepartureColor,"Soggiorno" to StayColor,"Pulizie" to ElledueGold,"Manutenzione" to TaskColor).forEach { (label,color) -> Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(4.dp)) { Box(Modifier.size(6.dp).background(color,CircleShape));Text(label,style=MaterialTheme.typography.labelSmall,color=ConceptMuted) } } } }
-                item { Text("${BookingDates.display(selectedDay)} · agenda", style = MaterialTheme.typography.titleMedium) }
+                item { StayMonthGrid(month, selectedDay, today, inMonth.filter { it.status != BookingStatus.CANCELLED.name }, propertyFilter.isNotBlank(), (activities+issues.mapNotNull{i->i.scheduledAt?.let{ActivityEntity("issue:${i.id}",i.propertyId,i.title,it,completed=!IssueRepository.open(i),kind="MAINTENANCE",hasTime=i.hasTime)}}).filter {propertyFilter.isBlank() || it.propertyId==propertyFilter},properties.associate{it.property.id to it.property.name},onOpen) { selectedDay = it;if(onFilteredDay!=null)onFilteredDay(it,propertyFilter) else onDay(it) } }
+                item { Text("${BookingDates.display(selectedDay)} · Giornata operativa", style = MaterialTheme.typography.titleMedium) }
                 val daily = inMonth.filter { selectedDay >= it.checkInEpochDay && selectedDay <= it.checkOutEpochDay }
                 if (daily.isEmpty()) item { Text("Nessun soggiorno, arrivo o partenza per il giorno selezionato.", style = MaterialTheme.typography.bodyMedium) }
                 items(daily, key = { it.id }) { item ->
@@ -109,57 +101,28 @@ fun ReservationsScreen(records: List<ReservationEntity>, properties: List<Proper
                 if (inMonth.isEmpty()) item { EmptyState("Un calendario pronto ad accoglierti", "Le prenotazioni del mese appariranno qui. Aggiungi una prenotazione per iniziare.") }
                 items(inMonth, key = { it.id }) { item -> BookingRow(item, properties.firstOrNull { it.property.id == item.propertyId }?.property?.name ?: "Immobile") { onOpen(item.id) } }
             }
+            val tasks=activities.filter {task -> task.dueEpochMillis?.let { val day=Instant.ofEpochMilli(it).atZone(ZoneId.of(task.zoneId)).toLocalDate().toEpochDay(); day>=start && day<end && (listMode || day==selectedDay) }==true && (propertyFilter.isBlank() || task.propertyId==propertyFilter) }
+            if(tasks.isNotEmpty()) item{Text("Attività programmate",style=MaterialTheme.typography.titleMedium)}
+            items(tasks,key={"task-${it.id}"}) {task -> TextButton(onClick={onActivity(task.id)},modifier=Modifier.testTag("calendar-task-${task.id}")){Text((if(task.completed) "✓ " else "○ ")+task.title+" · "+Instant.ofEpochMilli(task.dueEpochMillis!!).atZone(ZoneId.of(task.zoneId)).toLocalDate().format(BookingDates.inputFormat))} }
             if (properties.isEmpty()) item { Text("Crea prima un immobile nella sezione Immobili.", style = MaterialTheme.typography.bodyMedium) }
-        }
-    }
-}
-
-@Composable
-private fun MonthGrid(month: YearMonth, selected: Long, today: Long, records: List<ReservationEntity>, singleProperty: Boolean, select: (Long) -> Unit) {
-    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer), modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Row { listOf("L", "M", "M", "G", "V", "S", "D").forEach { Text(it, modifier = Modifier.weight(1f).padding(8.dp), style = MaterialTheme.typography.labelMedium) } }
-            val offset = month.atDay(1).dayOfWeek.value - 1
-            val weeks = (offset + month.lengthOfMonth() + 6) / 7
-            repeat(weeks) { week ->
-                Row {
-                    repeat(7) { weekday ->
-                        val day = week * 7 + weekday - offset + 1
-                        if (day !in 1..month.lengthOfMonth()) Spacer(Modifier.weight(1f).height(if(androidx.compose.ui.platform.LocalDensity.current.fontScale > 1.2f) 64.dp else 48.dp)) else {
-                            val epoch = month.atDay(day).toEpochDay()
-                            val bookings = records.filter { epoch >= it.checkInEpochDay && epoch <= it.checkOutEpochDay }
-                            val arrivals = bookings.count { it.checkInEpochDay == epoch }
-                            val departures = bookings.count { it.checkOutEpochDay == epoch }
-                            val occupied = bookings.filter { epoch < it.checkOutEpochDay }
-                            Column(Modifier.weight(1f).height(if(androidx.compose.ui.platform.LocalDensity.current.fontScale>1.2f) 64.dp else 48.dp).clickable { select(epoch) }.testTag("calendar-day-$epoch").semantics { contentDescription = "${BookingDates.display(epoch)}, $arrivals arrivi, $departures partenze, ${occupied.size} soggiorni" }.padding(2.dp),horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.spacedBy(2.dp)) {
-                                Box(Modifier.size(23.dp).background(if(epoch==selected) ElledueGold else Color.Transparent,CircleShape),contentAlignment=Alignment.Center) {
-                                    Text(day.toString(),style=MaterialTheme.typography.labelMedium,color=if(epoch==selected) ElledueNight else if(epoch==today) ElledueGold else ConceptMuted,fontWeight=if(epoch==selected||epoch==today) FontWeight.Bold else FontWeight.Normal)
-                                }
-                                if(singleProperty) {
-                                    if(bookings.isNotEmpty()) Box(Modifier.fillMaxWidth().height(5.dp).background(when { arrivals>0 -> ArrivalColor;departures>0 -> DepartureColor;else->StayColor },CircleShape))
-                                } else occupied.map { it.propertyId }.distinct().take(2).forEach { Box(Modifier.fillMaxWidth().height(4.dp).background(propertyColor(it),CircleShape)) }
-                                if(arrivals>0 || departures>0) Text(listOfNotNull(if(arrivals>0) "A$arrivals" else null,if(departures>0) "P$departures" else null).joinToString(" "),style=MaterialTheme.typography.labelSmall,color=if(departures>0) DepartureColor else ArrivalColor)
-
-                            }
-                        }
-                    }
-                }
-            }
         }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun BookingDetailScreen(item: ReservationEntity, propertyName: String, busy: Boolean, error: String?, onBack: () -> Unit, onEdit: () -> Unit, onCancel: () -> Unit, onTax: () -> Unit = {}, onExpense: (String) -> Unit = {}, onActivities: () -> Unit = {}, financialChanges: List<it.elledue.control.data.BookingFinancialChangeEntity> = emptyList()) {
+fun BookingDetailScreen(item: ReservationEntity, propertyName: String, busy: Boolean, error: String?, onBack: () -> Unit, onEdit: () -> Unit, onCancel: () -> Unit, onDelete:()->Unit = {}, onTax: () -> Unit = {}, onExpense: (String) -> Unit = {}, onActivities: () -> Unit = {}, onMessages: () -> Unit = {}, financialChanges: List<it.elledue.control.data.BookingFinancialChangeEntity> = emptyList(), operationalContent:@Composable ()->Unit = {}) {
     var confirm by rememberSaveable { mutableStateOf(false) }
-    Scaffold(topBar = { TopAppBar(title = { Text("Scheda prenotazione") }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Indietro") } }, actions = { TextButton(onClick = onEdit, enabled = !busy) { Text("Modifica") } }) }) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
+    var showTimes by rememberSaveable{mutableStateOf(false)}
+    Scaffold(topBar = { TopAppBar(title = { Text("Riepilogo soggiorno") }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Indietro") } }, actions = { TextButton(onClick = onEdit, enabled = !busy) { Text("Modifica") } }) }) { padding ->
+        Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text("${item.guestFirstName} ${item.guestLastName}", style = MaterialTheme.typography.headlineLarge)
             Text(propertyName, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.secondary)
-            Text(BookingStatus.valueOf(item.status).label, modifier = Modifier.testTag("booking-status"))
+            Text(StayStatus.label(item), modifier = Modifier.testTag("booking-status"))
             Text("${BookingDates.display(item.checkInEpochDay)} → ${BookingDates.display(item.checkOutEpochDay)} · ${item.checkOutEpochDay - item.checkInEpochDay} notti")
             Text("${item.guestCount} ospiti · ${item.platform}")
+            TextButton(onClick={showTimes=!showTimes}){Text(if(showTimes)"Nascondi orari" else "Orari del soggiorno")}
+            if(showTimes) {
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer), modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text("Arrivo previsto: ${item.expectedArrivalTime}")
@@ -168,23 +131,27 @@ fun BookingDetailScreen(item: ReservationEntity, propertyName: String, busy: Boo
                     Text("Partenza effettiva: ${item.actualDepartureTime ?: "Non registrata"}")
                 }
             }
+            }
             Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(onClick = { onExpense("OTHER") }, modifier = Modifier.testTag("booking-add-expense")) { Text("Spesa") }
                 OutlinedButton(onClick = { onExpense("CLEANING") }, modifier = Modifier.testTag("booking-add-cleaning")) { Text("Pulizia") }
                 OutlinedButton(onClick = { onExpense("LAUNDRY") }) { Text("Lavanderia") }
                 OutlinedButton(onClick = onActivities) { Text("Attività") }
+                OutlinedButton(onClick = onMessages,modifier=Modifier.testTag("booking-messages")){Text("Messaggi IT/EN")}
             }
-            FinanceCard(item.grossCents, BookingTotals(item.otaCents, item.netCents, item.managementCents), actualOta = item.actualOtaCents != null)
+            FinanceCard(item.grossCents, BookingFinance.calculate(item), actualOta = item.actualOtaCents != null)
+            operationalContent()
             Text("OTA ${Amounts.editable(item.appliedOtaBasisPoints.toLong())}% · Elledue ${Amounts.editable(item.appliedManagementBasisPoints.toLong())}% sul netto. Parametri storici conservati.", style = MaterialTheme.typography.bodySmall)
             financialChanges.filter { it.reservationId == item.id }.forEach { change ->
                 val before = org.json.JSONObject(change.previousJson); val after = org.json.JSONObject(change.currentJson)
                 Text("Rettifica: ${change.reason}\nOTA ${Amounts.euro(before.getLong("otaCents"))} → ${Amounts.euro(after.getLong("otaCents"))} · Elledue ${Amounts.euro(before.getLong("managementCents"))} → ${Amounts.euro(after.getLong("managementCents"))}", style = MaterialTheme.typography.bodySmall)
             }
             OutlinedButton(onClick = onTax, modifier = Modifier.fillMaxWidth().testTag("open-booking-tax")) { Text("Tassa di soggiorno e movimenti") }
-            Text("Il lordo è accreditato al proprietario. Il compenso maturato non indica un pagamento già ricevuto da Elledue.", style = MaterialTheme.typography.bodyMedium)
+            Text(if(item.appliedBusinessType=="OWNED")"Ricavi e costi dell’immobile proprio: nessun saldo con un proprietario esterno." else "Il lordo è accreditato al proprietario. Il compenso maturato non indica un pagamento già ricevuto da Elledue.", style = MaterialTheme.typography.bodyMedium)
             if (item.overlapAcknowledged && item.status != BookingStatus.CANCELLED.name) Text("Sovrapposizione autorizzata al salvataggio.", color = MaterialTheme.colorScheme.error)
             if (item.notes.isNotBlank()) { Text("Note", style = MaterialTheme.typography.titleMedium); Text(item.notes) }
             if (error != null) Text(error, color = MaterialTheme.colorScheme.error)
+            OutlinedButton(onClick=onDelete,enabled=!busy,modifier=Modifier.fillMaxWidth().testTag("delete-booking")){Text("Elimina definitivamente prenotazione")}
             if (item.status != BookingStatus.CANCELLED.name) OutlinedButton(onClick = { confirm = true }, enabled = !busy, modifier = Modifier.fillMaxWidth().testTag("cancel-booking")) { Text("Annulla prenotazione") }
         }
     }
@@ -200,7 +167,7 @@ fun BookingEconomyScreen(records: List<ReservationEntity>) {
         Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
             Text("Economia delle prenotazioni", style = MaterialTheme.typography.headlineMedium)
             Text("Tutte le prenotazioni non annullate, senza attribuzione ai rendiconti mensili.", style = MaterialTheme.typography.bodyMedium)
-            listOf("Lordo accreditato ai proprietari" to active.map { it.grossCents }, "Commissioni OTA" to active.map { it.otaCents }, "Netto dopo OTA" to active.map { it.netCents }, "Compenso Elledue maturato" to active.map { it.managementCents }).forEach { (label, values) ->
+            listOf("Lordo accreditato ai proprietari" to active.map { it.grossCents }, "Commissioni OTA" to active.map { it.otaCents }, "Netto dopo OTA" to active.map { it.netCents }, "Compenso di gestione Elledue" to active.map { it.managementCents }).forEach { (label, values) ->
                 Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer), modifier = Modifier.fillMaxWidth()) { Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) { Text(label, style = MaterialTheme.typography.labelLarge); Text(total(values), style = MaterialTheme.typography.headlineMedium) } }
             }
             Text("Il compenso maturato non è un incasso. Spese, compensazioni, pagamenti e rendiconti saranno aggiunti nelle milestone successive.", style = MaterialTheme.typography.bodySmall)

@@ -29,6 +29,8 @@ class ReservationViewModel(private val repository: ReservationRepository) : View
     val pending = mutablePending.asStateFlow()
     private val mutableSavedId = MutableStateFlow<String?>(null)
     val savedId = mutableSavedId.asStateFlow()
+    val notice=MutableStateFlow<String?>(null)
+    fun clearNotice(){notice.value=null}
     fun consumeSaved() { mutableSavedId.value = null }
     fun retry() { retries.value++ }
     fun clearError() { mutableError.value = null }
@@ -40,7 +42,7 @@ class ReservationViewModel(private val repository: ReservationRepository) : View
     }
     fun save(draft: BookingDraft, approved: Set<ConflictToken> = emptySet()) {
         execute {
-            try { repository.save(draft, approved); mutableSavedId.value = draft.id }
+            try { repository.save(draft, approved); mutableSavedId.value = draft.id; notice.value="Prenotazione salvata nel database" }
             catch (conflict: OverlapException) { mutablePending.value = PendingOverlap(draft, conflict.conflicts) }
         }
     }

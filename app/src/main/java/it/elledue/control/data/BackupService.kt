@@ -30,14 +30,15 @@ class BackupService(private val db: AppDatabase, private val context: Context) {
             }; tables.put(table, rows)
         }
         val payload = tables.toString()
-        val bytes = JSONObject().put("format", "ElledueControlBackup").put("formatVersion", 1).put("databaseVersion", 5)
+        val draftPayload=JSONObject(DraftStore.get(context).snapshot()).toString()
+        val bytes = JSONObject().put("draftsPayload",draftPayload).put("draftsSha256",ReportCodec.hash(draftPayload)).put("format", "ElledueControlBackup").put("formatVersion", 1).put("databaseVersion", 10)
             .put("payload", payload).put("sha256", ReportCodec.hash(payload)).toString().toByteArray(Charsets.UTF_8)
         require(bytes.size <= MAX_BYTES) { "Backup oltre il limite di 32 MiB." }; bytes
     }
     private fun parse(bytes: ByteArray): JSONObject {
         require(bytes.size in 1..MAX_BYTES) { "File vuoto o troppo grande." }
         val envelope = JSONObject(bytes.toString(Charsets.UTF_8))
-        require(envelope.getString("format") == "ElledueControlBackup" && envelope.getInt("formatVersion") == 1 && envelope.getInt("databaseVersion") in 4..5) { "Formato o versione backup non compatibile." }
+        require(envelope.getString("format") == "ElledueControlBackup" && envelope.getInt("formatVersion") == 1 && envelope.getInt("databaseVersion") in 4..10) { "Formato o versione backup non compatibile." }
         val payload = envelope.getString("payload")
         require(ReportCodec.hash(payload) == envelope.getString("sha256")) { "Backup corrotto: checksum non valido." }
         return JSONObject(payload).also { tables ->
@@ -49,10 +50,49 @@ class BackupService(private val db: AppDatabase, private val context: Context) {
                 val settings = tables.getJSONArray("app_settings")
                 for (i in 0 until settings.length()) settings.getJSONObject(i).put("operatorFirstName", "").put("operatorLastName", "").put("operatorPhotoBase64", JSONObject.NULL)
             }
+            if(envelope.getInt("databaseVersion") < 6) {
+                tables.put("guest_messages", JSONArray()).put("message_categories", JSONArray())
+                val tasks=tables.getJSONArray("activities")
+                for(i in 0 until tasks.length()) tasks.getJSONObject(i).put("notes", "")
+                val settings=tables.getJSONArray("app_settings")
+                for(i in 0 until settings.length()) settings.getJSONObject(i).put("homeCover", 0).put("messageCategoriesInitialized", 0)
+            }
+            if(envelope.getInt("databaseVersion")<7) {
+                tables.put("report_booking_options",JSONArray())
+                val tasks=tables.getJSONArray("activities");for(i in 0 until tasks.length())tasks.getJSONObject(i).put("kind","GENERAL").put("hasTime",1)
+                listOf("properties" to "businessType","reservations" to "appliedBusinessType").forEach{(table,column)->val rows=tables.getJSONArray(table);for(i in 0 until rows.length())rows.getJSONObject(i).put(column,"MANAGED")}
+                val taxes=tables.getJSONArray("tax_assessments");for(i in 0 until taxes.length())taxes.getJSONObject(i).put("consolidated",1)
+            }
+            if(envelope.getInt("databaseVersion")<8) {
+                tables.put("property_issues",JSONArray()).put("issue_history",JSONArray()).put("stay_cost_forecasts",JSONArray())
+                val properties=tables.getJSONArray("properties")
+                for(i in 0 until properties.length())properties.getJSONObject(i).put("laundryGuestsPerSet",2).put("habitualTransportCents",JSONObject.NULL)
+                val options=tables.getJSONArray("report_booking_options")
+                for(i in 0 until options.length())options.getJSONObject(i).put("reason","").put("auditJson","[]")
+            }
+            if(envelope.getInt("databaseVersion")<9) {
+                tables.put("maintenance_state",JSONArray()).put("standard_approvals",JSONArray())
+                val costs=tables.getJSONArray("expenses");for(i in 0 until costs.length())costs.getJSONObject(i).put("recognition","ACTUAL").put("originKey",JSONObject.NULL).put("approvalBatchId",JSONObject.NULL).put("effectiveDateConfirmed",1)
+                val moves=tables.getJSONArray("money_movements");for(i in 0 until moves.length())moves.getJSONObject(i).put("collector","ELLEDUE")
+            }
+            if(envelope.getInt("databaseVersion")<10) {
+                val properties=tables.getJSONArray("properties");for(i in 0 until properties.length())properties.getJSONObject(i).put("otaTreatment","NONE").put("otaVatBasisPoints",2200).put("automaticTaxAdvance",1)
+                val portals=tables.getJSONArray("platform_commissions");for(i in 0 until portals.length())portals.getJSONObject(i).put("otaTreatment","INHERIT")
+                val bookings=tables.getJSONArray("reservations");for(i in 0 until bookings.length())bookings.getJSONObject(i).put("appliedOtaTreatment","NONE").put("appliedOtaVatBasisPoints",2200).put("automaticTaxAdvance",0).put("taxAdvanceOverrideCents",JSONObject.NULL).put("otaTreatmentManual",0).put("taxAdvanceManual",0)
+            }
         }.also { require(it.keys().asSequence().toSet() == TABLES.toSet()) { "Tabelle del backup incomplete o sconosciute." } }
     }
+    private fun parseDrafts(bytes:ByteArray):Map<String,String> {
+        val envelope=JSONObject(bytes.toString(Charsets.UTF_8));if(!envelope.has("draftsPayload"))return emptyMap()
+        val raw=envelope.getString("draftsPayload");require(ReportCodec.hash(raw)==envelope.getString("draftsSha256")){"Checksum delle bozze non valido."}
+        val values=JSONObject(raw);require(values.length()<=20000)
+        return values.keys().asSequence().associateWith{key->
+            require(key.length<=500 && listOf("issue/","booking/","property/","activity/","expense/","tax/","messages?","movement/","settings","profile","appearance","categories","notifications","report/","activities?").any{key.startsWith(it)}){"Chiave bozza non riconosciuta."}
+            values.getString(key).also{require(it.length<=500000);com.google.gson.JsonParser.parseString(it)}
+        }
+    }
     suspend fun prepare(bytes: ByteArray): PreparedBackup {
-        val safe = bytes.copyOf(); val tables = parse(safe)
+        val safe = bytes.copyOf(); val tables = parse(safe); parseDrafts(safe)
         val staged = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java).build()
         try {
             staged.withTransaction { load(staged.openHelper.writableDatabase, tables) }
@@ -76,6 +116,9 @@ class BackupService(private val db: AppDatabase, private val context: Context) {
             }
             load(sql, data)
         }
+        EconomicReconciliation(db).reconcile()
+        FeedbackReconciliation(db).reconcile()
+        DraftStore.get(context).replace(parseDrafts(verified.bytes))
         db.invalidationTracker.refreshVersionsAsync()
     }
     private fun load(sql: SupportSQLiteDatabase, data: JSONObject) {
@@ -106,20 +149,45 @@ class BackupService(private val db: AppDatabase, private val context: Context) {
         staged.openHelper.readableDatabase.query("SELECT a.title, a.propertyId, b.propertyId FROM activities a LEFT JOIN reservations b ON a.reservationId = b.id WHERE a.reservationId IS NOT NULL").use { c ->
             while (c.moveToNext()) require(c.getString(0).isNotBlank() && c.getString(1) == c.getString(2)) { "Attività con collegamento incoerente." }
         }
+        staged.openHelper.readableDatabase.query("SELECT title,notes,zoneId,kind FROM activities").use { c -> while(c.moveToNext()) { require(c.getString(0).isNotBlank() && c.getString(0).length<=300 && c.getString(1).length<=20000); java.time.ZoneId.of(c.getString(2));require(c.getString(3) in listOf("GENERAL","CLEANING","MAINTENANCE","REGISTRATION")) } }
+        staged.openHelper.readableDatabase.query("SELECT label FROM message_categories").use{c->while(c.moveToNext())require(c.getString(0).isNotBlank() && c.getString(0).length<=100)}
+        staged.settingsDao().get()?.let { require(it.homeCover in 0..3) }
+        staged.messageDao().all().forEach { require(it.title.isNotBlank() && it.title.length<=300 && (it.italian.isNotBlank() || it.english.isNotBlank()) && it.italian.length<=20000 && it.english.length<=20000) }
+        staged.openHelper.readableDatabase.query("SELECT businessType FROM properties UNION ALL SELECT appliedBusinessType FROM reservations").use{c->while(c.moveToNext())require(c.getString(0) in listOf("MANAGED","OWNED"))}
+        staged.openHelper.readableDatabase.query("SELECT o.reportId, o.reservationId, r.propertyId, b.propertyId FROM report_booking_options o JOIN reports r ON r.id=o.reportId JOIN reservations b ON b.id=o.reservationId").use{c->while(c.moveToNext())require(c.getString(2)==c.getString(3))}
+        staged.issueDao().all().forEach { issue ->
+            require(issue.title.isNotBlank() && issue.title.length<=300 && issue.status in IssueRepository.statuses && issue.priority in IssueRepository.priorities)
+            require(issue.reservationId==null || staged.reservationDao().get(issue.reservationId)?.propertyId==issue.propertyId)
+            require(issue.expenseId==null || staged.accountingDao().expense(issue.expenseId)?.propertyId==issue.propertyId)
+            require((issue.status=="RESOLVED")== (issue.resolvedAt!=null))
+        }
+        staged.openHelper.readableDatabase.query("SELECT laundryGuestsPerSet,habitualTransportCents FROM properties").use{c->while(c.moveToNext())require(c.getInt(0)>0 && (c.isNull(1)||c.getLong(1)>=0))}
+        staged.openHelper.readableDatabase.query("SELECT quantity,unitCents,overrideCents,kind FROM stay_cost_forecasts").use{c->while(c.moveToNext()){OperationalMoney.cost(c.getString(0),c.getLong(1));require(c.getLong(1)>=0 && (c.isNull(2)||c.getLong(2)>=0) && c.getString(3) in listOf("CLEANING","LAUNDRY"))}}
         val dao = staged.reportDao(); val bookings = dao.bookings(); val costs = dao.expenses(); val taxes = dao.taxes(); val money = staged.accountingDao().movements()
         bookings.forEach { b ->
             require(b.checkOutEpochDay > b.checkInEpochDay && b.guestCount > 0 && Competence.booking(b.checkInEpochDay) == b.competenceMonth && b.status in listOf("CONFIRMED", "COMPLETED", "CANCELLED")) { "Prenotazione del backup non valida." }
-            val total = BookingFinance.calculate(b.grossCents, b.appliedOtaBasisPoints, b.actualOtaCents, b.appliedManagementBasisPoints)
+            val total = BookingFinance.calculate(b)
             require(total.otaCents == b.otaCents && total.netCents == b.netCents && total.managementCents == b.managementCents) { "Calcoli prenotazione incoerenti." }
         }
-        costs.forEach { require(it.actualCents >= 0 && it.revision >= 1); Competence.month(it.competenceMonth) }
+        bookings.forEach{require(it.taxAdvanceOverrideCents==null || it.taxAdvanceOverrideCents>=0)}
+        staged.propertyDao().let{pd->bookings.map{it.propertyId}.distinct().forEach{id->val p=requireNotNull(pd.get(id));require(p.property.otaTreatment in OtaTreatment.values && p.property.otaVatBasisPoints in 0..10000);p.platformCommissions.forEach{require(it.otaTreatment in OtaTreatment.values || it.otaTreatment=="INHERIT")}}}
+        costs.forEach { require(it.actualCents >= 0 && it.revision >= 1 && it.recognition in listOf("ACTUAL","STANDARD_APPROVED")); Competence.month(it.competenceMonth) }
         taxes.forEach { require(it.expectedCents >= 0 && it.taxableGuests >= 0 && it.exemptGuests >= 0 && it.nightCents >= 0 && it.taxableNights >= 0 && it.revision >= 1) { "Tassa non valida." } }
         money.forEach { m ->
+            require(m.collector in listOf("ELLEDUE","OWNER","PORTAL","OTHER"))
             require(m.amountCents > 0 && m.kind in listOf("COLLECTION", "COMPENSATION", "REMITTANCE", "OWNER_PAYMENT", "REVERSAL")) { "Movimento non valido." }; Competence.month(m.competenceMonth)
             if (m.reservationId != null) require(bookings.any { it.id == m.reservationId && it.propertyId == m.propertyId })
+            if(m.kind=="COMPENSATION")require(money.firstOrNull{it.id==m.sourceId}?.collector=="ELLEDUE")
             if (m.kind in listOf("COMPENSATION", "REMITTANCE")) require(money.any { it.id == m.sourceId && it.kind == "COLLECTION" && it.propertyId == m.propertyId && it.reservationId == m.reservationId })
             if (m.kind == "REVERSAL") require(m.notes.isNotBlank() && money.any { it.id == m.reversesId && it.kind != "REVERSAL" && it.amountCents == m.amountCents && it.propertyId == m.propertyId && it.reservationId == m.reservationId })
         }
+        val approvalRows=mutableMapOf<String,org.json.JSONObject>()
+        staged.openHelper.readableDatabase.query("SELECT id,reportId,approvedAt,actor,sourcesJson,previewHash FROM standard_approvals").use{c->while(c.moveToNext()){
+            require(c.getLong(2)>0 && c.getString(3).isNotBlank() && Regex("[0-9a-f]{64}").matches(c.getString(5)))
+            org.json.JSONArray(c.getString(4));require(staged.reportDao().get(c.getString(1))?.status=="CONFIRMED")
+            approvalRows[c.getString(0)]=org.json.JSONObject().put("reportId",c.getString(1))
+        }}
+        costs.forEach{cost->if(cost.recognition=="STANDARD_APPROVED")require(cost.originKey==StayCostRepository.expenseId(requireNotNull(cost.reservationId),cost.kind) && cost.approvalBatchId in approvalRows)}
         val active = Ledger.active(money)
         active.filter { it.kind in listOf("COMPENSATION", "REMITTANCE") }.forEach { m ->
             val source = requireNotNull(active.firstOrNull { it.id == m.sourceId && it.kind == "COLLECTION" })
@@ -145,6 +213,6 @@ class BackupService(private val db: AppDatabase, private val context: Context) {
     }
     companion object {
         const val MAX_BYTES = 32 * 1024 * 1024
-        val TABLES = listOf("app_settings", "owners", "properties", "platform_commissions", "message_templates", "reservations", "expense_categories", "expenses", "activities", "reports", "expense_revisions", "tax_assessments", "tax_assessment_revisions", "money_movements", "booking_financial_changes", "report_allocations")
+        val TABLES = listOf("app_settings", "owners", "properties", "platform_commissions", "message_templates", "reservations", "expense_categories", "expenses", "activities", "reports", "expense_revisions", "tax_assessments", "tax_assessment_revisions", "money_movements", "booking_financial_changes", "report_allocations", "message_categories", "guest_messages", "report_booking_options", "property_issues", "issue_history", "stay_cost_forecasts", "maintenance_state", "standard_approvals")
     }
 }

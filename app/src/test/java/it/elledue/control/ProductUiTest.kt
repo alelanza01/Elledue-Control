@@ -56,9 +56,9 @@ class ProductUiTest {
         compose.onNodeWithTag("booking-add-cleaning").performClick(); waitTag("expense-editor")
         compose.onNodeWithTag("expense-quantity").performTextReplacement("3"); compose.onNodeWithTag("save-expense").performClick(); waitTag("expense-detail")
         runBlocking { val rows = app.accountingRepository.expenses.first(); assertEquals(1, rows.size); assertEquals(property.id, rows.single().propertyId); assertEquals(booking.id, rows.single().reservationId); assertEquals(2400L, rows.single().actualCents); assertEquals(YearMonth.from(date).toString(), rows.single().competenceMonth) }
-        back(); back(); compose.onNodeWithTag("nav-economy").performClick(); waitTag("open-analysis"); screenshot("economy")
+        back(); back(); compose.onNodeWithTag("nav-economy").performClick(); waitTag("economy-scroll");compose.onNodeWithTag("economy-scroll").performScrollToNode(hasTestTag("open-analysis")); screenshot("economy")
         compose.onNodeWithTag("open-analysis").performClick(); waitTag("analysis-scroll"); screenshot("analysis"); back()
-        compose.onNodeWithTag("open-reports").performClick(); waitTag("generate-report"); screenshot("reports")
+        compose.onNodeWithTag("economy-scroll").performScrollToNode(hasTestTag("open-reports"));compose.onNodeWithTag("open-reports").performClick(); waitTag("generate-report"); screenshot("reports")
         compose.onNodeWithTag("generate-report").performClick(); waitTag("open-pdf-preview")
         compose.onNodeWithTag("open-pdf-preview").performScrollTo().performClick(); waitTag("pdf-pages")
         compose.waitUntil(20000) { compose.onAllNodes(hasContentDescription("Pagina 1 del PDF")).fetchSemanticsNodes().isNotEmpty() }

@@ -1,0 +1,109 @@
+/workspace/Elledue-Control/app/src/main/java/it/elledue/control/data/LocalImages.kt:31: Warning: Avoid using android.media.ExifInterface; use androidx.exifinterface.media.ExifInterface instead [ExifInterface]
+        val orientation = runCatching { context.contentResolver.openInputStream(uri)!!.use { android.media.ExifInterface(it).getAttributeInt(android.media.ExifInterface.TAG_ORIENTATION, 1) } }.getOrDefault(1)
+                                                                                                                                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+   Explanation for issues of type "ExifInterface":
+   The android.media.ExifInterface implementation has some known security bugs
+   in older versions of Android. There is a new implementation available of
+   this library in the support library, which is preferable.
+
+/workspace/.gradle-home/caches/modules-2/files-2.1/org.bouncycastle/bcpkix-jdk15to18/1.72/32faf4d74dbc333fb3a7a6c80c30417cf888fc7a/bcpkix-jdk15to18-1.72.jar: Warning: checkClientTrusted is empty, which could cause insecure network traffic due to trusting arbitrary TLS/SSL certificates presented by peers [TrustAllX509TrustManager]
+/workspace/.gradle-home/caches/modules-2/files-2.1/org.bouncycastle/bcpkix-jdk15to18/1.72/32faf4d74dbc333fb3a7a6c80c30417cf888fc7a/bcpkix-jdk15to18-1.72.jar: Warning: checkClientTrusted is empty, which could cause insecure network traffic due to trusting arbitrary TLS/SSL certificates presented by peers [TrustAllX509TrustManager]
+/workspace/.gradle-home/caches/modules-2/files-2.1/org.bouncycastle/bcpkix-jdk15to18/1.72/32faf4d74dbc333fb3a7a6c80c30417cf888fc7a/bcpkix-jdk15to18-1.72.jar: Warning: checkServerTrusted is empty, which could cause insecure network traffic due to trusting arbitrary TLS/SSL certificates presented by peers [TrustAllX509TrustManager]
+
+   Explanation for issues of type "TrustAllX509TrustManager":
+   This check looks for X509TrustManager implementations whose
+   checkServerTrusted or checkClientTrusted methods do nothing (thus trusting
+   any certificate chain) which could result in insecure network traffic
+   caused by trusting arbitrary TLS/SSL certificates presented by peers.
+
+   https://goo.gle/TrustAllX509TrustManager
+
+/workspace/Elledue-Control/app/src/main/java/it/elledue/control/security/AppLock.kt:23: Warning: Use the KTX extension function SharedPreferences.edit instead? [UseKtx]
+        check(prefs.edit().putBoolean("enabled",value.enabled).putLong("timeout",value.timeoutSeconds).putBoolean("device",value.deviceCredentialPreferred).commit())
+              ~~~~~~~~~~~~
+/workspace/Elledue-Control/app/src/main/java/it/elledue/control/data/DraftStore.kt:29: Warning: Use the KTX extension function SharedPreferences.edit instead? [UseKtx]
+        val edit=preferences.edit().clear();values.forEach{(k,v)->edit.putString(k,v)}
+                 ~~~~~~~~~~~~~~~~~~
+/workspace/Elledue-Control/app/src/main/java/it/elledue/control/data/DraftStore.kt:45: Warning: Use the KTX extension function String.toUri instead? [UseKtx]
+                route.startsWith("activities?")->load("$route#property",String::class.java) in ref.properties || android.net.Uri.parse("elledue://local/$route").getQueryParameter("booking") in ref.bookings
+                                                                                                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/workspace/Elledue-Control/app/src/main/java/it/elledue/control/data/DraftStore.kt:46: Warning: Use the KTX extension function String.toUri instead? [UseKtx]
+                route.startsWith("movement/")->android.net.Uri.parse("elledue://local/$route").let{it.getQueryParameter("property") in ref.properties || it.getQueryParameter("booking") in ref.bookings}
+                                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/workspace/Elledue-Control/app/src/main/java/it/elledue/control/data/LocalImages.kt:42: Warning: Use the KTX extension function Bitmap.scale instead? [UseKtx]
+        val bitmap = Bitmap.createScaledBitmap(oriented, (oriented.width * ratio).toInt().coerceAtLeast(1), (oriented.height * ratio).toInt().coerceAtLeast(1), true)
+                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/workspace/Elledue-Control/app/src/main/java/it/elledue/control/notifications/ReminderEngine.kt:25: Warning: Use the KTX extension function SharedPreferences.edit instead? [UseKtx]
+    fun save(value:ReminderSettings){ReminderPlanner.validate(value);check(prefs.edit().putString("settings",Gson().toJson(value)).commit());state.value=value}
+                                                                           ~~~~~~~~~~~~
+/workspace/Elledue-Control/app/src/main/java/it/elledue/control/notifications/ReminderEngine.kt:30: Warning: Use the KTX extension function SharedPreferences.edit instead? [UseKtx]
+    fun scheduled(value:Map<String,Reminder>){val json=JSONObject();value.forEach{(k,v)->json.put(k,Gson().toJson(v))};check(prefs.edit().putString("scheduled",json.toString()).commit())}
+                                                                                                                             ~~~~~~~~~~~~
+/workspace/Elledue-Control/app/src/main/java/it/elledue/control/notifications/ReminderEngine.kt:32: Warning: Use the KTX extension function SharedPreferences.edit instead? [UseKtx]
+    fun mark(job:Reminder){check(prefs.edit().putString("sent:${job.key}",job.version).commit())}
+                                 ~~~~~~~~~~~~
+/workspace/Elledue-Control/app/src/main/java/it/elledue/control/notifications/ReminderEngine.kt:39: Warning: Use the KTX extension function String.toUri instead? [UseKtx]
+    private fun pending(job:Reminder):PendingIntent=PendingIntent.getBroadcast(app,0,Intent(app,ReminderReceiver::class.java).setAction(ACTION).setData(Uri.parse("elledue-reminder://local/${Uri.encode(job.key)}")).putExtra("key",job.key).putExtra("version",job.version),PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+                                                                                                                                                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/workspace/Elledue-Control/app/src/main/java/it/elledue/control/notifications/ReminderEngine.kt:61: Warning: Use the KTX extension function String.toUri instead? [UseKtx]
+        val intent=Intent(app,MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP).setData(Uri.parse("elledue-open://local/${Uri.encode(job.key)}")).putExtra("route",job.route)
+                                                                                                                                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/workspace/Elledue-Control/app/src/main/java/it/elledue/control/reports/ReportPdf.kt:61: Warning: Use the KTX function createBitmap instead? [UseKtx]
+        val opaque = Bitmap.createBitmap(original.width, original.height, Bitmap.Config.ARGB_8888)
+                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+   Explanation for issues of type "UseKtx":
+   The Android KTX libraries decorates the Android platform SDK as well as
+   various libraries with more convenient extension functions available from
+   Kotlin, allowing you to use default parameters, named parameters, and
+   more.
+
+   Available options:
+
+   **remove-defaults** (default is true):
+   Whether to skip arguments that match the defaults provided by the extension.
+
+   Extensions often provide default values for some of the parameters. For example:
+   ```kotlin
+   fun Path.readLines(charset: Charset = Charsets.UTF_8): List<String> { return Files.readAllLines(this, charset) }
+   ```
+   This lint check will by default automatically omit parameters that match the default, so if your code was calling ```kotlin
+   Files.readAllLines(file, Charset.UTF_8)
+   ```
+   lint would replace this with
+   ```kotlin
+   file.readLines()
+   ```
+   rather than
+   ```kotlin
+   file.readLines(Charset.UTF_8
+   ```
+   You can turn this behavior off using this option.
+
+   To configure this option, use a `lint.xml` file with an <option> like this:
+
+   ```xml
+   <lint>
+       <issue id="UseKtx">
+           <option name="remove-defaults" value="true" />
+       </issue>
+   </lint>
+   ```
+
+   **require-present** (default is true):
+   Whether to only offer extensions already available.
+
+   This option lets you only have lint suggest extension replacements if those extensions are already available on the class path (in other words, you're already depending on the library containing the extension method.)
+
+   To configure this option, use a `lint.xml` file with an <option> like this:
+
+   ```xml
+   <lint>
+       <issue id="UseKtx">
+           <option name="require-present" value="true" />
+       </issue>
+   </lint>
+   ```
+
+0 errors, 15 warnings

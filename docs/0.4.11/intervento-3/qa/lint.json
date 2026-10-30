@@ -1,0 +1,227 @@
+{
+  "counts": {
+    "Warning": 20
+  },
+  "issues": [
+    {
+      "id": "ExifInterface",
+      "severity": "Warning",
+      "message": "Avoid using `android.media.ExifInterface`; use `androidx.exifinterface.media.ExifInterface` instead",
+      "category": "Correctness",
+      "priority": "6",
+      "summary": "Using `android.media.ExifInterface`",
+      "explanation": "The `android.media.ExifInterface` implementation has some known security bugs in older versions of Android. There is a new implementation available of this library in the support library, which is preferable.",
+      "errorLine1": "        val orientation = runCatching { context.contentResolver.openInputStream(uri)!!.use { android.media.ExifInterface(it).getAttributeInt(android.media.ExifInterface.TAG_ORIENTATION, 1) } }.getOrDefault(1)",
+      "errorLine2": "                                                                                                                                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+    },
+    {
+      "id": "TrustAllX509TrustManager",
+      "severity": "Warning",
+      "message": "`checkClientTrusted` is empty, which could cause insecure network traffic due to trusting arbitrary TLS/SSL certificates presented by peers",
+      "category": "Security",
+      "priority": "6",
+      "summary": "Insecure TLS/SSL trust manager",
+      "explanation": "This check looks for X509TrustManager implementations whose `checkServerTrusted` or `checkClientTrusted` methods do nothing (thus trusting any certificate chain) which could result in insecure network traffic caused by trusting arbitrary TLS/SSL certificates presented by peers.",
+      "url": "https://goo.gle/TrustAllX509TrustManager",
+      "urls": "https://goo.gle/TrustAllX509TrustManager"
+    },
+    {
+      "id": "TrustAllX509TrustManager",
+      "severity": "Warning",
+      "message": "`checkClientTrusted` is empty, which could cause insecure network traffic due to trusting arbitrary TLS/SSL certificates presented by peers",
+      "category": "Security",
+      "priority": "6",
+      "summary": "Insecure TLS/SSL trust manager",
+      "explanation": "This check looks for X509TrustManager implementations whose `checkServerTrusted` or `checkClientTrusted` methods do nothing (thus trusting any certificate chain) which could result in insecure network traffic caused by trusting arbitrary TLS/SSL certificates presented by peers.",
+      "url": "https://goo.gle/TrustAllX509TrustManager",
+      "urls": "https://goo.gle/TrustAllX509TrustManager"
+    },
+    {
+      "id": "TrustAllX509TrustManager",
+      "severity": "Warning",
+      "message": "`checkServerTrusted` is empty, which could cause insecure network traffic due to trusting arbitrary TLS/SSL certificates presented by peers",
+      "category": "Security",
+      "priority": "6",
+      "summary": "Insecure TLS/SSL trust manager",
+      "explanation": "This check looks for X509TrustManager implementations whose `checkServerTrusted` or `checkClientTrusted` methods do nothing (thus trusting any certificate chain) which could result in insecure network traffic caused by trusting arbitrary TLS/SSL certificates presented by peers.",
+      "url": "https://goo.gle/TrustAllX509TrustManager",
+      "urls": "https://goo.gle/TrustAllX509TrustManager"
+    },
+    {
+      "id": "UseKtx",
+      "severity": "Warning",
+      "message": "Use the KTX extension function `SharedPreferences.edit` instead?",
+      "category": "Productivity",
+      "priority": "6",
+      "summary": "Use KTX extension function",
+      "explanation": "The Android KTX libraries decorates the Android platform SDK as well as various libraries with more convenient extension functions available from Kotlin, allowing you to use default parameters, named parameters, and more.",
+      "errorLine1": "        check(prefs.edit().putBoolean(\"enabled\",value.enabled).putLong(\"timeout\",value.timeoutSeconds).putBoolean(\"device\",value.deviceCredentialPreferred).commit())",
+      "errorLine2": "              ~~~~~~~~~~~~"
+    },
+    {
+      "id": "UseKtx",
+      "severity": "Warning",
+      "message": "Use the KTX extension function `String.toUri` instead?",
+      "category": "Productivity",
+      "priority": "6",
+      "summary": "Use KTX extension function",
+      "explanation": "The Android KTX libraries decorates the Android platform SDK as well as various libraries with more convenient extension functions available from Kotlin, allowing you to use default parameters, named parameters, and more.",
+      "errorLine1": "        if(Build.VERSION.SDK_INT>=31 && !app.reminders.exactAllowed())OutlinedButton(onClick={runCatching{context.startActivity(Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM,android.net.Uri.parse(\"package:\"+context.packageName)))}.onFailure{error=\"Apri i permessi speciali Allarmi e promemoria nelle impostazioni Android.\"}}){Text(\"Consenti allarmi precisi (facoltativo)\")}",
+      "errorLine2": "                                                                                                                                                                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+    },
+    {
+      "id": "UseKtx",
+      "severity": "Warning",
+      "message": "Use the KTX extension function `String.toUri` instead?",
+      "category": "Productivity",
+      "priority": "6",
+      "summary": "Use KTX extension function",
+      "explanation": "The Android KTX libraries decorates the Android platform SDK as well as various libraries with more convenient extension functions available from Kotlin, allowing you to use default parameters, named parameters, and more.",
+      "errorLine1": "        TextButton(onClick={runCatching{context.startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))}.onFailure{context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,android.net.Uri.parse(\"package:\"+context.packageName)))}}){Text(\"Apri impostazioni batteria\")}",
+      "errorLine2": "                                                                                                                                                                                                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+    },
+    {
+      "id": "UseKtx",
+      "severity": "Warning",
+      "message": "Use the KTX extension function `SharedPreferences.edit` instead?",
+      "category": "Productivity",
+      "priority": "6",
+      "summary": "Use KTX extension function",
+      "explanation": "The Android KTX libraries decorates the Android platform SDK as well as various libraries with more convenient extension functions available from Kotlin, allowing you to use default parameters, named parameters, and more.",
+      "errorLine1": "        val edit=preferences.edit().clear();values.forEach{(k,v)->edit.putString(k,v)}",
+      "errorLine2": "                 ~~~~~~~~~~~~~~~~~~"
+    },
+    {
+      "id": "UseKtx",
+      "severity": "Warning",
+      "message": "Use the KTX extension function `String.toUri` instead?",
+      "category": "Productivity",
+      "priority": "6",
+      "summary": "Use KTX extension function",
+      "explanation": "The Android KTX libraries decorates the Android platform SDK as well as various libraries with more convenient extension functions available from Kotlin, allowing you to use default parameters, named parameters, and more.",
+      "errorLine1": "                route.startsWith(\"activities?\")->load(\"$route#property\",String::class.java) in ref.properties || android.net.Uri.parse(\"elledue://local/$route\").getQueryParameter(\"booking\") in ref.bookings",
+      "errorLine2": "                                                                                                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+    },
+    {
+      "id": "UseKtx",
+      "severity": "Warning",
+      "message": "Use the KTX extension function `String.toUri` instead?",
+      "category": "Productivity",
+      "priority": "6",
+      "summary": "Use KTX extension function",
+      "explanation": "The Android KTX libraries decorates the Android platform SDK as well as various libraries with more convenient extension functions available from Kotlin, allowing you to use default parameters, named parameters, and more.",
+      "errorLine1": "                route.startsWith(\"movement/\")->android.net.Uri.parse(\"elledue://local/$route\").let{it.getQueryParameter(\"property\") in ref.properties || it.getQueryParameter(\"booking\") in ref.bookings}",
+      "errorLine2": "                                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+    },
+    {
+      "id": "UseKtx",
+      "severity": "Warning",
+      "message": "Use the KTX extension function `Bitmap.scale` instead?",
+      "category": "Productivity",
+      "priority": "6",
+      "summary": "Use KTX extension function",
+      "explanation": "The Android KTX libraries decorates the Android platform SDK as well as various libraries with more convenient extension functions available from Kotlin, allowing you to use default parameters, named parameters, and more.",
+      "errorLine1": "        val bitmap = Bitmap.createScaledBitmap(oriented, (oriented.width * ratio).toInt().coerceAtLeast(1), (oriented.height * ratio).toInt().coerceAtLeast(1), true)",
+      "errorLine2": "                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+    },
+    {
+      "id": "UseKtx",
+      "severity": "Warning",
+      "message": "Use the KTX extension function `SharedPreferences.edit` instead?",
+      "category": "Productivity",
+      "priority": "6",
+      "summary": "Use KTX extension function",
+      "explanation": "The Android KTX libraries decorates the Android platform SDK as well as various libraries with more convenient extension functions available from Kotlin, allowing you to use default parameters, named parameters, and more.",
+      "errorLine1": "    fun save(value:ReminderSettings){ReminderPlanner.validate(value);check(prefs.edit().putString(\"settings\",Gson().toJson(value)).commit());state.value=value}",
+      "errorLine2": "                                                                           ~~~~~~~~~~~~"
+    },
+    {
+      "id": "UseKtx",
+      "severity": "Warning",
+      "message": "Use the KTX extension function `SharedPreferences.edit` instead?",
+      "category": "Productivity",
+      "priority": "6",
+      "summary": "Use KTX extension function",
+      "explanation": "The Android KTX libraries decorates the Android platform SDK as well as various libraries with more convenient extension functions available from Kotlin, allowing you to use default parameters, named parameters, and more.",
+      "errorLine1": "    fun scheduled(value:Map<String,Reminder>){val json=JSONObject();value.forEach{(k,v)->json.put(k,Gson().toJson(v))};if(prefs.getString(\"scheduled\",\"\")!=json.toString()){check(prefs.edit().putString(\"scheduled\",json.toString()).commit());diagnostics.value++}}",
+      "errorLine2": "                                                                                                                                                                                  ~~~~~~~~~~~~"
+    },
+    {
+      "id": "UseKtx",
+      "severity": "Warning",
+      "message": "Use the KTX extension function `SharedPreferences.edit` instead?",
+      "category": "Productivity",
+      "priority": "6",
+      "summary": "Use KTX extension function",
+      "explanation": "The Android KTX libraries decorates the Android platform SDK as well as various libraries with more convenient extension functions available from Kotlin, allowing you to use default parameters, named parameters, and more.",
+      "errorLine1": "    fun diagnosticJob(job:Reminder){check(prefs.edit().putString(\"diagnostic-job\",Gson().toJson(job)).commit());diagnostics.value++}",
+      "errorLine2": "                                          ~~~~~~~~~~~~"
+    },
+    {
+      "id": "UseKtx",
+      "severity": "Warning",
+      "message": "Use the KTX extension function `SharedPreferences.edit` instead?",
+      "category": "Productivity",
+      "priority": "6",
+      "summary": "Use KTX extension function",
+      "explanation": "The Android KTX libraries decorates the Android platform SDK as well as various libraries with more convenient extension functions available from Kotlin, allowing you to use default parameters, named parameters, and more.",
+      "errorLine1": "    fun status(key:String,value:String){check(prefs.edit().putString(\"diagnostic:$key\",value).commit());diagnostics.value++}",
+      "errorLine2": "                                              ~~~~~~~~~~~~"
+    },
+    {
+      "id": "UseKtx",
+      "severity": "Warning",
+      "message": "Use the KTX extension function `SharedPreferences.edit` instead?",
+      "category": "Productivity",
+      "priority": "6",
+      "summary": "Use KTX extension function",
+      "explanation": "The Android KTX libraries decorates the Android platform SDK as well as various libraries with more convenient extension functions available from Kotlin, allowing you to use default parameters, named parameters, and more.",
+      "errorLine1": "    fun handle(key:String){check(prefs.edit().putBoolean(\"handled:$key\",true).commit())}",
+      "errorLine2": "                                 ~~~~~~~~~~~~"
+    },
+    {
+      "id": "UseKtx",
+      "severity": "Warning",
+      "message": "Use the KTX extension function `SharedPreferences.edit` instead?",
+      "category": "Productivity",
+      "priority": "6",
+      "summary": "Use KTX extension function",
+      "explanation": "The Android KTX libraries decorates the Android platform SDK as well as various libraries with more convenient extension functions available from Kotlin, allowing you to use default parameters, named parameters, and more.",
+      "errorLine1": "    fun mark(job:Reminder){check(prefs.edit().putString(\"sent:${job.key}\",job.version).putString(\"delivered-job:${job.key}\",Gson().toJson(job)).commit())}",
+      "errorLine2": "                                 ~~~~~~~~~~~~"
+    },
+    {
+      "id": "UseKtx",
+      "severity": "Warning",
+      "message": "Use the KTX extension function `String.toUri` instead?",
+      "category": "Productivity",
+      "priority": "6",
+      "summary": "Use KTX extension function",
+      "explanation": "The Android KTX libraries decorates the Android platform SDK as well as various libraries with more convenient extension functions available from Kotlin, allowing you to use default parameters, named parameters, and more.",
+      "errorLine1": "    private fun pending(job:Reminder):PendingIntent=PendingIntent.getBroadcast(app,0,Intent(app,ReminderReceiver::class.java).setAction(ACTION).setData(Uri.parse(\"elledue-reminder://local/${Uri.encode(job.key)}\")).putExtra(\"key\",job.key).putExtra(\"version\",job.version),PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)",
+      "errorLine2": "                                                                                                                                                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+    },
+    {
+      "id": "UseKtx",
+      "severity": "Warning",
+      "message": "Use the KTX extension function `String.toUri` instead?",
+      "category": "Productivity",
+      "priority": "6",
+      "summary": "Use KTX extension function",
+      "explanation": "The Android KTX libraries decorates the Android platform SDK as well as various libraries with more convenient extension functions available from Kotlin, allowing you to use default parameters, named parameters, and more.",
+      "errorLine1": "        val intent=Intent(app,MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP).setData(Uri.parse(\"elledue-open://local/${Uri.encode(job.key)}\")).putExtra(\"route\",job.route)",
+      "errorLine2": "                                                                                                                                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+    },
+    {
+      "id": "UseKtx",
+      "severity": "Warning",
+      "message": "Use the KTX function `createBitmap` instead?",
+      "category": "Productivity",
+      "priority": "6",
+      "summary": "Use KTX extension function",
+      "explanation": "The Android KTX libraries decorates the Android platform SDK as well as various libraries with more convenient extension functions available from Kotlin, allowing you to use default parameters, named parameters, and more.",
+      "errorLine1": "        val opaque = Bitmap.createBitmap(original.width, original.height, Bitmap.Config.ARGB_8888)",
+      "errorLine2": "                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+    }
+  ]
+}

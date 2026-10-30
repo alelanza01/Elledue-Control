@@ -40,12 +40,12 @@ class AppNavigationTest {
         compose.waitUntil(15000) { compose.onAllNodes(hasTestTag("booking-calendar-mode")).fetchSemanticsNodes().isNotEmpty() }; compose.mainClock.advanceTimeBy(700); compose.waitForIdle()
         compose.onNodeWithTag("booking-calendar-mode").assertIsDisplayed()
         compose.onNodeWithTag("nav-economy").performClick()
-        compose.onNodeWithTag("open-accounting").performClick()
-        waitText("Contabilità operativa")
-        compose.onNodeWithText("Contabilità operativa").assertIsDisplayed()
+        compose.onNodeWithTag("economy-scroll").performScrollToNode(hasTestTag("open-accounting"));compose.onNodeWithTag("open-accounting").performClick()
+        waitText("Dettagli contabili")
+        compose.onNodeWithText("Dettagli contabili").assertIsDisplayed()
         compose.runOnUiThread { compose.activity.onBackPressedDispatcher.onBackPressed() }
         compose.onNodeWithTag("nav-dashboard").performClick()
-        compose.onNodeWithTag("nav-activities").performClick()
+        compose.onNodeWithTag("home-scroll").performScrollToNode(hasTestTag("nav-activities"));compose.onNodeWithTag("nav-activities").performClick()
         compose.onNodeWithText("La tua operatività").assertIsDisplayed()
         compose.onNodeWithTag("nav-settings").performClick()
         waitText("Nome organizzazione")
@@ -55,7 +55,7 @@ class AppNavigationTest {
         compose.runOnUiThread { compose.activity.onBackPressedDispatcher.onBackPressed() }
         compose.runOnUiThread { compose.activity.onBackPressedDispatcher.onBackPressed() }
         compose.onNodeWithTag("nav-dashboard").performClick()
-        compose.onNodeWithTag("home-scroll").performScrollToNode(hasText("Il tuo portfolio")); compose.onNodeWithText("Il tuo portfolio").assertIsDisplayed()
+        compose.onNodeWithTag("home-scroll").performScrollToNode(hasText("Il tuo portafoglio")); compose.onNodeWithText("Il tuo portafoglio").assertIsDisplayed()
         screenshot("dashboard-empty")
     }
 

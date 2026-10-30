@@ -20,10 +20,17 @@ class ReportViewModel(private val repo: ReportRepository) : ViewModel() {
     val unassigned = MutableStateFlow<List<ReservationEntity>>(emptyList())
     fun retry() { retry.value++ }
     fun clear() { error.value = null; savedId.value = null }
+    val abandonedId=MutableStateFlow<String?>(null)
+    fun abandon(id:String)=execute{repo.abandonDraft(id);abandonedId.value=id}
+    fun clearAbandoned(){abandonedId.value=null}
     fun generate(property: String, month: String) = execute { savedId.value = repo.generate(property, month) }
     fun refresh(id: String, notes: String? = null) = execute { repo.refresh(id, notes) }
     fun revision(id: String, reason: String) = execute { savedId.value = repo.beginRevision(id, reason) }
-    fun confirm(snapshot: ReportSnapshot, acknowledged: Boolean) = execute { repo.confirm(snapshot.id, ReportCodec.hash(ReportCodec.encode(snapshot)), acknowledged) }
+    fun confirm(snapshot: ReportSnapshot, acknowledged: Boolean) = execute { repo.confirm(snapshot.id, ReportCodec.hash(ReportCodec.encode(snapshot)), acknowledged,approveStandards=acknowledged) }
+    val optionPreview=MutableStateFlow<ReportSnapshot?>(null)
+    fun previewOption(report:String,booking:String,hidden:Boolean,excluded:Boolean)=execute{optionPreview.value=repo.previewBookingOption(report,booking,hidden,excluded)}
+    fun applyOption(report:String,booking:String,hidden:Boolean,excluded:Boolean,preview:ReportSnapshot,reason:String="")=execute{repo.setBookingOption(report,booking,hidden,excluded,ReportCodec.hash(ReportCodec.encode(preview)),reason);optionPreview.value=null}
+    fun clearPreview(){optionPreview.value=null}
     fun loadUnassigned() = execute { unassigned.value = repo.unassigned() }
     private fun execute(action: suspend () -> Unit) {
         if (busy.value) return

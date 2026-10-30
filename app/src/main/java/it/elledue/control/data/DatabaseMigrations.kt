@@ -71,4 +71,72 @@ object DatabaseMigrations {
         }
     }
 
+    val MIGRATION_5_6 = object : Migration(5, 6) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE activities ADD COLUMN notes TEXT NOT NULL DEFAULT ''")
+            db.execSQL("ALTER TABLE app_settings ADD COLUMN homeCover INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("ALTER TABLE app_settings ADD COLUMN messageCategoriesInitialized INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("CREATE TABLE IF NOT EXISTS message_categories (id TEXT NOT NULL PRIMARY KEY, label TEXT NOT NULL)")
+            db.execSQL("CREATE TABLE IF NOT EXISTS guest_messages (id TEXT NOT NULL PRIMARY KEY, propertyId TEXT, categoryId TEXT NOT NULL, title TEXT NOT NULL, italian TEXT NOT NULL, english TEXT NOT NULL, archived INTEGER NOT NULL, FOREIGN KEY(propertyId) REFERENCES properties(id) ON DELETE RESTRICT, FOREIGN KEY(categoryId) REFERENCES message_categories(id) ON DELETE RESTRICT)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_guest_messages_propertyId ON guest_messages(propertyId)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_guest_messages_categoryId ON guest_messages(categoryId)")
+        }
+    }
+
+    val MIGRATION_6_7 = object:Migration(6,7) {
+        override fun migrate(db:SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE properties ADD COLUMN businessType TEXT NOT NULL DEFAULT 'MANAGED'")
+            db.execSQL("ALTER TABLE reservations ADD COLUMN appliedBusinessType TEXT NOT NULL DEFAULT 'MANAGED'")
+            db.execSQL("ALTER TABLE tax_assessments ADD COLUMN consolidated INTEGER NOT NULL DEFAULT 1")
+            db.execSQL("ALTER TABLE activities ADD COLUMN kind TEXT NOT NULL DEFAULT 'GENERAL'")
+            db.execSQL("ALTER TABLE activities ADD COLUMN hasTime INTEGER NOT NULL DEFAULT 1")
+            db.execSQL("CREATE TABLE IF NOT EXISTS report_booking_options (reportId TEXT NOT NULL, reservationId TEXT NOT NULL, hideDetails INTEGER NOT NULL, excluded INTEGER NOT NULL, PRIMARY KEY(reportId,reservationId), FOREIGN KEY(reportId) REFERENCES reports(id) ON DELETE RESTRICT, FOREIGN KEY(reservationId) REFERENCES reservations(id) ON DELETE RESTRICT)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_report_booking_options_reservationId ON report_booking_options(reservationId)")
+        }
+    }
+
+    val MIGRATION_7_8=object:Migration(7,8) {
+        override fun migrate(db:SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE properties ADD COLUMN laundryGuestsPerSet INTEGER NOT NULL DEFAULT 2")
+            db.execSQL("ALTER TABLE properties ADD COLUMN habitualTransportCents INTEGER")
+            db.execSQL("CREATE TABLE IF NOT EXISTS property_issues (id TEXT NOT NULL PRIMARY KEY, propertyId TEXT NOT NULL, title TEXT NOT NULL, description TEXT NOT NULL, category TEXT NOT NULL, reportedDay INTEGER NOT NULL, priority TEXT NOT NULL, status TEXT NOT NULL, reservationId TEXT, scheduledAt INTEGER, hasTime INTEGER NOT NULL, assignee TEXT NOT NULL, notes TEXT NOT NULL, expenseId TEXT, resolvedAt INTEGER, updatedAt INTEGER NOT NULL, FOREIGN KEY(propertyId) REFERENCES properties(id) ON DELETE RESTRICT, FOREIGN KEY(reservationId) REFERENCES reservations(id) ON DELETE SET NULL, FOREIGN KEY(expenseId) REFERENCES expenses(id) ON DELETE SET NULL)")
+            listOf("propertyId","reservationId","expenseId").forEach{db.execSQL("CREATE INDEX IF NOT EXISTS index_property_issues_$it ON property_issues($it)")}
+            db.execSQL("CREATE TABLE IF NOT EXISTS issue_history (id TEXT NOT NULL PRIMARY KEY, issueId TEXT NOT NULL, recordedAt INTEGER NOT NULL, snapshotJson TEXT NOT NULL, FOREIGN KEY(issueId) REFERENCES property_issues(id) ON DELETE RESTRICT)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_issue_history_issueId ON issue_history(issueId)")
+            db.execSQL("CREATE TABLE IF NOT EXISTS stay_cost_forecasts (reservationId TEXT NOT NULL, kind TEXT NOT NULL, quantity TEXT NOT NULL, unitCents INTEGER NOT NULL, overrideCents INTEGER, manual INTEGER NOT NULL, PRIMARY KEY(reservationId,kind), FOREIGN KEY(reservationId) REFERENCES reservations(id) ON DELETE RESTRICT)")
+            db.execSQL("ALTER TABLE report_booking_options ADD COLUMN reason TEXT NOT NULL DEFAULT ''")
+            db.execSQL("ALTER TABLE report_booking_options ADD COLUMN auditJson TEXT NOT NULL DEFAULT '[]'")
+            db.execSQL("INSERT OR IGNORE INTO expense_categories VALUES ('transport','Trasporti','OTHER',0)")
+        }
+    }
+
+    val MIGRATION_8_9=object:Migration(8,9) {
+        override fun migrate(db:SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE money_movements ADD COLUMN collector TEXT NOT NULL DEFAULT 'ELLEDUE'")
+            db.execSQL("ALTER TABLE expenses ADD COLUMN recognition TEXT NOT NULL DEFAULT 'ACTUAL'")
+            db.execSQL("ALTER TABLE expenses ADD COLUMN originKey TEXT")
+            db.execSQL("ALTER TABLE expenses ADD COLUMN approvalBatchId TEXT")
+            db.execSQL("ALTER TABLE expenses ADD COLUMN effectiveDateConfirmed INTEGER NOT NULL DEFAULT 1")
+            db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_expenses_originKey ON expenses(originKey)")
+            db.execSQL("CREATE TABLE IF NOT EXISTS maintenance_state (id TEXT NOT NULL PRIMARY KEY, completedAt INTEGER NOT NULL, resultJson TEXT NOT NULL)")
+            db.execSQL("CREATE TABLE IF NOT EXISTS standard_approvals (id TEXT NOT NULL PRIMARY KEY, reportId TEXT NOT NULL, approvedAt INTEGER NOT NULL, actor TEXT NOT NULL, sourcesJson TEXT NOT NULL, previewHash TEXT NOT NULL, FOREIGN KEY(reportId) REFERENCES reports(id) ON DELETE RESTRICT)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_standard_approvals_reportId ON standard_approvals(reportId)")
+        }
+    }
+
+    val MIGRATION_9_10=object:Migration(9,10) {
+        override fun migrate(db:SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE properties ADD COLUMN otaTreatment TEXT NOT NULL DEFAULT 'NONE'")
+            db.execSQL("ALTER TABLE properties ADD COLUMN otaVatBasisPoints INTEGER NOT NULL DEFAULT 2200")
+            db.execSQL("ALTER TABLE properties ADD COLUMN automaticTaxAdvance INTEGER NOT NULL DEFAULT 1")
+            db.execSQL("ALTER TABLE platform_commissions ADD COLUMN otaTreatment TEXT NOT NULL DEFAULT 'INHERIT'")
+            db.execSQL("ALTER TABLE reservations ADD COLUMN appliedOtaTreatment TEXT NOT NULL DEFAULT 'NONE'")
+            db.execSQL("ALTER TABLE reservations ADD COLUMN appliedOtaVatBasisPoints INTEGER NOT NULL DEFAULT 2200")
+            db.execSQL("ALTER TABLE reservations ADD COLUMN automaticTaxAdvance INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("ALTER TABLE reservations ADD COLUMN taxAdvanceOverrideCents INTEGER")
+            db.execSQL("ALTER TABLE reservations ADD COLUMN otaTreatmentManual INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("ALTER TABLE reservations ADD COLUMN taxAdvanceManual INTEGER NOT NULL DEFAULT 0")
+        }
+    }
+
 }

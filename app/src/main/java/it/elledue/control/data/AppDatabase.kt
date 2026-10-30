@@ -16,6 +16,8 @@ data class AppSettings(
     @androidx.room.ColumnInfo(defaultValue = "''") val operatorFirstName: String = "",
     @androidx.room.ColumnInfo(defaultValue = "''") val operatorLastName: String = "",
     val operatorPhotoBase64: String? = null,
+    @androidx.room.ColumnInfo(defaultValue = "0") val homeCover: Int = 0,
+    @androidx.room.ColumnInfo(defaultValue = "0") val messageCategoriesInitialized:Boolean = false,
 )
 
 @Dao
@@ -31,14 +33,17 @@ interface SettingsDao {
 }
 
 @Database(
-    entities = [AppSettings::class, OwnerEntity::class, PropertyEntity::class,
+    entities = [MaintenanceState::class, StandardApproval::class, PropertyIssue::class, IssueHistory::class, StayCostForecast::class, ReportBookingOption::class, GuestMessageEntity::class, MessageCategoryEntity::class, AppSettings::class, OwnerEntity::class, PropertyEntity::class,
         PlatformCommissionEntity::class, MessageTemplateEntity::class, ReservationEntity::class,
         ExpenseEntity::class, ActivityEntity::class, ReportEntity::class,
         ExpenseCategoryEntity::class, ExpenseRevisionEntity::class, TaxAssessmentEntity::class,
         TaxAssessmentRevisionEntity::class, MoneyMovementEntity::class, BookingFinancialChangeEntity::class, ReportAllocationEntity::class],
-    version = 5, exportSchema = true,
+    version = 10, exportSchema = true,
 )
 abstract class AppDatabase : RoomDatabase() {
+    abstract fun issueDao():IssueDao
+    abstract fun stayCostDao():StayCostDao
+    abstract fun messageDao(): MessageDao
     abstract fun activityDao(): ActivityDao
     abstract fun settingsDao(): SettingsDao
     abstract fun propertyDao(): PropertyDao

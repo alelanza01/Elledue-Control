@@ -1,0 +1,12 @@
+{
+  "branch": "artifacts/v0.4.9-test",
+  "commit": "ff13dcbb4bb8f1a27f2769dc904be6bb3d7bf349",
+  "path": "deliverables/test-0.4.9/Elledue-Control-0.4.9-debug.apk",
+  "sha256": "bef74c1dc39d926c571a2ad9258734e7ea93db82b54ce562fb2774995c50aa7f",
+  "bytes": 33053167,
+  "downloadUrl": "https://raw.githubusercontent.com/alelanza01/Elledue-Control/ff13dcbb4bb8f1a27f2769dc904be6bb3d7bf349/deliverables/test-0.4.9/Elledue-Control-0.4.9-debug.apk",
+  "downloadedSha256": "bef74c1dc39d926c571a2ad9258734e7ea93db82b54ce562fb2774995c50aa7f",
+  "downloadedBytes": 33053167,
+  "publicDownloadVerified": true,
+  "verifiedAt": "2026-10-20T21:33:57.674707+02:00"
+}

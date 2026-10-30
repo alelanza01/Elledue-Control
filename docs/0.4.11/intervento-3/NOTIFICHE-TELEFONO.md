@@ -1,0 +1,14 @@
+# Prova reale sul telefono — da eseguire dopo l'aggiornamento
+
+La suite automatica non sostituisce questa prova. Conservare un backup prima dell'installazione. Annotare modello telefono, versione Android, ora della prova, impostazioni e risultato.
+
+1. Aprire Impostazioni → Notifiche Android. Attivare i promemoria: lo switch ora applica subito la scelta. Per gli altri orari usare Salva promemoria.
+2. Verificare «Permesso Android: concesso», notifiche app consentite e canale Promemoria operativi attivo. I pulsanti aprono le impostazioni pertinenti. Su Android13+ concedere il permesso; controllare visibilità a schermo bloccato e Non disturbare del telefono.
+3. Allarmi precisi sono facoltativi: senza autorizzazione si usa la modalità non esatta e Android può ritardare. Per una prova temporale più rappresentativa, abilitare gli allarmi precisi se disponibile. Verificare batteria/background e autostart secondo il produttore. Non viene richiesto Internet.
+4. Premere «Notifica di prova immediata». Cercarla davvero nel pannello notifiche. «Affidata ad Android» significa che la chiamata è stata accettata, non che l'utente l'abbia vista. Se manca, controllare canale, permesso, Non disturbare, visibilità e restrizioni del telefono.
+5. Premere «Prova programmata tra2minuti». Verificare conferma con orario e incremento dei promemoria futuri. Uscire normalmente dall'app, bloccare lo schermo e attendere l'orario. **Non usare Arresto forzato**: Android sospende i promemoria fino alla successiva apertura. In modalità non esatta/Doze possono esserci ritardi. La prova esplicita ignora la fascia di silenzio; i promemoria ordinari la rispettano.
+6. Riaprire l'app: confrontare ultima ricezione dell'allarme, ultima notifica affidata e notifica visibile. Se assente, salvare i messaggi diagnostici e gli orari. Usare «Verifica e riprogramma»; non interpretare il solo contatore come prova di consegna.
+7. Ripetere con una vera attività futura; modificarne l'ora e poi cancellarla: nessuna notifica vecchia o doppia deve arrivare. Verificare anche un promemoria di prenotazione eleggibile; l'adempimento post-arrivo richiede l'arrivo effettivo. Immobili archiviati, prenotazioni annullate, attività completate e tassa ordinaria convenzionale non devono generare falsi avvisi.
+8. Programmare una prova, riavviare il telefono, sbloccarlo e verificare riprogrammazione e ricezione. Verificare la fascia di silenzio con un promemoria ordinario. Per cambi ora/fuso, confrontare l'orario pianificato Europe/Rome con quello del telefono.
+
+Esito aperto finché la prova immediata e quella programmata non sono osservate sul telefono. Se falliscono, registrare lo stato di permessi/canale/allarmi/batteria, l'ora target e i timestamp di ricezione/affidamento: servono a distinguere scheduling, receiver e visualizzazione senza deduzioni dai soli test JVM.
