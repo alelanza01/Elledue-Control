@@ -1,0 +1,21 @@
+{
+  "base": "df8a67ecef4e06dc3def9b5548dba66ab87fbf0d",
+  "unchangedPaths": [
+    "app/src/main/java/it/elledue/control/data",
+    "app/src/main/java/it/elledue/control/reports",
+    "app/schemas",
+    "app/src/main/java/it/elledue/control/domain/BookingFinance.kt",
+    "app/src/main/java/it/elledue/control/domain/BookingDraft.kt",
+    "app/src/main/java/it/elledue/control/domain/TaxAdvance.kt",
+    "app/src/main/java/it/elledue/control/domain/OperationalAccounting.kt",
+    "app/src/main/java/it/elledue/control/domain/BusinessAnalytics.kt"
+  ],
+  "changedFilesWithinProtectedPaths": [],
+  "databaseSchema": 10,
+  "finalTests": 240,
+  "noReleasePublished": true,
+  "scope": "intervento2/3",
+  "previousCaseCount": 224,
+  "preservedPreviousCases": 224,
+  "newCases": 16
+}

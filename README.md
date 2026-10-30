@@ -1,5 +1,13 @@
 # Elledue Control
 
+## 0.4.11 — intervento 2/3: calendario e navigazione operativa
+
+Sul medesimo branch `feature/0.4.11-user-feedback`, dalla consegna `df8a67e`: calendario con barre per immobile e cambi ospiti espliciti, Prenotazioni con ricerca storica e filtri indipendenti, Home con portafoglio e Da fare, Economia con Spese/Rendiconti/Pagamenti e registro Manutenzioni semplificato. Motore economico, PDF e schema Room10 dell'intervento1 conservati.
+
+[Brief](docs/0.4.11/intervento-2/BRIEF.md) · [Scelte UX](docs/0.4.11/intervento-2/UX.md) · [Consegna, test e screenshot](docs/0.4.11/intervento-2/DELIVERY.md)
+
+L'intervento3/3 seguirà sullo stesso branch per bug, notifiche e consegna dell'APK. Nessun merge o pubblicazione della versione definitiva.
+
 ## 0.4.11 — intervento 1/3: motore economico e rendiconti
 
 Branch `feature/0.4.11-user-feedback` dalla 0.4.10, senza merge. Trattamento OTA/IVA configurabile e applicato una sola volta; anticipo convenzionale automatico della tassa separato dagli incassi reali; PDF proprietario semplificati con saldo uniforme. Schema Room10, migrazione additiva e dati storici confermati preservati.

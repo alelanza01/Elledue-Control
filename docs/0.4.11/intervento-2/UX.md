@@ -31,3 +31,5 @@ Panoramica → Il tuo portafoglio → Azioni rapide → Da fare → Oggi e pross
 Una tassa con anticipo automatico e conteggio valido non produce un sollecito ordinario di riscossione. Restano avvisi per conteggi da rivedere/ignoti e per residui da gestire senza automatismo, già iniziati. Gli avvisi aprono direttamente la relativa scheda.
 
 Registro rinominato Manutenzioni, accessibile da Home, Attività, immobili e azioni rapide. Modulo principale: immobile, titolo/descrizione, stato, soggiorno facoltativo, spesa già registrata facoltativa. Programmazione, priorità, incarico, note e storico sono espandibili. Collegare una spesa non la duplica; aprire una segnalazione non genera una spesa. Il ritorno dopo il salvataggio è eseguito sul thread principale.
+
+Il salvataggio delle modifiche a una manutenzione usa lo scope della destinazione, esterno al componente ricreato quando cambia il record. Il test esegue due cambi di stato consecutivi, controlla la cancellazione della bozza e verifica che resti una sola spesa collegata.

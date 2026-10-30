@@ -37,12 +37,12 @@ import kotlinx.coroutines.launch
  }
 }
 
-@Composable fun IssueEditor(initial:PropertyIssue,properties:List<PropertyWithOwner>,bookings:List<ReservationEntity>,expenses:List<ExpenseEntity>,repository:IssueRepository,back:()->Unit,saved:(String)->Unit) {
+@Composable fun IssueEditor(initial:PropertyIssue,properties:List<PropertyWithOwner>,bookings:List<ReservationEntity>,expenses:List<ExpenseEntity>,repository:IssueRepository,back:()->Unit,actionScope:kotlinx.coroutines.CoroutineScope?=null,saved:(String)->Unit) {
  val key=if(initial.updatedAt==0L)"issue/new" else "issue/${initial.id}"
  var draft by rememberPersistentDraft(key,initial)
  var scheduledDay by rememberPersistentDraft("$key#day",initial.scheduledAt?.let{BookingDates.display(Instant.ofEpochMilli(it).atZone(BookingDates.zone).toLocalDate().toEpochDay())} ?: "")
  var scheduledTime by rememberPersistentDraft("$key#time",initial.scheduledAt?.takeIf{initial.hasTime}?.let{Instant.ofEpochMilli(it).atZone(BookingDates.zone).toLocalTime().toString()} ?: "")
- val scope=rememberCoroutineScope();val context=androidx.compose.ui.platform.LocalContext.current
+ val localScope=rememberCoroutineScope();val scope=actionScope ?: localScope;val context=androidx.compose.ui.platform.LocalContext.current
  var error by remember{mutableStateOf<String?>(null)};var busy by remember{mutableStateOf(false)}
  var details by rememberSaveable{mutableStateOf(false)}
  var history by remember(initial.id,initial.updatedAt){mutableStateOf<List<IssueHistory>>(emptyList())}

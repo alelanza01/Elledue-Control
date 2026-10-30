@@ -168,8 +168,9 @@ fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewMo
             }
             composable("issue/new") { _ -> IssueEditor(remember{it.elledue.control.data.PropertyIssue()},records,bookings,accountingData?.expenses.orEmpty(),app.issueRepository,{navigation.popBackStack()}){id->navigation.popBackStack();jump("issue/$id")} }
             composable("issue/{id}") {d->
+                val actionScope=rememberCoroutineScope()
                 val item=issues.firstOrNull{it.id==d.arguments?.getString("id")}
-                if(item!=null)key(item.id,item.updatedAt){IssueEditor(item,records,bookings,accountingData?.expenses.orEmpty(),app.issueRepository,{navigation.popBackStack()}){navigation.popBackStack();jump("issue/$it")}} else EmptyState("Segnalazione non disponibile","Verifica il registro problemi.")
+                if(item!=null)key(item.id,item.updatedAt){IssueEditor(item,records,bookings,accountingData?.expenses.orEmpty(),app.issueRepository,{navigation.popBackStack()},actionScope=actionScope){navigation.popBackStack();jump("issue/$it")}} else EmptyState("Segnalazione non disponibile","Verifica il registro problemi.")
             }
             composable("reservations") {
                 BookingDataSurface(bookingState,state,{bookingsModel.retry();propertiesModel.retry()}) {

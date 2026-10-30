@@ -98,7 +98,15 @@ class FeedbackUxUiTest {
   compose.onNodeWithTag("booking-property-selector").performClick();compose.onNodeWithTag("select-property-p1").performClick();compose.onNodeWithTag("issue-title").performTextReplacement("Serratura da controllare")
   compose.onNodeWithTag("Spesa già registrata").performScrollTo().performClick();compose.onNodeWithText("Scontrino manutenzione",substring=true).performClick()
   compose.onNodeWithTag("save-issue").performScrollTo().performClick();compose.waitUntil(15000){runBlocking{app.issueRepository.issues.first().any{it.title=="Serratura da controllare"}}}
-  assertEquals(1,runBlocking{app.accountingRepository.expenses.first().size});assertEquals("receipt",runBlocking{app.issueRepository.issues.first().single().expenseId});compose.waitUntil(15000){compose.onAllNodes(hasText("Scheda manutenzione")).fetchSemanticsNodes().isNotEmpty()};shot("maintenance-record")
+  assertEquals(1,runBlocking{app.accountingRepository.expenses.first().size});assertEquals("receipt",runBlocking{app.issueRepository.issues.first().single().expenseId});compose.waitUntil(15000){compose.onAllNodes(hasText("Scheda manutenzione")).fetchSemanticsNodes().isNotEmpty()}
+  val id=runBlocking{app.issueRepository.issues.first().single().id}
+  for((label,state) in listOf("In lavorazione" to "WORKING","Risolto" to "RESOLVED")) {
+   compose.onNodeWithTag("Stato").performScrollTo().performClick();compose.onNodeWithText(label).performClick()
+   compose.onNodeWithTag("save-issue").performScrollTo().performClick()
+   compose.waitUntil(15000){runBlocking{app.issueRepository.issues.first().single().status==state} && !app.drafts.has("issue/$id")}
+   compose.waitForIdle();compose.onNodeWithTag("Stato").assertTextContains(label)
+  }
+  assertNotNull(runBlocking{app.issueRepository.issues.first().single().resolvedAt});assertEquals(1,runBlocking{app.accountingRepository.expenses.first().size});shot("maintenance-record")
  }
  @Test fun homeHierarchyAndTaxAlertsDistinguishAnAutomaticAdvanceFromARealException(){
   val day=today.toEpochDay();stay("auto","p1",day-1,day+3)
