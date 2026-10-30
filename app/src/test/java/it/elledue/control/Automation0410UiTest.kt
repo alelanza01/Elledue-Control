@@ -46,10 +46,10 @@ class Automation0410UiTest {
  }
  @Test @Config(qualifiers="w320dp-h740dp-hdpi",fontScale=1.5f) fun compactMonthIsBoundedWithLargeTextAndDayOpens(){
   route("calendar");waitTag("compact-month-grid");compose.onNodeWithTag("bookings-scroll").performScrollToNode(hasTestTag("compact-month-grid"))
-  val bounds=compose.onNodeWithTag("compact-month-grid").getUnclippedBoundsInRoot();assertTrue(bounds.bottom-bounds.top<420.dp)
+  val bounds=compose.onNodeWithTag("compact-month-grid").getUnclippedBoundsInRoot();assertTrue("Griglia con barre e caratteri150%: ${bounds.bottom-bounds.top}",bounds.bottom-bounds.top<520.dp)
   capture("compact-month-320-large-type")
-  compose.onNodeWithTag("calendar-day-$day").performClick();waitTag("operational-day");capture("day-320-large-type")
-  compose.onNodeWithTag("day-stay:b").performScrollTo().performClick();waitTag("booking-status")
+  compose.onNodeWithTag("calendar-day-$day").performScrollTo().performClick();waitTag("operational-day");capture("day-320-large-type")
+  compose.onNodeWithTag("operational-day").performScrollToNode(hasTestTag("day-stay:b"));compose.onNodeWithTag("day-stay:b").performScrollTo().performClick();waitTag("booking-status")
  }
  @Test fun ordinaryExpenseUsesShortFormPrefilledStayAndExpandableDetails(){
   route("expense/new/OTHER?booking=b");waitTag("expense-editor")
@@ -78,8 +78,8 @@ class Automation0410UiTest {
  }
  @Test fun centralPlusKeepsAllCoreActionsAvailableFromEconomy(){
   route("economy");waitTag("quick-action");compose.onNodeWithTag("quick-action").performClick()
-  listOf("Nuova prenotazione","Nuova spesa","Nuova attività","Nuovo intervento / problema").forEach{compose.onNodeWithText(it).assertExists()}
-  compose.onNodeWithText("Nuovo intervento / problema").performScrollTo().performClick();waitTag("issue-editor")
+  listOf("Nuova prenotazione","Nuova spesa","Nuova attività","Nuova manutenzione").forEach{compose.onNodeWithText(it).assertExists()}
+  compose.onNodeWithText("Nuova manutenzione").performScrollTo().performClick();waitTag("issue-editor")
  }
  @Test fun draftIncludesAutomaticCostsAndOneApprovalCreatesTheDefinitiveRows(){
   val month=YearMonth.from(LocalDate.ofEpochDay(day-3)).toString()

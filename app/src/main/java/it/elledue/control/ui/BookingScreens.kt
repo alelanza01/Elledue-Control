@@ -49,7 +49,7 @@ fun BookingRow(item: ReservationEntity, propertyName: String, onOpen: () -> Unit
             Text(propertyName,style=MaterialTheme.typography.titleMedium)
             Text("${item.guestFirstName} ${item.guestLastName}",style=MaterialTheme.typography.bodyMedium)
             Text("${BookingDates.display(item.checkInEpochDay)} → ${BookingDates.display(item.checkOutEpochDay)} · ${item.guestCount} ospiti",style=MaterialTheme.typography.bodySmall,color=ConceptMuted)
-            if(item.status=="CANCELLED") Text("Annullata",color=DepartureColor,style=MaterialTheme.typography.labelSmall)
+            Text(if(item.status=="CANCELLED")"Annullata" else if(item.status=="COMPLETED")"Conclusa" else StayStatus.label(item),color=if(item.status=="CANCELLED")DepartureColor else ElledueGold,style=MaterialTheme.typography.labelSmall)
         }
         androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.AutoMirrored.Outlined.KeyboardArrowRight,null,tint=ElledueGold,modifier=Modifier.size(20.dp))
     }
@@ -57,12 +57,13 @@ fun BookingRow(item: ReservationEntity, propertyName: String, onOpen: () -> Unit
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ReservationsScreen(records: List<ReservationEntity>, properties: List<PropertyWithOwner>, onNew: () -> Unit, onOpen: (String) -> Unit, activities:List<ActivityEntity> = emptyList(), onActivity:(String)->Unit = {}, onCopy:(String,String,Long)->Unit = {_,_,_->},onDay:(Long)->Unit = {},issues:List<PropertyIssue> = emptyList()) {
+fun ReservationsScreen(records: List<ReservationEntity>, properties: List<PropertyWithOwner>, onNew: () -> Unit, onOpen: (String) -> Unit, activities:List<ActivityEntity> = emptyList(), onActivity:(String)->Unit = {}, onCopy:(String,String,Long)->Unit = {_,_,_->},onDay:(Long)->Unit = {},issues:List<PropertyIssue> = emptyList(),onReservations:()->Unit = {},onFilteredDay:((Long,String)->Unit)?=null) {
     var monthText by rememberSaveable { mutableStateOf(YearMonth.from(BookingDates.today()).toString()) }
     var selectedDay by rememberSaveable { mutableLongStateOf(BookingDates.today().toEpochDay()) }
     var propertyFilter by rememberSaveable { mutableStateOf("") }
     var listMode by rememberSaveable { mutableStateOf(false) }
     var showCancelled by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(properties.map{it.property.id}){if(propertyFilter.isNotBlank() && properties.none{it.property.id==propertyFilter})propertyFilter=""}
     val month = YearMonth.parse(monthText)
     val start = month.atDay(1).toEpochDay()
     val end = month.plusMonths(1).atDay(1).toEpochDay()
@@ -73,7 +74,7 @@ fun ReservationsScreen(records: List<ReservationEntity>, properties: List<Proper
     Scaffold(topBar = { TopAppBar(title = { ConceptHeading("Calendario", "Prenotazioni e operatività") }, actions = { IconButton(onClick = onNew, enabled = properties.any { !it.property.archived }, modifier = Modifier.testTag("new-booking")) { Icon(Icons.Outlined.Add, "Nuova prenotazione") } }) }) { padding ->
         LazyColumn(Modifier.fillMaxSize().padding(padding).testTag("bookings-scroll"), contentPadding = PaddingValues(16.dp, 6.dp, 16.dp, 24.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
             item { ConceptPropertySelector(properties, propertyFilter, allOption = true) { propertyFilter = it } }
-            item { OutlinedButton(onClick={onCopy(propertyFilter,monthText,selectedDay)},modifier=Modifier.testTag("open-copy-calendar")){Text("Copia calendario") } }
+            item { Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){OutlinedButton(onClick=onReservations,modifier=Modifier.weight(1f).testTag("calendar-open-reservations")){Text("Prenotazioni")};OutlinedButton(onClick={onCopy(propertyFilter,monthText,selectedDay)},modifier=Modifier.weight(1f).testTag("open-copy-calendar")){Text("Copia calendario")}} }
             item { Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 ConceptPill(!listMode, { listMode = false }, label = { Text("Mese") }, modifier = Modifier.testTag("booking-calendar-mode"))
                 ConceptPill(listMode, { listMode = true }, label = { Text("Agenda") }, modifier = Modifier.testTag("booking-list-mode"))
@@ -86,18 +87,7 @@ fun ReservationsScreen(records: List<ReservationEntity>, properties: List<Proper
             } }
             item { TextButton(onClick = { monthText = YearMonth.from(BookingDates.today()).toString(); selectedDay = today }, modifier = Modifier.testTag("calendar-today").heightIn(min=32.dp)) { Text("Oggi · ${BookingDates.display(today)}",style=MaterialTheme.typography.labelSmall) } }
             if (!listMode) {
-                item { MonthGrid(month, selectedDay, today, inMonth.filter { it.status != BookingStatus.CANCELLED.name }, propertyFilter.isNotBlank(), (activities+issues.mapNotNull{i->i.scheduledAt?.let{ActivityEntity("issue:${i.id}",i.propertyId,i.title,it,completed=!IssueRepository.open(i),kind="MAINTENANCE",hasTime=i.hasTime)}}).filter {propertyFilter.isBlank() || it.propertyId==propertyFilter},properties.associate{it.property.id to it.property.name}) { selectedDay = it;onDay(it) } }
-                item {
-                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                        properties.filter { property -> inMonth.any { it.propertyId == property.property.id } }.forEach { property ->
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Box(Modifier.size(8.dp).background(propertyColor(property.property.id), CircleShape))
-                                Text(property.property.name, style = MaterialTheme.typography.labelMedium)
-                            }
-                        }
-                    }
-                }
-                item { Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(8.dp)) { listOf("Check-in" to ArrivalColor,"Check-out" to DepartureColor,"Soggiorno" to StayColor,"Pulizie" to ElledueGold,"Manutenzione" to TaskColor).forEach { (label,color) -> Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(4.dp)) { Box(Modifier.size(6.dp).background(color,CircleShape));Text(label,style=MaterialTheme.typography.labelSmall,color=ConceptMuted) } } } }
+                item { StayMonthGrid(month, selectedDay, today, inMonth.filter { it.status != BookingStatus.CANCELLED.name }, propertyFilter.isNotBlank(), (activities+issues.mapNotNull{i->i.scheduledAt?.let{ActivityEntity("issue:${i.id}",i.propertyId,i.title,it,completed=!IssueRepository.open(i),kind="MAINTENANCE",hasTime=i.hasTime)}}).filter {propertyFilter.isBlank() || it.propertyId==propertyFilter},properties.associate{it.property.id to it.property.name},onOpen) { selectedDay = it;if(onFilteredDay!=null)onFilteredDay(it,propertyFilter) else onDay(it) } }
                 item { Text("${BookingDates.display(selectedDay)} · Giornata operativa", style = MaterialTheme.typography.titleMedium) }
                 val daily = inMonth.filter { selectedDay >= it.checkInEpochDay && selectedDay <= it.checkOutEpochDay }
                 if (daily.isEmpty()) item { Text("Nessun soggiorno, arrivo o partenza per il giorno selezionato.", style = MaterialTheme.typography.bodyMedium) }
@@ -117,32 +107,6 @@ fun ReservationsScreen(records: List<ReservationEntity>, properties: List<Proper
             if (properties.isEmpty()) item { Text("Crea prima un immobile nella sezione Immobili.", style = MaterialTheme.typography.bodyMedium) }
         }
     }
-}
-
-@Composable
-private fun MonthGrid(month:YearMonth,selected:Long,today:Long,records:List<ReservationEntity>,singleProperty:Boolean,activities:List<ActivityEntity>,labels:Map<String,String>,select:(Long)->Unit) {
- val offset=month.atDay(1).dayOfWeek.value-1
- val weeks=(offset+month.lengthOfMonth()+6)/7
- OutlinedCard(Modifier.fillMaxWidth().testTag("compact-month-grid")) {Column(Modifier.padding(8.dp),verticalArrangement=Arrangement.spacedBy(2.dp)){
-  Row{listOf("L","M","M","G","V","S","D").forEach{Text(it,Modifier.weight(1f),style=MaterialTheme.typography.labelMedium,textAlign=androidx.compose.ui.text.style.TextAlign.Center)}}
-  repeat(weeks){w->Row{repeat(7){d->
-   val number=w*7+d-offset+1
-   if(number !in 1..month.lengthOfMonth())Spacer(Modifier.weight(1f).height(56.dp)) else {
-    val day=month.atDay(number).toEpochDay();val bookings=records.filter{day>=it.checkInEpochDay && day<=it.checkOutEpochDay}
-    val ins=bookings.count{it.checkInEpochDay==day};val outs=bookings.count{it.checkOutEpochDay==day};val stays=bookings.count{day<it.checkOutEpochDay}
-    val tasks=activities.count{it.dueEpochMillis?.let{at->Instant.ofEpochMilli(at).atZone(ZoneId.of(it.zoneId)).toLocalDate().toEpochDay()==day}==true}
-    Column(Modifier.weight(1f).height(56.dp).clip(MaterialTheme.shapes.small).background(if(day==selected)ElledueGold.copy(.2f) else Color.Transparent).clickable{select(day)}.testTag("calendar-day-$day").semantics{contentDescription="${BookingDates.display(day)}, $ins arrivi, $outs partenze, $stays soggiorni, $tasks attività, apri giornata operativa"},horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.Center){
-     Text(number.toString(),style=MaterialTheme.typography.labelLarge,color=if(day==selected || day==today)ElledueGold else MaterialTheme.colorScheme.onSurface,fontWeight=if(day==today)FontWeight.Bold else FontWeight.Normal)
-     Row(horizontalArrangement=Arrangement.spacedBy(2.dp)) {
-      if(ins>0)Text("↘",color=ArrivalColor,style=MaterialTheme.typography.labelSmall)
-      if(outs>0)Text("↗",color=DepartureColor,style=MaterialTheme.typography.labelSmall)
-      if(tasks>0)Text("•",color=TaskColor,style=MaterialTheme.typography.labelSmall)
-     }
-     Row(horizontalArrangement=Arrangement.spacedBy(2.dp)){bookings.map{it.propertyId}.distinct().take(4).forEach{id->Box(Modifier.size(4.dp).background(propertyColor(id),CircleShape))}}
-    }
-   }
-  }}}
- }}
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

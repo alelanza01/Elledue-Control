@@ -40,7 +40,7 @@ class StabilityUiTest {
         compose.onNodeWithTag("booking-correction-reason").performScrollTo().performTextReplacement("OTA effettiva verificata")
         compose.activityRule.scenario.close()
         ActivityScenario.launch<MainActivity>(Intent(app,MainActivity::class.java)).use { fresh ->
-            waitTag("home-scroll");compose.onNodeWithTag("open-drafts").performClick();waitTag("resume-draft-booking/b/edit")
+            waitTag("home-scroll");compose.onNodeWithTag("home-scroll").performScrollToNode(hasTestTag("open-drafts"));compose.onNodeWithTag("open-drafts").performClick();waitTag("resume-draft-booking/b/edit")
             compose.onNodeWithTag("resume-draft-booking/b/edit").performClick();waitTag("booking-first-name")
             compose.onNodeWithTag("booking-first-name").assertTextContains("Nuovo")
             compose.onNodeWithTag("booking-last-name").assertTextContains("Persistente")

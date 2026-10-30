@@ -134,7 +134,6 @@ fun CommandHome(properties: List<PropertyWithOwner>, bookings: List<ReservationE
     val business=BusinessAnalytics.calculate(month.toString(),portfolio,bookings,accounting?.expenses.orEmpty(),accounting?.taxes.orEmpty(),accounting?.movements.orEmpty())
     val fees = OperationalMoney.total(active.filter { it.competenceMonth == month.toString() && it.appliedBusinessType!="OWNED" }.map { it.managementCents })
     androidx.compose.foundation.lazy.LazyColumn(Modifier.fillMaxSize().testTag("home-scroll"), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        item { TextButton(onClick={navigate("drafts")},modifier=Modifier.testTag("open-drafts")){Text("Riprendi bozze")} }
         item {
             Box(Modifier.fillMaxWidth().heightIn(min = 206.dp).clip(MaterialTheme.shapes.large).border(1.dp,ElledueGold.copy(.22f),MaterialTheme.shapes.large)) {
                 val custom=portfolio.firstOrNull { it.property.coverImageBase64 != null }?.property?.coverImageBase64
@@ -167,6 +166,10 @@ fun CommandHome(properties: List<PropertyWithOwner>, bookings: List<ReservationE
             }
         }
         if(businessType=="ALL")item { OwnBusinessCard(business) }
+        item { Text("Il tuo portafoglio",style=MaterialTheme.typography.titleLarge) }
+        portfolio.take(2).forEach { p -> item(key="property-${p.property.id}") { PortfolioTile(p) { navigate("property/${p.property.id}") } } }
+        if(portfolio.size>2)item{TextButton(onClick={navigate("properties")},modifier=Modifier.testTag("home-all-properties")){Text("Tutti gli immobili (${portfolio.size})")}}
+        if(properties.isEmpty()) item { EmptyState("Pronto per il primo immobile","Aggiungi la copertina e costruisci il tuo portfolio.","Aggiungi un immobile",{navigate("property/new")}) }
         item {
             Text("Azioni rapide",style=MaterialTheme.typography.titleMedium,modifier=Modifier.padding(bottom=8.dp))
             Row(horizontalArrangement=Arrangement.spacedBy(7.dp)) {
@@ -176,6 +179,18 @@ fun CommandHome(properties: List<PropertyWithOwner>, bookings: List<ReservationE
                 ActionTile("Rendiconti",Icons.Outlined.Description,Modifier.weight(1f)) { navigate("reports") }
             }
         }
+        item {Text("Da fare",style=MaterialTheme.typography.titleLarge,modifier=Modifier.testTag("home-attention-heading"))}
+        item {Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){TextButton(onClick={navigate("activities")}){Text("Tutte le attività")};TextButton(onClick={navigate("issues")},modifier=Modifier.testTag("home-maintenance")){Text("Manutenzioni")}}}
+        val pending=activities.filter{!it.completed}.sortedBy{it.dueEpochMillis ?: Long.MAX_VALUE}.take(3)
+        val openIssues=issues.filter{IssueRepository.open(it)}.sortedBy{if(it.priority=="URGENT")0 else 1}.take(3)
+        val drafts=reports.filter{it.status=="DRAFT"}.take(3)
+        val taxExceptions=active.filter{b->val tax=accounting?.taxes?.firstOrNull{it.reservationId==b.id};tax?.needsReview==true || (tax==null && b.taxableGuests==null) || (!b.automaticTaxAdvance && tax!=null && Ledger.residual(tax.expectedCents,b.collectedTaxCents)>0 && b.checkInEpochDay<=today)}.take(3)
+        if(pending.isEmpty() && openIssues.isEmpty() && drafts.isEmpty() && taxExceptions.isEmpty())item{Text("Nessuna attività in evidenza.",style=MaterialTheme.typography.bodySmall,color=ConceptMuted)}
+        pending.forEach{a->item(key="pending-${a.id}"){TextButton(onClick={navigate("activity/${a.id}")}){Text("Da completare · ${a.title}")}}}
+        openIssues.forEach{i->item(key="issue-${i.id}"){TextButton(onClick={navigate("issue/${i.id}")}){Text("Manutenzione aperta · ${i.title}")}}}
+        taxExceptions.forEach{b->item(key="tax-${b.id}"){TextButton(onClick={navigate("tax/${b.id}")},modifier=Modifier.testTag("home-tax-exception-${b.id}")){Text("Eccezione tassa da verificare · ${b.guestLastName}")}}}
+        drafts.forEach{report->item(key="report-${report.id}"){TextButton(onClick={navigate("report/${report.id}")}){Text("Rendiconto da verificare · ${report.yearMonth}")}}}
+        item {TextButton(onClick={navigate("drafts")},modifier=Modifier.testTag("open-drafts")){Text("Riprendi bozze dei moduli")}}
         item { Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.SpaceBetween) { Text("Oggi",style=MaterialTheme.typography.titleLarge);TextButton(onClick={navigate("activities")},modifier=Modifier.testTag("nav-activities")) { Text("Operatività  ›") } } }
         val events = (arrivals+departures).distinctBy { it.id }
         if(events.isEmpty()) item { Text("Nessun arrivo o partenza oggi.",color=ConceptMuted,style=MaterialTheme.typography.bodySmall) }
@@ -183,24 +198,12 @@ fun CommandHome(properties: List<PropertyWithOwner>, bookings: List<ReservationE
             val arriving=b.checkInEpochDay==today
             ConceptTimelineRow(if(arriving) b.expectedArrivalTime else b.expectedDepartureTime,if(arriving) "Check-in" else "Check-out","${properties.firstOrNull { it.property.id==b.propertyId }?.property?.name} · ${b.guestLastName}",if(arriving) Icons.Outlined.Login else Icons.Outlined.Logout,if(arriving) ArrivalColor else DepartureColor) { navigate("booking/${b.id}") }
         } }
-        item { Row(Modifier.fillMaxWidth().clip(MaterialTheme.shapes.medium).background(ConceptCard).padding(12.dp),horizontalArrangement=Arrangement.spacedBy(8.dp)) {
-            Icon(Icons.Outlined.FactCheck,null,tint=ElledueGold,modifier=Modifier.size(20.dp))
-            Column(Modifier.weight(1f)) { Text("${activities.count { !it.completed }} attività · ${reports.count { it.status=="DRAFT" }} bozze da verificare",style=MaterialTheme.typography.labelMedium);Text("Consulta attenzione operativa e contabilità",style=MaterialTheme.typography.bodySmall,color=ConceptMuted) }
-            IconButton(onClick={navigate("accounting")}) { Icon(Icons.Outlined.ChevronRight,"Apri contabilità",tint=ElledueGold) }
-        } }
         val upcoming=active.filter { it.checkInEpochDay>today }.sortedBy { it.checkInEpochDay }.take(3)
         if(upcoming.isNotEmpty()) item { Text("Prossimi soggiorni",style=MaterialTheme.typography.titleLarge) }
         upcoming.forEach { b -> item(key="next-${b.id}") { ConceptTimelineRow(BookingDates.display(b.checkInEpochDay).take(5),"${b.guestFirstName} ${b.guestLastName}",properties.firstOrNull { it.property.id==b.propertyId }?.property?.name ?: "Immobile",Icons.Outlined.Apartment,StayColor) { navigate("booking/${b.id}") } } }
         val leaving=active.filter{it.checkOutEpochDay>today}.sortedBy{it.checkOutEpochDay}.take(3)
         if(leaving.isNotEmpty())item{Text("Prossime partenze",style=MaterialTheme.typography.titleLarge)}
         leaving.forEach{b->item(key="departure-${b.id}"){ConceptTimelineRow(BookingDates.display(b.checkOutEpochDay).take(5),"Check-out · ${b.guestLastName}",properties.firstOrNull{it.property.id==b.propertyId}?.property?.name ?: "Immobile",Icons.Outlined.CalendarMonth,DepartureColor){navigate("booking/${b.id}")}}}
-        activities.filter{!it.completed}.take(3).forEach{a->item(key="pending-${a.id}"){TextButton(onClick={navigate("activity/${a.id}")}){Text("Da completare · ${a.title}")}}}
-        issues.filter{IssueRepository.open(it)}.sortedBy{if(it.priority=="URGENT")0 else 1}.take(3).forEach{i->item(key="issue-${i.id}"){TextButton(onClick={navigate("issue/${i.id}")}){Text("Problema aperto · ${i.title}")}}}
-        active.filter{b->accounting?.taxes?.firstOrNull{it.reservationId==b.id}?.expectedCents?.let{it>b.collectedTaxCents}==true}.take(3).forEach{b->item(key="tax-${b.id}"){TextButton(onClick={navigate("booking/${b.id}")}){Text("Tassa da riscuotere · ${b.guestLastName}")}}}
-        forecasts.filter{it.manual}.map{it.reservationId}.distinct().take(3).forEach{id->item(key="exception-$id"){TextButton(onClick={navigate("booking/$id")}){Text("Costi personalizzati da verificare · ${bookings.firstOrNull{it.id==id}?.guestLastName ?: "Soggiorno"}")}}}
-        reports.filter{it.status=="DRAFT"}.take(3).forEach{report->item(key="report-${report.id}"){TextButton(onClick={navigate("report/${report.id}")}){Text("Rendiconto da verificare · ${report.yearMonth}")}}}
-        item { Text("Il tuo portfolio",style=MaterialTheme.typography.titleLarge) }
-        portfolio.take(2).forEach { p -> item(key="property-${p.property.id}") { PortfolioTile(p) { navigate("property/${p.property.id}") } } }
-        if(properties.isEmpty()) item { EmptyState("Pronto per il primo immobile","Aggiungi la copertina e costruisci il tuo portfolio.","Aggiungi un immobile",{navigate("property/new")}) }
+
     }
 }

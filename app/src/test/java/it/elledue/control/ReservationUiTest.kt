@@ -95,7 +95,7 @@ class ReservationUiTest {
         calendar()
         val target = today.plusDays(2)
         if (YearMonth.from(target) != YearMonth.from(today)) compose.onNodeWithTag("next-month").performClick()
-        compose.onNodeWithTag("calendar-day-${target.toEpochDay()}").assertContentDescriptionContains("1 arrivi, 2 partenze, 1 soggiorni", substring = true).performClick()
+        compose.onNodeWithTag("calendar-day-${target.toEpochDay()}").assertContentDescriptionContains("1 arrivi, 2 partenze, 1 soggiorni", substring = true).performScrollTo().performClick()
         waitTag("operational-day");screenshot("m2-calendar")
         compose.onNodeWithTag("day-out:${b.id}").performScrollTo().performClick();waitText("Riepilogo soggiorno")
         compose.onNodeWithText("Calendario B").assertIsDisplayed()

@@ -30,6 +30,7 @@ fun ActivitiesScreen(repository: ActivityRepository, activities: List<ActivityEn
     val selectedBookings=bookings.filter { it.status!="CANCELLED" && (bookingId==null || it.id==bookingId) }
     LazyColumn(Modifier.fillMaxSize().imePadding().testTag("activities-scroll"), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         item { ConceptHeading("Attività","La tua operatività") { IconButton(onClick={open("activity/new")}) { Icon(Icons.Outlined.Add,"Nuova attività",tint=ElledueGold) } };TextButton(onClick=back) { Text("Indietro") } }
+        item {TextButton(onClick={open("issues")},modifier=Modifier.testTag("activities-maintenance")){Text("Manutenzioni degli immobili")}}
         item { Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(7.dp)) { listOf("Tutte","Oggi","Domani","Scadenze").forEachIndexed { i,label -> ConceptPill(filter==i,{filter=i},label={Text(label)}) } } }
         if (booking != null) item { Text("${booking.guestFirstName} ${booking.guestLastName} · prenotazione collegata",style=MaterialTheme.typography.bodySmall,color=ConceptMuted) }
         if(edit) {

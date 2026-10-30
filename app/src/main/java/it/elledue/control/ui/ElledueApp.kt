@@ -79,7 +79,7 @@ fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewMo
     val normalIds=normalRecords.map{it.property.id}.toSet()
     val normalAccounting=it.elledue.control.data.OperationalRepository.accounting(accountingData,normalIds)
     val normalActivities=activities.filter{it.propertyId==null || it.propertyId in normalIds}
-    val showNavigation = route == null || sections.any { it.route == route } || route?.startsWith("activities") == true || route?.startsWith("report") == true
+    val showNavigation = route == "reservations" || route == null || sections.any { it.route == route } || route?.startsWith("activities") == true || route?.startsWith("report") == true
     val goProperties = { navigation.navigate("properties") { launchSingleTop = true } }
     val largeFonts = androidx.compose.ui.platform.LocalDensity.current.fontScale > 1.2f
     var quick by remember { mutableStateOf(false) }
@@ -100,7 +100,8 @@ fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewMo
             }
         }
 
-        if(route in listOf("dashboard","calendar","economy","analysis"))BusinessScopeSelector(businessType){businessType=it}
+        if(route in listOf("dashboard","calendar","reservations","economy","analysis"))BusinessScopeSelector(businessType){businessType=it}
+        if(route=="dashboard")TextButton(onClick={jump("reservations")},modifier=Modifier.fillMaxWidth().testTag("open-reservations")){Text("Prenotazioni · elenco e ricerca")}
         Box(Modifier.weight(1f).fillMaxWidth().clipToBounds()) {
         NavHost(navigation, startDestination = "dashboard", modifier = Modifier.fillMaxSize()) {
             composable("dashboard") {
@@ -138,7 +139,7 @@ fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewMo
                         onPhoto = { propertiesModel.setCover(record.property.id, it) },
                         onDelete = { jump("delete/property/${record.property.id}") },issueContent={
                             issues.filter{issue->issue.propertyId==record.property.id && it.elledue.control.data.IssueRepository.open(issue)}.forEach{i->OutlinedButton(onClick={jump("issue/${i.id}")}){Text("Problema aperto · ${i.title}")}}
-                            TextButton(onClick={jump("issue-create?property=${record.property.id}")}){Text("Segnala problema")}
+                            TextButton(onClick={jump("issue-create?property=${record.property.id}")}){Text("Segnala manutenzione")}
                         },
                     )
                 }
@@ -160,7 +161,7 @@ fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewMo
                 if(b!=null)GuestReminderScreen(b,d.arguments?.getString("kind") ?: "out",records.firstOrNull{it.property.id==b.propertyId},app.messageRepository,accountingData,app.reminderStore){navigation.popBackStack()} else LoadingScreen()
             }
             composable("issues") { IssuesScreen(issues.filter{it.propertyId in normalIds},normalRecords,jump){navigation.popBackStack()} }
-            composable("day/{day}") { d->OperationalDayScreen(d.arguments?.getString("day")?.toLongOrNull() ?: BookingDates.today().toEpochDay(),normalRecords,normalBookings,normalActivities,issues.filter{it.propertyId in normalIds},jump,expenses=normalAccounting?.expenses.orEmpty()){navigation.popBackStack()} }
+            composable("day/{day}?property={property}",arguments=listOf(androidx.navigation.navArgument("property"){type=androidx.navigation.NavType.StringType;defaultValue=""})) { d->OperationalDayScreen(d.arguments?.getString("day")?.toLongOrNull() ?: BookingDates.today().toEpochDay(),normalRecords.filter{d.arguments?.getString("property").isNullOrBlank() || it.property.id==d.arguments?.getString("property")},normalBookings,normalActivities,issues.filter{it.propertyId in normalIds},jump,expenses=normalAccounting?.expenses.orEmpty()){navigation.popBackStack()} }
             composable("issue-create?property={property}&booking={booking}",arguments=listOf("property","booking").map{name->androidx.navigation.navArgument(name){defaultValue=""}}) {d->
                 val initial=remember{it.elledue.control.data.PropertyIssue(propertyId=d.arguments?.getString("property") ?: "",reservationId=d.arguments?.getString("booking")?.ifBlank{null})}
                 IssueEditor(initial,records,bookings,accountingData?.expenses.orEmpty(),app.issueRepository,{navigation.popBackStack()}){id->navigation.popBackStack();jump("issue/$id")}
@@ -170,11 +171,17 @@ fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewMo
                 val item=issues.firstOrNull{it.id==d.arguments?.getString("id")}
                 if(item!=null)key(item.id,item.updatedAt){IssueEditor(item,records,bookings,accountingData?.expenses.orEmpty(),app.issueRepository,{navigation.popBackStack()}){navigation.popBackStack();jump("issue/$it")}} else EmptyState("Segnalazione non disponibile","Verifica il registro problemi.")
             }
+            composable("reservations") {
+                BookingDataSurface(bookingState,state,{bookingsModel.retry();propertiesModel.retry()}) {
+                    val scoped=records.filter{businessType=="ALL" || it.property.businessType==businessType}
+                    ReservationsBrowser(bookings,scoped,{jump("booking/$it")},{bookingsModel.clearError();jump("booking/new")},{jump("calendar")})
+                }
+            }
             composable("calendar") {
                 BookingDataSurface(bookingState, state, { bookingsModel.retry(); propertiesModel.retry() }) {
                     ReservationsScreen(normalBookings, normalRecords,
                         onNew = { bookingsModel.clearError(); navigation.navigate("booking/new") },
-                        onOpen = { bookingsModel.clearError(); navigation.navigate("booking/$it") }, activities=normalActivities, onActivity={jump("activity/$it")}, onCopy={property,month,day->jump("calendar-copy?property=$property&month=$month&day=$day")}, onDay={jump("day/$it")},issues=issues.filter{it.propertyId in normalIds})
+                        onOpen = { bookingsModel.clearError(); navigation.navigate("booking/$it") }, activities=normalActivities, onActivity={jump("activity/$it")}, onCopy={property,month,day->jump("calendar-copy?property=$property&month=$month&day=$day")}, onDay={jump("day/$it")},issues=issues.filter{it.propertyId in normalIds},onReservations={jump("reservations")},onFilteredDay={day,property->jump("day/$day?property=$property")})
                 }
             }
             composable("booking/new") {
@@ -217,6 +224,12 @@ fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewMo
             composable("analysis") { EconomyAnalysis(normalBookings, normalRecords, normalAccounting,businessType) { navigation.popBackStack() } }
             composable("tax-overview") {
                 AccountingSurface(accountingState,accountingModel::retry){ AccountingHome(normalAccounting ?: accountingData!!,normalBookings,normalRecords,accountingModel,{jump("expense/new/$it")},{jump("expense/$it")},{jump("tax/$it")},{jump("categories")},{jump("reports")},initialTab=2) }
+            }
+            composable("expenses") {
+                AccountingSurface(accountingState,accountingModel::retry){AccountingHome(normalAccounting ?: accountingData!!,normalBookings,normalRecords,accountingModel,{jump("expense/new/$it")},{jump("expense/$it")},{jump("tax/$it")},{jump("categories")},{jump("reports")},initialTab=1)}
+            }
+            composable("payments") {
+                AccountingSurface(accountingState,accountingModel::retry){AccountingHome(normalAccounting ?: accountingData!!,normalBookings,normalRecords,accountingModel,{jump("expense/new/$it")},{jump("expense/$it")},{jump("tax/$it")},{jump("categories")},{jump("reports")},paymentsOnly=true)}
             }
             composable("accounting") {
                 BookingDataSurface(bookingState, state, { bookingsModel.retry(); propertiesModel.retry() }) {
@@ -350,10 +363,10 @@ fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewMo
                         OutlinedButton(onClick={jump("access")},modifier=Modifier.fillMaxWidth()){Text("Accesso protetto") }
                         OutlinedButton(onClick={jump("drafts")},modifier=Modifier.fillMaxWidth()){Text("Bozze da recuperare") }
                         OutlinedButton(onClick={jump("appearance")},modifier=Modifier.fillMaxWidth()){Text("Aspetto · copertina Home")}
-                        OutlinedButton(onClick={jump("issues")},modifier=Modifier.fillMaxWidth()){Text("Problemi e interventi")}
+                        OutlinedButton(onClick={jump("issues")},modifier=Modifier.fillMaxWidth()){Text("Manutenzioni")}
                         OutlinedButton(onClick={jump("messages")},modifier=Modifier.fillMaxWidth()){Text("Messaggi ospiti IT/EN")}
                         OutlinedButton(onClick={jump("archive")},modifier=Modifier.fillMaxWidth()){Text("Archivio storico")}
-                        Text("Elledue Control · 0.4.8", style = MaterialTheme.typography.labelLarge)
+                        Text("Elledue Control · 0.4.11", style = MaterialTheme.typography.labelLarge)
                         Text("Dati locali. Esporta un backup verificato prima di cambiare dispositivo o firma Android.", style = MaterialTheme.typography.bodyMedium)
                         BackupControls(backupService){navigation.navigate("dashboard"){popUpTo(navigation.graph.id){inclusive=true};launchSingleTop=true}}
                     }
@@ -364,9 +377,9 @@ fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewMo
         SnackbarHost(snackbar)
         if (showNavigation) Surface(modifier=Modifier.zIndex(2f),color = MaterialTheme.colorScheme.surfaceContainer) {
             Row(Modifier.fillMaxWidth().navigationBarsPadding().heightIn(min = 66.dp), verticalAlignment = Alignment.CenterVertically) {
-                sections.take(2).forEach { section -> ConceptNavItem(section.icon, section.title, (route == section.route || (section.route=="economy" && (route?.startsWith("activities")==true || route?.startsWith("report")==true))), !largeFonts, Modifier.weight(1f).testTag("nav-${section.route}")) { jump(section.route) } }
+                sections.take(2).forEach { section -> ConceptNavItem(section.icon, section.title, (route == section.route || (section.route=="calendar" && route=="reservations") || (section.route=="economy" && (route?.startsWith("activities")==true || route?.startsWith("report")==true))), !largeFonts, Modifier.weight(1f).testTag("nav-${section.route}")) { jump(section.route) } }
                 Box(Modifier.padding(horizontal=8.dp).size(48.dp).clip(androidx.compose.foundation.shape.CircleShape).background(androidx.compose.ui.graphics.Brush.linearGradient(listOf(androidx.compose.ui.graphics.Color(0xFFEBD2A1),ElledueGold,androidx.compose.ui.graphics.Color(0xFFB8975B)))).border(1.dp,ElledueGold,androidx.compose.foundation.shape.CircleShape).clickable { quick = true }.testTag("quick-action"),contentAlignment=Alignment.Center) { Icon(Icons.Outlined.Add,"Azioni rapide",tint=ElledueNight,modifier=Modifier.size(25.dp)) }
-                sections.drop(2).forEach { section -> ConceptNavItem(section.icon, section.title, (route == section.route || (section.route=="economy" && (route?.startsWith("activities")==true || route?.startsWith("report")==true))), !largeFonts, Modifier.weight(1f).testTag("nav-${section.route}")) { jump(section.route) } }
+                sections.drop(2).forEach { section -> ConceptNavItem(section.icon, section.title, (route == section.route || (section.route=="calendar" && route=="reservations") || (section.route=="economy" && (route?.startsWith("activities")==true || route?.startsWith("report")==true))), !largeFonts, Modifier.weight(1f).testTag("nav-${section.route}")) { jump(section.route) } }
 
             }
         }
@@ -382,7 +395,7 @@ fun ElledueApp(settingsModel: SettingsViewModel, propertiesModel: PropertyViewMo
                 "calendar" -> listOf("Nuova prenotazione" to "booking/new", "Nuova attività" to "activity/new")
                 else -> listOf("Nuova prenotazione" to "booking/new", "Nuova spesa" to "expense/new/OTHER", "Nuova attività" to "activity/new")
             }
-            val completeActions=if(records.any{!it.property.archived})actions+listOf("Nuova prenotazione" to "booking/new","Nuova spesa" to "expense/new/OTHER","Nuova attività" to "activity/new","Nuovo intervento / problema" to "issue-create") else actions
+            val completeActions=if(records.any{!it.property.archived})actions+listOf("Nuova prenotazione" to "booking/new","Nuova spesa" to "expense/new/OTHER","Nuova attività" to "activity/new","Nuova manutenzione" to "issue-create") else actions
             completeActions.distinctBy{it.second}.forEach { (label, target) -> OutlinedButton(onClick = { quick = false; propertiesModel.clearError(); bookingsModel.clearError(); accountingModel.clear(); jump(target) }, modifier = Modifier.fillMaxWidth()) { Text(label) } }
             Spacer(Modifier.height(20.dp))
         }

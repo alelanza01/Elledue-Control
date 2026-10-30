@@ -47,8 +47,8 @@ class ConsolidatedUiTest {
  }
  @Test fun calendarTapOpensChronologicalOperationalDayAndIssueDetail(){
   route("calendar");waitTag("calendar-day-$day");capture("monthly-calendar")
-  compose.onNodeWithTag("calendar-day-$day").performClick();waitTag("operational-day");capture("operational-day")
-  compose.onNodeWithTag("day-issue:049-issue").performScrollTo().performClick();waitTag("issue-editor");capture("issue-detail")
+  compose.onNodeWithTag("calendar-day-$day").performScrollTo().performClick();waitTag("operational-day");capture("operational-day")
+  compose.onNodeWithTag("operational-day").performScrollToNode(hasTestTag("day-issue:049-issue"));compose.onNodeWithTag("day-issue:049-issue").performScrollTo().performClick();waitTag("issue-editor");capture("issue-detail")
   compose.onNodeWithTag("issue-title").assertTextContains("Verifica serratura")
  }
  @Test fun issuesStaySummaryExpensesAndAnalyticsAreNavigableUsingRealPersistedFixtures(){
@@ -74,7 +74,7 @@ class ConsolidatedUiTest {
   runBlocking{app.reminderStore.save(it.elledue.control.notifications.ReminderSettings(enabled=true,monthly=false));app.reminders.reconcile(force=true)}
   val target=day+2
   route("day/$target");waitTag("operational-day")
-  compose.onNodeWithTag("day-guest:departure:049-next").performScrollTo().performClick();waitTag("guest-reminder-message")
+  compose.onNodeWithTag("operational-day").performScrollToNode(hasTestTag("day-guest:departure:049-next"));compose.onNodeWithTag("day-guest:departure:049-next").performScrollTo().performClick();waitTag("guest-reminder-message")
   compose.onNodeWithTag("reminder-message-text").assertTextContains("Buongiorno Secondo",substring=true)
  }
  @Test fun reportLayoutsAndProtectedAccessScreensAreCaptured(){
@@ -86,7 +86,7 @@ class ConsolidatedUiTest {
  }
  @Test @Config(qualifiers="w320dp-h740dp-hdpi") fun compactIssueAndDayRemainScrollable(){
   route("day/$day");waitTag("operational-day");capture("compact-day")
-  compose.onNodeWithTag("day-issue:049-issue").performScrollTo().performClick();waitTag("issue-editor");capture("compact-issue")
+  compose.onNodeWithTag("operational-day").performScrollToNode(hasTestTag("day-issue:049-issue"));compose.onNodeWithTag("day-issue:049-issue").performScrollTo().performClick();waitTag("issue-editor");capture("compact-issue")
   compose.onNodeWithTag("save-issue").performScrollTo().assertIsDisplayed()
  }
 }

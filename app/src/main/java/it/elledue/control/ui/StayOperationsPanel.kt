@@ -32,9 +32,9 @@ import kotlinx.coroutines.launch
  val linked=tasks.filter{it.reservationId==booking.id}
  if(linked.isEmpty())Text("Nessuna attività collegata",color=ConceptMuted)
  linked.forEach{a->TextButton(onClick={open("activity/${a.id}")}){Text((if(a.completed)"✓ " else "○ ")+a.title)}}
- Text("Problemi e interventi",style=MaterialTheme.typography.titleMedium)
+ Text("Manutenzioni",style=MaterialTheme.typography.titleMedium)
  issues.filter{it.reservationId==booking.id && IssueRepository.open(it)}.forEach{i->TextButton(onClick={open("issue/${i.id}")}){Text(i.title+" · "+IssueRepository.statuses[i.status])}}
- OutlinedButton(onClick={open("issue-create?property=${booking.propertyId}&booking=${booking.id}")}){Text("Segnala problema nel soggiorno")}
+ OutlinedButton(onClick={open("issue-create?property=${booking.propertyId}&booking=${booking.id}")}){Text("Segnala manutenzione nel soggiorno")}
  }
 }
 @Composable private fun ForecastEditor(f:StayCostForecast,repository:StayCostRepository,b:ReservationEntity,open:(String)->Unit) {
