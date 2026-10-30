@@ -44,6 +44,9 @@ class Feedback0411Test {
   assertEquals(12200L,BookingFinance.calculate(100000,1950,10000,2000,"BASE_PLUS_VAT").otaCents)
   assertEquals(10000L,BookingFinance.calculate(100000,1950,10000,2000,"NONE").otaCents)
   assertEquals(19500L,BookingFinance.calculate(100000,1950,null,2000,"NONE").otaCents)
+  val base=BookingDraft(gross="1000",otaTreatment="BASE_PLUS_VAT")
+  val inclusive=base.withActualOta("237,90","BASE_PLUS_VAT");assertEquals("INCLUDED",inclusive.otaTreatment);assertEquals(23790L,inclusive.totals().otaCents)
+  val cleared=inclusive.withActualOta("","BASE_PLUS_VAT");assertEquals("BASE_PLUS_VAT",cleared.otaTreatment);assertEquals(23790L,cleared.totals().otaCents)
  }
  @Test fun portalOverridesAndDirectDefaultsAreAppliedAndSnapshotted()=runBlocking<Unit>{
   property("BASE_PLUS_VAT")
@@ -165,8 +168,8 @@ class Feedback0411Test {
  @Test fun otherOwnerPaymentsJoinAlreadySettledAndNegativePdfShowsAnExplicitCredit()=runBlocking<Unit>{
   property();ReservationRepository(db).save(input());val a=AccountingRepository(db)
   a.post(MoneyMovementEntity("owner-payment","p",null,"OWNER_PAYMENT",20000,BookingDates.parse("30/11/2026").toEpochDay(),"2026-11",notes="Pagamento documentato"))
-  val s=report();assertEquals(-11950L,s.summary().balance);assertEquals(23600L,Math.addExact(s.summary().compensated,s.summary().payments))
-  for(layout in ReportLayout.entries){val bytes=ByteArrayOutputStream().also{ReportPdf(context).write(s,it,layout)}.toByteArray();PDDocument.load(bytes).use{pdf->val text=PDFTextStripper().getText(pdf);assertTrue(text.contains("CREDITO DA RICONCILIARE"));assertTrue(text.contains("119,50"));assertTrue(text.contains("236,00"));assertFalse(text.contains("-119,50"))}}
+  val s=report();assertEquals(-4900L,s.summary().balance);assertEquals(23600L,Math.addExact(s.summary().compensated,s.summary().payments))
+  for(layout in ReportLayout.entries){val bytes=ByteArrayOutputStream().also{ReportPdf(context).write(s,it,layout)}.toByteArray();PDDocument.load(bytes).use{pdf->val text=PDFTextStripper().getText(pdf);assertTrue(text.contains("CREDITO DA RICONCILIARE"));assertTrue(text.contains("49,00"));assertTrue(text.contains("236,00"));assertFalse(text.contains("-49,00"))}}
  }
 
 }

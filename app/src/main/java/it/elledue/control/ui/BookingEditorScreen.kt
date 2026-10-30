@@ -110,7 +110,7 @@ fun BookingEditorScreen(initial: BookingDraft, properties: List<PropertyWithOwne
                 BookingField("OTA (%)", draft.otaPercent, enabled, KeyboardType.Decimal, "booking-ota-percent", Modifier.weight(1f)) { draft = draft.copy(otaPercent = it,otaManual=true) }
                 BookingField("Elledue (%)", draft.managementPercent, enabled && draft.businessType!="OWNED", KeyboardType.Decimal, "booking-management-percent", Modifier.weight(1f)) { draft = draft.copy(managementPercent = it) }
             }
-            BookingField("OTA effettiva (€) · facoltativa", draft.actualOta, enabled, KeyboardType.Decimal, "booking-actual-ota") { draft = draft.copy(actualOta = it,otaTreatment=if(it.isNotBlank() && draft.actualOta.isBlank())"INCLUDED" else draft.otaTreatment,otaManual=true) }
+            BookingField("OTA effettiva (€) · facoltativa", draft.actualOta, enabled, KeyboardType.Decimal, "booking-actual-ota") { draft = draft.withActualOta(it,selected?.let{property->BookingDraft.otaTreatmentDefault(property,draft.platform)} ?: initial.otaTreatment) }
             OtaTreatmentField(draft.otaTreatment,enabled){draft=draft.copy(otaTreatment=it,otaManual=true)}
             if(draft.otaTreatment=="BASE_PLUS_VAT")Text("IVA ${Amounts.editable(draft.otaVatBasisPoints.toLong())}% sulla sola commissione, non sul lordo.",style=MaterialTheme.typography.bodySmall)
             Text("Se compilata, anche con zero, la commissione OTA effettiva prevale sulla percentuale.", style = MaterialTheme.typography.bodySmall)

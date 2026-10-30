@@ -1,5 +1,14 @@
 # Elledue Control
 
+## 0.4.11 — intervento 1/3: motore economico e rendiconti
+
+Branch `feature/0.4.11-user-feedback` dalla 0.4.10, senza merge. Trattamento OTA/IVA configurabile e applicato una sola volta; anticipo convenzionale automatico della tassa separato dagli incassi reali; PDF proprietario semplificati con saldo uniforme. Schema Room10, migrazione additiva e dati storici confermati preservati.
+
+[Regole ed esempi](docs/0.4.11/intervento-1/ACCOUNTING.md) · [Migrazioni](docs/0.4.11/intervento-1/MIGRATION.md) · [Consegna e QA](docs/0.4.11/intervento-1/DELIVERY.md)
+
+Il branch resta disponibile per gli interventi2/3 e3/3; questo checkpoint non pubblica una nuova release.
+
+
 ## 0.4.10 — automazioni economiche e UX operativa
 
 Base 0.4.9, branch `feature/0.4.10-ux-accounting`, senza merge su main. Standard retroattivi eleggibili, costi proposti nei rendiconti e approvazione atomica in blocco, riscossione rapida della tassa, calendario compatto e form semplificati. Versione/code 0.4.10/10, schema Room9.

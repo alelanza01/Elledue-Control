@@ -34,6 +34,9 @@ data class BookingDraft(
     val exemptGuestCount:String="", val taxAdvanceManual:Boolean=false,
 
 ) {
+    /** An invoice defaults to inclusive. Clearing it restores the configured percentage treatment. */
+    fun withActualOta(value:String,percentageTreatment:String):BookingDraft=copy(actualOta=value,
+        otaTreatment=when {value.isBlank() && actualOta.isNotBlank()->percentageTreatment; value.isNotBlank() && actualOta.isBlank()->"INCLUDED";else->otaTreatment},otaManual=true)
     fun totals(): BookingTotals = BookingFinance.calculate(
         Amounts.parseCents(gross), Amounts.parseBasisPoints(if(otaPercent.isBlank() && actualOta.isNotBlank()) "0" else otaPercent),
         actualOta.takeIf { it.isNotBlank() }?.let(Amounts::parseCents), if(businessType=="OWNED")0 else Amounts.parseBasisPoints(managementPercent), otaTreatment,otaVatBasisPoints,

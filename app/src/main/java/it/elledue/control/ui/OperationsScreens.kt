@@ -71,7 +71,7 @@ val homeCovers=listOf(R.drawable.home_cover_1,R.drawable.home_cover_2,R.drawable
             require(zone.rules.getValidOffsets(local).isNotEmpty()) {"Orario inesistente per il passaggio all’ora legale."}
             local.atZone(zone).toInstant().toEpochMilli()
         }
-        repository.save(ActivityEntity(id,property.ifBlank {null},title,stamp,initial?.zoneId ?: "Europe/Rome",completed,booking.ifBlank {null},notes,kind=kind,hasTime=time.isNotBlank()));back()
+        repository.save(ActivityEntity(id,property.ifBlank {null},title,stamp,initial?.zoneId ?: "Europe/Rome",completed,booking.ifBlank {null},notes,kind=kind,hasTime=time.isNotBlank()));kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main){back()}
     } catch(e:CancellationException){throw e} catch(e:Exception){error=e.message ?: "Salvataggio non riuscito"} finally {busy=false} } }
     Column(Modifier.fillMaxSize().imePadding().verticalScroll(rememberScrollState()).padding(20.dp).testTag("activity-editor"),verticalArrangement=Arrangement.spacedBy(12.dp)) {
         DraftBanner(draftKey){back()}
@@ -94,7 +94,7 @@ val homeCovers=listOf(R.drawable.home_cover_1,R.drawable.home_cover_2,R.drawable
         Button(onClick={save()},enabled=!busy && title.isNotBlank(),modifier=Modifier.testTag("save-activity")){Text("Salva attività")}
         if(initial!=null) TextButton(onClick={deleting=true},enabled=!busy){Text("Elimina attività")}
     }
-    if(deleting) AlertDialog(onDismissRequest={deleting=false},title={Text("Eliminare l’attività?")},text={Text("Spese, pulizie e movimenti contabili rimarranno conservati.")},confirmButton={TextButton(onClick={if(!busy){busy=true;scope.launch {try{repository.delete(id);back()}catch(e:Exception){error="Eliminazione non riuscita"}finally{busy=false;deleting=false}}}},enabled=!busy){Text("Conferma eliminazione")}},dismissButton={TextButton(onClick={deleting=false}){Text("Annulla")}})
+    if(deleting) AlertDialog(onDismissRequest={deleting=false},title={Text("Eliminare l’attività?")},text={Text("Spese, pulizie e movimenti contabili rimarranno conservati.")},confirmButton={TextButton(onClick={if(!busy){busy=true;scope.launch {try{repository.delete(id);kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main){back()}}catch(e:Exception){error="Eliminazione non riuscita"}finally{busy=false;deleting=false}}}},enabled=!busy){Text("Conferma eliminazione")}},dismissButton={TextButton(onClick={deleting=false}){Text("Annulla")}})
 }
 
 @Composable fun CopyCalendarScreen(records:List<ReservationEntity>,properties:List<PropertyWithOwner>, initialProperty:String, initialMonth:String, selected:Long, back:()->Unit) {
