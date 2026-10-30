@@ -25,7 +25,7 @@ class ReservationRepository(private val database: AppDatabase,private val drafts
                 database.accountingDao().markTaxForReview(previous.id)
             }
             require(candidate.guestCount <= property.property.maxGuests) { "Gli ospiti superano la capienza dell’immobile (${property.property.maxGuests})." }
-            val financialChange = previous != null && (previous.grossCents != candidate.grossCents || previous.appliedOtaBasisPoints != candidate.appliedOtaBasisPoints || previous.actualOtaCents != candidate.actualOtaCents || previous.appliedManagementBasisPoints != candidate.appliedManagementBasisPoints)
+            val financialChange = previous != null && (previous.grossCents != candidate.grossCents || previous.appliedOtaBasisPoints != candidate.appliedOtaBasisPoints || previous.actualOtaCents != candidate.actualOtaCents || previous.appliedManagementBasisPoints != candidate.appliedManagementBasisPoints || previous.appliedOtaTreatment!=candidate.appliedOtaTreatment || previous.appliedOtaVatBasisPoints!=candidate.appliedOtaVatBasisPoints)
             require(!financialChange || draft.correctionReason.isNotBlank()) { "Motiva la rettifica economica della prenotazione." }
             val conflicts = if (candidate.status == BookingStatus.CANCELLED.name) emptyList() else dao.overlaps(candidate.propertyId, candidate.id, candidate.checkInEpochDay, candidate.checkOutEpochDay)
             val currentTokens = conflicts.map { ConflictToken(it.id, it.updatedAt) }.toSet()
@@ -36,8 +36,9 @@ class ReservationRepository(private val database: AppDatabase,private val drafts
             if(previous==null || saved.taxableGuests!=previous.taxableGuests || saved.guestCount!=previous.guestCount || saved.checkInEpochDay!=previous.checkInEpochDay || saved.checkOutEpochDay!=previous.checkOutEpochDay || saved.propertyId!=previous.propertyId) TaxForecast.update(database,saved,property.property)
             if(previous!=null && previous.propertyId!=saved.propertyId) database.activityDao().moveWithBooking(saved.id,saved.propertyId)
             if(previous!=null && previous.propertyId!=saved.propertyId) database.openHelper.writableDatabase.execSQL("UPDATE property_issues SET reservationId=NULL WHERE reservationId=? AND propertyId<>?",arrayOf(saved.id,saved.propertyId))
-            if (financialChange) database.accountingDao().insertFinancialChange(BookingFinancialChangeEntity(java.util.UUID.randomUUID().toString(), saved.id,
-                AccountingRepository.snapshot(previous!!), AccountingRepository.snapshot(saved), draft.correctionReason.trim(), saved.updatedAt))
+            val advanceChange=previous!=null && (previous.automaticTaxAdvance!=saved.automaticTaxAdvance || previous.taxAdvanceOverrideCents!=saved.taxAdvanceOverrideCents || previous.taxAdvanceManual!=saved.taxAdvanceManual)
+            if (financialChange || advanceChange) database.accountingDao().insertFinancialChange(BookingFinancialChangeEntity(java.util.UUID.randomUUID().toString(), saved.id,
+                AccountingRepository.snapshot(previous!!), AccountingRepository.snapshot(saved), draft.correctionReason.trim().ifBlank{"Eccezione anticipo convenzionale tassa di soggiorno"}, saved.updatedAt))
         }
         if(drafts?.load("booking/new",BookingDraft::class.java)?.id==draft.id)drafts.clear("booking/new")
         drafts?.clear("booking/${draft.id}/edit")

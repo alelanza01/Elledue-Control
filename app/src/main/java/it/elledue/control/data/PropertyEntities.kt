@@ -47,6 +47,10 @@ data class PropertyEntity(
     @androidx.room.ColumnInfo(defaultValue = "'MANAGED'") val businessType:String = "MANAGED",
     @androidx.room.ColumnInfo(defaultValue="2") val laundryGuestsPerSet:Int=2,
     val habitualTransportCents:Long?=null,
+    @androidx.room.ColumnInfo(defaultValue="'NONE'") val otaTreatment:String="NONE",
+    @androidx.room.ColumnInfo(defaultValue="2200") val otaVatBasisPoints:Int=2200,
+    @androidx.room.ColumnInfo(defaultValue="1") val automaticTaxAdvance:Boolean=true,
+
 )
 
 @Entity(
@@ -54,7 +58,8 @@ data class PropertyEntity(
     primaryKeys = ["propertyId", "platform"],
     foreignKeys = [ForeignKey(entity = PropertyEntity::class, parentColumns = ["id"], childColumns = ["propertyId"], onDelete = ForeignKey.RESTRICT)],
 )
-data class PlatformCommissionEntity(val propertyId: String, val platform: String, val basisPoints: Int)
+data class PlatformCommissionEntity(val propertyId: String, val platform: String, val basisPoints: Int,
+    @androidx.room.ColumnInfo(defaultValue="'INHERIT'") val otaTreatment:String="INHERIT")
 
 /** Property-specific editable texts; full guest messaging workflow is milestone 6. */
 @Entity(

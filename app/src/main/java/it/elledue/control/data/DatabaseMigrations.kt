@@ -124,4 +124,19 @@ object DatabaseMigrations {
         }
     }
 
+    val MIGRATION_9_10=object:Migration(9,10) {
+        override fun migrate(db:SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE properties ADD COLUMN otaTreatment TEXT NOT NULL DEFAULT 'NONE'")
+            db.execSQL("ALTER TABLE properties ADD COLUMN otaVatBasisPoints INTEGER NOT NULL DEFAULT 2200")
+            db.execSQL("ALTER TABLE properties ADD COLUMN automaticTaxAdvance INTEGER NOT NULL DEFAULT 1")
+            db.execSQL("ALTER TABLE platform_commissions ADD COLUMN otaTreatment TEXT NOT NULL DEFAULT 'INHERIT'")
+            db.execSQL("ALTER TABLE reservations ADD COLUMN appliedOtaTreatment TEXT NOT NULL DEFAULT 'NONE'")
+            db.execSQL("ALTER TABLE reservations ADD COLUMN appliedOtaVatBasisPoints INTEGER NOT NULL DEFAULT 2200")
+            db.execSQL("ALTER TABLE reservations ADD COLUMN automaticTaxAdvance INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("ALTER TABLE reservations ADD COLUMN taxAdvanceOverrideCents INTEGER")
+            db.execSQL("ALTER TABLE reservations ADD COLUMN otaTreatmentManual INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("ALTER TABLE reservations ADD COLUMN taxAdvanceManual INTEGER NOT NULL DEFAULT 0")
+        }
+    }
+
 }

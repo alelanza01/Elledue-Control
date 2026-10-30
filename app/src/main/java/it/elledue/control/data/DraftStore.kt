@@ -12,8 +12,21 @@ class DraftStore(context:Context) {
     private val gson=Gson()
     val revision=MutableStateFlow(0L)
     val error=MutableStateFlow<String?>(null)
-    @Synchronized fun <T> load(key:String,type:Class<T>):T? = preferences.getString(key,null)?.let {
-        runCatching {gson.fromJson(it,type)}.getOrElse {error.value="Bozza non leggibile: conservala o scartala esplicitamente.";null}
+    @Synchronized fun <T> load(key:String,type:Class<T>):T? = preferences.getString(key,null)?.let { raw ->
+        runCatching {
+            val tree=com.google.gson.JsonParser.parseString(raw)
+            if(tree.isJsonObject) {
+                val obj=tree.asJsonObject
+                // Add only fields introduced in0.4.11; never replace a user's persisted value.
+                val additions=when(type) {
+                    it.elledue.control.domain.BookingDraft::class.java->mapOf("otaTreatment" to "NONE","otaVatBasisPoints" to "2200","automaticTaxAdvance" to "false","taxAdvanceOverride" to "","exemptGuestCount" to "","taxAdvanceManual" to "false")
+                    it.elledue.control.domain.PropertyDraft::class.java->mapOf("otaTreatment" to "NONE","otaVatPercent" to "22,00","automaticTaxAdvance" to "true")
+                    else->emptyMap()
+                }
+                additions.forEach{(key,value)->if(!obj.has(key) || obj.get(key).isJsonNull)obj.addProperty(key,value)}
+            }
+            gson.fromJson(tree,type)
+        }.getOrElse {error.value="Bozza non leggibile: conservala o scartala esplicitamente.";null}
     }
     @Synchronized fun save(key:String,value:Any):Boolean {
         val ok=preferences.edit().putString(key,gson.toJson(value)).commit()

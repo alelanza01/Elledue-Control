@@ -38,7 +38,7 @@ interface SettingsDao {
         ExpenseEntity::class, ActivityEntity::class, ReportEntity::class,
         ExpenseCategoryEntity::class, ExpenseRevisionEntity::class, TaxAssessmentEntity::class,
         TaxAssessmentRevisionEntity::class, MoneyMovementEntity::class, BookingFinancialChangeEntity::class, ReportAllocationEntity::class],
-    version = 9, exportSchema = true,
+    version = 10, exportSchema = true,
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun issueDao():IssueDao

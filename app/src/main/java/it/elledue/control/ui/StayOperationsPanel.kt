@@ -17,7 +17,7 @@ import kotlinx.coroutines.launch
  var operational by remember{mutableStateOf(false)}
  Text("Costi e tassa",style=MaterialTheme.typography.titleLarge)
  Text("Tassa prevista ${tax?.expectedCents?.let(Amounts::euro) ?: "da verificare"} · riscossa ${Amounts.euro(collected)} · residua ${tax?.let{Amounts.euro(Ledger.residual(it.expectedCents,collected))} ?: "da verificare"}")
- Text("Compensazione ${Amounts.euro(OperationalMoney.total(money.filter{it.kind=="COMPENSATION"}.map{it.amountCents}))}")
+ Text("Anticipo riconosciuto ${Amounts.euro(Math.addExact(OperationalMoney.total(money.filter{it.kind=="COMPENSATION"}.map{it.amountCents}),TaxAdvance.remaining(booking,tax,accounting?.movements.orEmpty())))}")
  QuickTaxCollection(booking,tax,collected,open)
  Text("Riversata ${Amounts.euro(OperationalMoney.total(money.filter{it.kind=="REMITTANCE"}.map{it.amountCents}))}",style=MaterialTheme.typography.bodySmall)
  forecasts.filter{it.reservationId==booking.id && (booking.status!="CANCELLED" || costs.any{cost->cost.kind==it.kind})}.forEach{f->

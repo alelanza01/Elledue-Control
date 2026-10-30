@@ -36,7 +36,7 @@ fun BookingEditorScreen(initial: BookingDraft, properties: List<PropertyWithOwne
     fun save(){
         draft=prepared()
         focus.clearFocus();keyboardController?.hide()
-        val financial=!isNew && listOf(draft.gross,draft.otaPercent,draft.actualOta,draft.managementPercent)!=listOf(initial.gross,initial.otaPercent,initial.actualOta,initial.managementPercent)
+        val financial=!isNew && listOf(draft.gross,draft.otaPercent,draft.actualOta,draft.managementPercent,draft.otaTreatment,draft.otaVatBasisPoints)!=listOf(initial.gross,initial.otaPercent,initial.actualOta,initial.managementPercent,initial.otaTreatment,initial.otaVatBasisPoints)
         if(financial && draft.correctionReason.isBlank()){correction=true;return}
         onSave(draft)
     }
@@ -68,15 +68,25 @@ fun BookingEditorScreen(initial: BookingDraft, properties: List<PropertyWithOwne
             BookingField("Cognome ospite *", draft.lastName, enabled, tag = "booking-last-name") { draft = draft.copy(lastName = it) }
             BookingField("Ospiti totali", draft.guests, enabled, KeyboardType.Number, "booking-guests") {
                 val exempt=draft.guests.toIntOrNull()?.let{total->draft.taxableGuestCount.toIntOrNull()?.let{total-it}} ?: 0
-                draft = draft.copy(guests = it,taxableGuestCount=it.toIntOrNull()?.let{total->(total-exempt).coerceAtLeast(0).toString()} ?: "")
+                draft = draft.copy(guests = it,exemptGuestCount="",taxableGuestCount=it.toIntOrNull()?.let{total->(total-exempt).coerceAtLeast(0).toString()} ?: "")
             }
             val exempt=runCatching{draft.guests.toInt()-(draft.taxableGuestCount.ifBlank{if(isNew)draft.guests else ""}).toInt()}.getOrNull()?.toString() ?: ""
-            BookingField("Ospiti esenti · soggetti dai ${selected?.property?.touristTaxMinAge ?: 16} anni compiuti",exempt,enabled,KeyboardType.Number,"booking-exempt-guests"){value->draft=draft.copy(taxableGuestCount=runCatching{(draft.guests.toInt()-value.toInt()).toString()}.getOrDefault(""))}
+            BookingField("Ospiti esenti · soggetti dai ${selected?.property?.touristTaxMinAge ?: 16} anni compiuti",exempt,enabled,KeyboardType.Number,"booking-exempt-guests"){value->draft=draft.copy(exemptGuestCount=value,taxableGuestCount=runCatching{(draft.guests.toInt()-value.toInt()).toString()}.getOrDefault(""))}
             val taxPreview=runCatching{val subjects=draft.taxableGuestCount.ifBlank{if(isNew)draft.guests else ""}.toInt();val total=draft.guests.toInt();require(subjects in 0..total);val n=(BookingDates.parse(draft.checkOut).toEpochDay()-BookingDates.parse(draft.checkIn).toEpochDay());require(n>0);val p=selected!!.property;java.math.BigDecimal.valueOf(p.touristTaxNightCents).multiply(java.math.BigDecimal.valueOf(subjects.toLong())).multiply(java.math.BigDecimal.valueOf(minOf(n,p.touristTaxMaxNights?.toLong() ?: n))).longValueExact()}.getOrNull()
             Text(taxPreview?.let{"Tassa prevista ${Amounts.euro(it)} · nessun incasso automatico"} ?: "Previsione da completare: indica gli ospiti soggetti, senza inserire età individuali.",style=MaterialTheme.typography.bodySmall)
+            if(draft.businessType=="MANAGED") {
+                Text(if(draft.automaticTaxAdvance)"Tassa riconosciuta automaticamente nel saldo" else "Nessun anticipo automatico per la tassa",style=MaterialTheme.typography.bodySmall)
+                Text("Riconoscimento convenzionale: nessun incasso o riversamento viene registrato.",style=MaterialTheme.typography.bodySmall)
+                var exception by rememberSaveable{mutableStateOf(false)}
+                TextButton(onClick={exception=!exception}){Text(if(exception)"Chiudi eccezione tassa" else "Eccezione tassa / anticipo")}
+                if(exception) {
+                Row {Checkbox(draft.automaticTaxAdvance,{draft=draft.copy(automaticTaxAdvance=it,taxAdvanceManual=true)},enabled=enabled);Text("Tassa riconosciuta automaticamente nel saldo",Modifier.weight(1f))}
+                BookingField("Anticipo diverso (€) · vuoto = automatico",draft.taxAdvanceOverride,enabled,KeyboardType.Decimal,"booking-tax-advance"){draft=draft.copy(taxAdvanceOverride=it,taxAdvanceManual=true)}
+                }
+            }
             if(draft.businessType=="OWNED")Text("Immobile proprio: nessun compenso di gestione automatico.",color=ElledueGold)
             PortalSelector(draft.platform,enabled) { value ->
-                draft=draft.copy(platform=value,otaPercent=if(isNew && !draft.otaManual && selected!=null) BookingDraft.otaDefault(selected,value) else draft.otaPercent)
+                draft=draft.copy(platform=value,otaTreatment=if(isNew && !draft.otaManual && selected!=null)BookingDraft.otaTreatmentDefault(selected,value) else draft.otaTreatment,otaPercent=if(isNew && !draft.otaManual && selected!=null) BookingDraft.otaDefault(selected,value) else draft.otaPercent)
             }
             if(isNew && draft.otaPercent.isBlank()) Text("Percentuale del portale non configurata. Inseriscila qui oppure nelle commissioni dell’immobile; puoi usare l’importo OTA effettivo.",color=ElledueGold)
             StayRangeField(draft.checkIn,draft.checkOut,enabled){start,end->draft=draft.copy(checkIn=start,checkOut=end)}
@@ -100,7 +110,9 @@ fun BookingEditorScreen(initial: BookingDraft, properties: List<PropertyWithOwne
                 BookingField("OTA (%)", draft.otaPercent, enabled, KeyboardType.Decimal, "booking-ota-percent", Modifier.weight(1f)) { draft = draft.copy(otaPercent = it,otaManual=true) }
                 BookingField("Elledue (%)", draft.managementPercent, enabled && draft.businessType!="OWNED", KeyboardType.Decimal, "booking-management-percent", Modifier.weight(1f)) { draft = draft.copy(managementPercent = it) }
             }
-            BookingField("OTA effettiva (€) · facoltativa", draft.actualOta, enabled, KeyboardType.Decimal, "booking-actual-ota") { draft = draft.copy(actualOta = it) }
+            BookingField("OTA effettiva (€) · facoltativa", draft.actualOta, enabled, KeyboardType.Decimal, "booking-actual-ota") { draft = draft.copy(actualOta = it,otaTreatment=if(it.isNotBlank() && draft.actualOta.isBlank())"INCLUDED" else draft.otaTreatment,otaManual=true) }
+            OtaTreatmentField(draft.otaTreatment,enabled){draft=draft.copy(otaTreatment=it,otaManual=true)}
+            if(draft.otaTreatment=="BASE_PLUS_VAT")Text("IVA ${Amounts.editable(draft.otaVatBasisPoints.toLong())}% sulla sola commissione, non sul lordo.",style=MaterialTheme.typography.bodySmall)
             Text("Se compilata, anche con zero, la commissione OTA effettiva prevale sulla percentuale.", style = MaterialTheme.typography.bodySmall)
             val totals = runCatching { draft.totals() }
             if (totals.isSuccess) FinanceCard(Amounts.parseCents(draft.gross), totals.getOrThrow(), "Anteprima aggiornata", draft.actualOta.isNotBlank())
@@ -167,7 +179,7 @@ fun FinanceCard(gross: Long, totals: BookingTotals, title: String = "Riepilogo e
     Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer), modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(title, style = MaterialTheme.typography.titleMedium)
-            listOf("Importo prenotazione" to gross, (if (actualOta) "OTA effettiva" else "OTA stimata") to totals.otaCents, "Netto dopo OTA" to totals.netCents).forEach { (label, cents) -> Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text(label); Text(Amounts.euro(cents)) } }
+            listOf("Importo prenotazione" to gross, (if (actualOta) "Costo OTA effettivo" else "Costo OTA complessivo") to totals.otaCents, "Netto dopo OTA" to totals.netCents).forEach { (label, cents) -> Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text(label); Text(Amounts.euro(cents)) } }
             HorizontalDivider()
             Text("Compenso di gestione Elledue", style = MaterialTheme.typography.labelLarge)
             Text(Amounts.euro(totals.managementCents), style = MaterialTheme.typography.headlineMedium, modifier = Modifier.testTag("booking-fee"))

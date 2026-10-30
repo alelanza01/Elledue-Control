@@ -17,7 +17,8 @@ import java.util.UUID
 @Composable fun QuickTaxCollection(b:ReservationEntity,tax:TaxAssessmentEntity?,collected:Long,open:(String)->Unit) {
  var show by remember{mutableStateOf(false)};var feedback by remember{mutableStateOf("")}
  val residual=tax?.let{Ledger.residual(it.expectedCents,collected)} ?: 0L
- Button(onClick={show=true},enabled=tax!=null && !tax.needsReview && residual>0 && b.status!="CANCELLED",modifier=Modifier.fillMaxWidth().testTag("quick-collect-tax")){Text("Conferma tassa incassata")}
+ if(b.automaticTaxAdvance)Text("Tassa riconosciuta nel saldo secondo l’accordo; nessun incasso presunto.",style=MaterialTheme.typography.bodySmall)
+ Button(onClick={show=true},enabled=tax!=null && !tax.needsReview && residual>0 && b.status!="CANCELLED",modifier=Modifier.fillMaxWidth().testTag("quick-collect-tax")){Text(if(b.automaticTaxAdvance)"Registra un incasso reale (facoltativo)" else "Conferma tassa incassata")}
  if(tax==null || tax.needsReview)TextButton(onClick={open("tax/${b.id}")}){Text("Verifica i dati della tassa")}
  if(feedback.isNotBlank())Text(feedback,color=ArrivalColor)
  if(show) {

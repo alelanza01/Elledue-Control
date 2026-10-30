@@ -18,6 +18,7 @@ class ElledueApplication : Application() {
         super.onCreate()
         background.launch {
             reconciliation.reconcile()
+            it.elledue.control.data.FeedbackReconciliation(database).reconcile()
             database.invalidationTracker.createFlow("properties","owners","reservations","expenses","tax_assessments","money_movements","activities","property_issues","stay_cost_forecasts",emitInitialState=true)
                 .debounce(250).collect {
                     runCatching { reportRepository.refreshDrafts() }
@@ -29,7 +30,7 @@ class ElledueApplication : Application() {
     override fun onTerminate() { background.cancel();if(databaseInstance.isInitialized())database.close();super.onTerminate() }
 
     private val databaseInstance = lazy {
-        Room.databaseBuilder(this, AppDatabase::class.java, "elledue-control.db").addMigrations(it.elledue.control.data.DatabaseMigrations.MIGRATION_1_2, it.elledue.control.data.DatabaseMigrations.MIGRATION_2_3, it.elledue.control.data.DatabaseMigrations.MIGRATION_3_4, it.elledue.control.data.DatabaseMigrations.MIGRATION_4_5, it.elledue.control.data.DatabaseMigrations.MIGRATION_5_6, it.elledue.control.data.DatabaseMigrations.MIGRATION_6_7, it.elledue.control.data.DatabaseMigrations.MIGRATION_7_8, it.elledue.control.data.DatabaseMigrations.MIGRATION_8_9).build()
+        Room.databaseBuilder(this, AppDatabase::class.java, "elledue-control.db").addMigrations(it.elledue.control.data.DatabaseMigrations.MIGRATION_1_2, it.elledue.control.data.DatabaseMigrations.MIGRATION_2_3, it.elledue.control.data.DatabaseMigrations.MIGRATION_3_4, it.elledue.control.data.DatabaseMigrations.MIGRATION_4_5, it.elledue.control.data.DatabaseMigrations.MIGRATION_5_6, it.elledue.control.data.DatabaseMigrations.MIGRATION_6_7, it.elledue.control.data.DatabaseMigrations.MIGRATION_7_8, it.elledue.control.data.DatabaseMigrations.MIGRATION_8_9, it.elledue.control.data.DatabaseMigrations.MIGRATION_9_10).build()
     }
     private val database get()=databaseInstance.value
     val messageRepository by lazy { it.elledue.control.data.MessageRepository(database,drafts) }

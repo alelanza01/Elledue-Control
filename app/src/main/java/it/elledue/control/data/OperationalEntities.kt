@@ -42,6 +42,14 @@ data class ReservationEntity(
     val accountingAllocationId: String? = null,
     @ColumnInfo(defaultValue = "''") val competenceMonth: String = "",
     @ColumnInfo(defaultValue = "'MANAGED'") val appliedBusinessType:String = "MANAGED",
+    @ColumnInfo(defaultValue="'NONE'") val appliedOtaTreatment:String="NONE",
+    @ColumnInfo(defaultValue="2200") val appliedOtaVatBasisPoints:Int=2200,
+    @ColumnInfo(defaultValue="0") val automaticTaxAdvance:Boolean=false,
+    val taxAdvanceOverrideCents:Long?=null,
+    @ColumnInfo(defaultValue="0") val otaTreatmentManual:Boolean=false,
+    @ColumnInfo(defaultValue="0") val taxAdvanceManual:Boolean=false,
+
+
 )
 
 @Entity(tableName = "expenses", foreignKeys = [

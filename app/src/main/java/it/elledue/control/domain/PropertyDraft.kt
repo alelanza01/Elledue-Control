@@ -34,6 +34,8 @@ data class PropertyDraft(
     val baseUpdatedAt:Long?=null,
     val laundryGuests:String="2",
     val transportRate:String="",
+    val otaTreatment:String="NONE", val otaVatPercent:String="22,00", val automaticTaxAdvance:Boolean=true,
+
 ) {
     fun toRecord(previous: PropertyEntity? = null): PropertyWithOwner {
         require(name.isNotBlank()) { "Inserisci il nome dell’immobile." }
@@ -54,6 +56,7 @@ data class PropertyDraft(
         require(taxMaxNights.isBlank() || (maxNights != null && maxNights > 0)) { "Il limite di notti deve essere positivo, oppure vuoto." }
         val laundryGroup=requireNotNull(laundryGuests.toIntOrNull()){ "Inserisci gli ospiti per set." };require(laundryGroup>0)
         val owner = OwnerEntity(ownerId, ownerName.trim().ifBlank { "Proprietà diretta / soci da configurare" }, ownerPhone.trim(), ownerEmail.trim())
+        require(otaTreatment in OtaTreatment.values){"Trattamento OTA non valido."}
         val property = PropertyEntity(
             id = id, ownerId = ownerId, name = name.trim(), address = address.trim(),
             usefulContacts = usefulContacts.trim(), beds = bedCount, maxGuests = guests,
@@ -67,11 +70,13 @@ data class PropertyDraft(
             coverImageBase64 = previous?.coverImageBase64,
             laundryGuestsPerSet=laundryGroup, habitualTransportCents=transportRate.takeIf{it.isNotBlank()}?.let(Amounts::parseCents),
             createdAt = previous?.createdAt ?: System.currentTimeMillis(),
+            otaTreatment=otaTreatment,otaVatBasisPoints=Amounts.parseBasisPoints(otaVatPercent),automaticTaxAdvance=automaticTaxAdvance,
+
         )
         val rates = platformRates.lineSequence().filter { it.isNotBlank() }.map { line ->
-            val parts = line.split('=')
+            val parts = line.split('='); val value=parts.getOrNull(1)?.split(';').orEmpty()
             require(parts.size == 2 && parts[0].isNotBlank()) { "Commissioni portale: usa una riga Portale=percentuale." }
-            PlatformCommissionEntity(id, parts[0].trim(), Amounts.parseBasisPoints(parts[1]))
+            PlatformCommissionEntity(id, parts[0].trim(), Amounts.parseBasisPoints(value[0]), value.getOrNull(1)?.trim()?.uppercase()?.also{require(it in OtaTreatment.values || it=="INHERIT"){"Modalità portale: BASE_PLUS_VAT, INCLUDED, NONE oppure INHERIT."}} ?: "INHERIT")
         }.toList()
         require(rates.map { it.platform.lowercase() }.distinct().size == rates.size) { "Ogni portale può comparire una sola volta." }
         val templates = listOf("it" to accessItalian, "en" to accessEnglish).filter { it.second.isNotBlank() }
@@ -87,7 +92,9 @@ data class PropertyDraft(
                 beds = beds.toString(), maxGuests = maxGuests.toString(), checkInTime = checkInTime, checkOutTime = checkOutTime,
                 notes = operationalNotes, managementPercent = Amounts.editable(managementBasisPoints.toLong()),
                 otaPercent = Amounts.editable(otaBasisPoints.toLong()),
-                platformRates = item.platformCommissions.joinToString("\n") { "${it.platform}=${Amounts.editable(it.basisPoints.toLong())}" },
+                otaTreatment=otaTreatment,otaVatPercent=Amounts.editable(otaVatBasisPoints.toLong()),automaticTaxAdvance=automaticTaxAdvance,
+
+                platformRates = item.platformCommissions.joinToString("\n") { "${it.platform}=${Amounts.editable(it.basisPoints.toLong())}${if(it.otaTreatment=="INHERIT")"" else ";${it.otaTreatment}"}" },
                 cleaningRate = Amounts.editable(cleaningHourlyCents), laundryRate = Amounts.editable(laundrySetCents),
                 taxRate = Amounts.editable(touristTaxNightCents), taxMinAge = touristTaxMinAge.toString(),
                 taxMaxNights = touristTaxMaxNights?.toString() ?: "", taxExemptions = touristTaxExemptions,

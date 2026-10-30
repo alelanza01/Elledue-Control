@@ -53,8 +53,8 @@ class AutomationMigrationTest {
                 }
                 val setup=schema.getJSONArray("setupQueries");for(i in 0 until setup.length())sql.execSQL(setup.getString(i));sql.version=8
             }
-            Room.databaseBuilder(context,AppDatabase::class.java,name).addMigrations(DatabaseMigrations.MIGRATION_8_9).build().withClosing {db ->
-                assertEquals(9,db.openHelper.readableDatabase.version)
+            Room.databaseBuilder(context,AppDatabase::class.java,name).addMigrations(DatabaseMigrations.MIGRATION_8_9,DatabaseMigrations.MIGRATION_9_10).build().withClosing {db ->
+                assertEquals(10,db.openHelper.readableDatabase.version)
                 assertTrue(db.reportDao().bookings().all{it.appliedBusinessType=="MANAGED"})
                 assertEquals("MANAGED",db.propertyDao().get(snapshot.property.id)!!.property.businessType)
                 assertEquals(2,db.propertyDao().get(snapshot.property.id)!!.property.laundryGuestsPerSet)

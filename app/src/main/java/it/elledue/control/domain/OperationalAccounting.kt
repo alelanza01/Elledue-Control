@@ -96,7 +96,7 @@ object Ledger {
     }
 }
 
-data class OperationalSummary(val fees: Long, val expenses: Long, val advanced: Long, val reimbursable: Long, val cleaning: Long, val laundry: Long, val expectedTax: Long, val collectedTax: Long, val residualTax: Long, val compensated: Long, val payments: Long, val balance: Long)
+data class OperationalSummary(val fees: Long, val expenses: Long, val advanced: Long, val reimbursable: Long, val cleaning: Long, val laundry: Long, val expectedTax: Long, val collectedTax: Long, val residualTax: Long, val compensated: Long, val payments: Long, val balance: Long, val automaticAdvance:Long=0)
 fun operationalSummary(month: String, propertyId: String, bookings: List<ReservationEntity>, expenses: List<ExpenseEntity>, assessments: List<TaxAssessmentEntity>, movements: List<MoneyMovementEntity>): OperationalSummary {
     val stays = bookings.filter { Competence.booking(it.checkInEpochDay) == month && (propertyId.isEmpty() || it.propertyId == propertyId) }
     val costs = expenses.filter { !it.voided && it.competenceMonth == month && (propertyId.isEmpty() || it.propertyId == propertyId) }
@@ -107,12 +107,14 @@ fun operationalSummary(month: String, propertyId: String, bookings: List<Reserva
     val active = Ledger.active(cash)
     val collected = OperationalMoney.total(taxes.map { a -> OperationalMoney.total(active.filter { it.reservationId == a.reservationId && it.kind == "COLLECTION" }.map { it.amountCents }) })
     val comp = OperationalMoney.total(active.filter { it.competenceMonth == month && it.kind == "COMPENSATION" }.map { it.amountCents })
+    val automatic=OperationalMoney.total(stays.map{b->TaxAdvance.remaining(b,taxes.firstOrNull{it.reservationId==b.id},cash)})
+    val compensated=Math.addExact(comp,automatic)
     val paid = OperationalMoney.total(active.filter { it.competenceMonth == month && it.kind == "OWNER_PAYMENT" }.map { it.amountCents })
     return OperationalSummary(fees, OperationalMoney.total(costs.map { it.actualCents }), OperationalMoney.total(costs.filter { it.advancedByElledue }.map { it.actualCents }), reimb,
         OperationalMoney.total(costs.filter { it.kind == "CLEANING" }.map { it.actualCents }), OperationalMoney.total(costs.filter { it.kind == "LAUNDRY" }.map { it.actualCents }),
         OperationalMoney.total(currentTaxes.map { it.expectedCents }), collected,
-        OperationalMoney.total(currentTaxes.map { a -> Ledger.residual(a.expectedCents, OperationalMoney.total(active.filter { it.reservationId == a.reservationId && it.kind == "COLLECTION" }.map { it.amountCents })) }), comp, paid,
-        BigDecimal.valueOf(fees).add(BigDecimal.valueOf(reimb)).subtract(BigDecimal.valueOf(comp)).subtract(BigDecimal.valueOf(paid)).longValueExact())
+        OperationalMoney.total(currentTaxes.map { a -> Ledger.residual(a.expectedCents, OperationalMoney.total(active.filter { it.reservationId == a.reservationId && it.kind == "COLLECTION" }.map { it.amountCents })) }), compensated, paid,
+        BigDecimal.valueOf(fees).add(BigDecimal.valueOf(reimb)).subtract(BigDecimal.valueOf(compensated)).subtract(BigDecimal.valueOf(paid)).longValueExact(),automatic)
 }
 
 /** Operator uses this inclusive threshold when assigning counts; individual ages are never stored. */

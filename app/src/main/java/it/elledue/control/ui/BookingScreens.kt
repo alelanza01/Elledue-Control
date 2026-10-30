@@ -175,7 +175,7 @@ fun BookingDetailScreen(item: ReservationEntity, propertyName: String, busy: Boo
                 OutlinedButton(onClick = onActivities) { Text("Attività") }
                 OutlinedButton(onClick = onMessages,modifier=Modifier.testTag("booking-messages")){Text("Messaggi IT/EN")}
             }
-            FinanceCard(item.grossCents, BookingTotals(item.otaCents, item.netCents, item.managementCents), actualOta = item.actualOtaCents != null)
+            FinanceCard(item.grossCents, BookingFinance.calculate(item), actualOta = item.actualOtaCents != null)
             operationalContent()
             Text("OTA ${Amounts.editable(item.appliedOtaBasisPoints.toLong())}% · Elledue ${Amounts.editable(item.appliedManagementBasisPoints.toLong())}% sul netto. Parametri storici conservati.", style = MaterialTheme.typography.bodySmall)
             financialChanges.filter { it.reservationId == item.id }.forEach { change ->

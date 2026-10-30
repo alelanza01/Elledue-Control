@@ -159,17 +159,19 @@ fun PropertyEditorScreen(initial: PropertyDraft, isNew: Boolean, busy: Boolean, 
                 Text("La tipologia vale per le nuove prenotazioni. Parametri e documenti storici restano conservati; non vengono inventate quote dei soci.",style=MaterialTheme.typography.bodySmall)
                 Text("La commissione Elledue si applica al netto dopo le commissioni OTA.", style = MaterialTheme.typography.bodyMedium)
                 EditorField("Compenso di gestione Elledue (%)", draft.managementPercent, busy || draft.businessType=="OWNED", KeyboardType.Decimal) { draft = draft.copy(managementPercent = it) }
+                OtaTreatmentField(draft.otaTreatment,!busy){draft=draft.copy(otaTreatment=it)}
+                if(draft.otaTreatment=="BASE_PLUS_VAT")EditorField("IVA sulla commissione OTA (%)",draft.otaVatPercent,busy,KeyboardType.Decimal){draft=draft.copy(otaVatPercent=it)}
                 EditorField("Commissione OTA predefinita (%)", draft.otaPercent, busy, KeyboardType.Decimal) { draft = draft.copy(otaPercent = it) }
                 Text("Percentuali OTA per immobile · lascia vuoto se da configurare. Nessun valore universale.",style=MaterialTheme.typography.bodySmall)
                 listOf("Booking.com","Airbnb","Vrbo").forEach {portal ->
-                    val rate=draft.platformRates.lineSequence().map{it.split('=')}.firstOrNull{it.size==2 && it[0].trim().equals(portal,true)}?.get(1) ?: ""
+                    val rate=draft.platformRates.lineSequence().map{it.split('=')}.firstOrNull{it.size==2 && it[0].trim().equals(portal,true)}?.get(1)?.substringBefore(';') ?: ""
                     EditorField("$portal (%)",rate,busy,KeyboardType.Decimal) {value ->
                         val retained=draft.platformRates.lineSequence().filter{it.isNotBlank() && !it.substringBefore('=').trim().equals(portal,true)}.toList()
-                        draft=draft.copy(platformRates=(retained+if(value.isBlank())emptyList() else listOf("$portal=$value")).joinToString("\n"))
+                        draft=draft.copy(platformRates=(retained+if(value.isBlank())emptyList() else listOf("$portal=$value"+(draft.platformRates.lineSequence().firstOrNull{it.substringBefore('=').trim().equals(portal,true)}?.substringAfter(';',"")?.takeIf{it.isNotBlank()}?.let{";$it"} ?: ""))).joinToString("\n"))
                     }
                 }
                 Text("Prenotazione diretta: OTA iniziale 0%; eventuali costi di pagamento sono spese distinte.",style=MaterialTheme.typography.bodySmall)
-                EditorField("Configurazione portali anche storici (Portale=percentuale)", draft.platformRates, busy, multiline = true) { draft = draft.copy(platformRates = it) }
+                EditorField("Portali: Portale=percentuale;BASE_PLUS_VAT, INCLUDED o NONE (modalità facoltativa)", draft.platformRates, busy, multiline = true) { draft = draft.copy(platformRates = it) }
                 EditorField("Pulizie (€/ora)", draft.cleaningRate, busy, KeyboardType.Decimal) { draft = draft.copy(cleaningRate = it) }
                 EditorField("Ospiti per set lavanderia",draft.laundryGuests,busy,KeyboardType.Number){draft=draft.copy(laundryGuests=it)}
                 EditorField("Trasporti · importo abituale € (facoltativo)",draft.transportRate,busy,KeyboardType.Decimal){draft=draft.copy(transportRate=it)}
@@ -177,6 +179,7 @@ fun PropertyEditorScreen(initial: PropertyDraft, isNew: Boolean, busy: Boolean, 
             }
             EditorGroup("Tassa di soggiorno") {
                 Text("Verifica le impostazioni secondo la disciplina comunale applicabile.", style = MaterialTheme.typography.bodyMedium)
+                if(draft.businessType=="MANAGED")Row {Checkbox(draft.automaticTaxAdvance,{draft=draft.copy(automaticTaxAdvance=it)},enabled=!busy);Text("Riconosci automaticamente la tassa come anticipo nel saldo",Modifier.weight(1f))}
                 EditorField("Tassa (€/persona/notte)", draft.taxRate, busy, KeyboardType.Decimal) { draft = draft.copy(taxRate = it) }
                 EditorField("Età minima", draft.taxMinAge, busy, KeyboardType.Number) { draft = draft.copy(taxMinAge = it) }
                 EditorField("Limite notti (vuoto = nessun limite)", draft.taxMaxNights, busy, KeyboardType.Number) { draft = draft.copy(taxMaxNights = it) }

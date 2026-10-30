@@ -21,6 +21,7 @@ data class ReportSnapshot(
     val automationWarnings:List<String>?=emptyList(),
     val approvalBatch:StandardApproval?=null,
 ) {
+    fun quantity(kind:String):String=effectiveExpenses().filter{!it.voided && it.advancedByElledue && it.reimbursable && it.kind==kind}.mapNotNull{it.quantity?.let{q->java.math.BigDecimal(q.replace(',','.'))}}.fold(java.math.BigDecimal.ZERO,java.math.BigDecimal::add).stripTrailingZeros().toPlainString().replace('.',',')
     fun effectiveExpenses()=expenses+(if(draft)proposedExpenses.orEmpty() else emptyList())
     fun summary() = operationalSummary(month, property.id, bookings, effectiveExpenses(), taxes, movements)
     fun gross() = OperationalMoney.total(bookings.filter { it.status != "CANCELLED" }.map { it.grossCents })
@@ -34,7 +35,7 @@ data class ReportSnapshot(
         unconfirmedCosts.orEmpty().forEach{add(ReportIssue(false,"Consuntivo non confermato: ${if(it.kind=="CLEANING")"pulizia" else "lavanderia"}. La previsione è esclusa dalle spese sostenute."))}
         bookings.forEach { booking ->
             if (booking.propertyId != property.id || Competence.booking(booking.checkInEpochDay) != month) add(ReportIssue(true, "Prenotazione con competenza o immobile incoerente."))
-            val correct = runCatching { BookingFinance.calculate(booking.grossCents, booking.appliedOtaBasisPoints, booking.actualOtaCents, booking.appliedManagementBasisPoints) }.getOrNull()
+            val correct = runCatching { BookingFinance.calculate(booking) }.getOrNull()
             if (correct == null || correct.otaCents != booking.otaCents || correct.netCents != booking.netCents || correct.managementCents != booking.managementCents) add(ReportIssue(true, "Dettaglio e importi economici incoerenti per ${booking.guestFirstName} ${booking.guestLastName}."))
             if (booking.status != "CANCELLED") {
                 if (booking.actualOtaCents == null) add(ReportIssue(false, "OTA stimata: ${booking.guestFirstName} ${booking.guestLastName}."))
